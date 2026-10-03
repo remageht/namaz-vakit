@@ -33,10 +33,25 @@ function To-Date($t) { $parts = $t.Substring(0,5).Split(":"); $h = [int]$parts[0
 $timings = Get-Timings
 if (-not $timings) { [System.Windows.Forms.MessageBox]::Show("Нет интернета и нет кэша времени намаза."); exit 1 }
 
-# Иконка: полумесяц из icon-192.png, иначе стандартная
+function New-CountdownIcon($text) {
+  $bmp = New-Object System.Drawing.Bitmap(16,16)
+  $g = [System.Drawing.Graphics]::FromImage($bmp)
+  $g.Clear([System.Drawing.Color]::FromArgb(6,40,31))
+  $f = New-Object System.Drawing.Font("Segoe UI", 7, [System.Drawing.FontStyle]::Bold)
+  $br = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(212,175,55))
+  $sf = New-Object System.Drawing.StringFormat
+  $sf.Alignment = "Center"; $sf.LineAlignment = "Center"
+  $g.DrawString($text, $f, $br, (New-Object System.Drawing.RectangleF(0,0,16,16)), $sf)
+  $g.Dispose(); $f.Dispose(); $br.Dispose()
+  $ic = [System.Drawing.Icon]::FromHandle($bmp.GetHicon())
+  $bmp.Dispose()
+  return $ic
+}
+
+# Стартовая иконка: полумесяц из icon-192.png, иначе стандартная
 $icon = [System.Drawing.SystemIcons]::Information
 try { $p = Join-Path $ScriptDir "icon-192.png"
-  if (Test-Path -LiteralPath $p) { $bmp = New-Object System.Drawing.Bitmap($p); $icon = [System.Drawing.Icon]::FromHandle($bmp.GetHicon()) }
+  if (Test-Path -LiteralPath $p) { $b0 = New-Object System.Drawing.Bitmap($p); $icon = [System.Drawing.Icon]::FromHandle($b0.GetHicon()) }
 } catch {}
 
 $ni = New-Object System.Windows.Forms.NotifyIcon
@@ -46,9 +61,37 @@ $ctx = New-Object System.Windows.Forms.ApplicationContext
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $open = $menu.Items.Add("Открыть приложение"); $open.Add_Click({ Start-Process $AppUrl })
 $ref = $menu.Items.Add("Обновить время"); $ref.Add_Click({ $script:timings = Get-Timings })
-$exit = $menu.Items.Add("Выход"); $exit.Add_Click({ $ni.Visible = $false; $ctx.ExitThread() })
+$tog = $menu.Items.Add("Скрыть панель"); $tog.Add_Click({ $panel.Visible = -not $panel.Visible; $tog.Text = if ($panel.Visible) { "Скрыть панель" } else { "Показать панель" } })
+$exit = $menu.Items.Add("Выход"); $exit.Add_Click({ $ni.Visible = $false; $panel.Close(); $ctx.ExitThread() })
 $ni.ContextMenuStrip = $menu
 $ni.Add_DoubleClick({ Start-Process $AppUrl })
+
+# Мини-панель: время всегда видно на экране (без наведения), справа над часами
+$lblMain = New-Object System.Windows.Forms.Label
+$lblMain.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
+$lblMain.ForeColor = [System.Drawing.Color]::FromArgb(212,175,55)
+$lblMain.AutoSize = $true
+$lblMain.Location = New-Object System.Drawing.Point(10, 6)
+$lblSub = New-Object System.Windows.Forms.Label
+$lblSub.Font = New-Object System.Drawing.Font("Segoe UI", 11)
+$lblSub.ForeColor = [System.Drawing.Color]::White
+$lblSub.AutoSize = $true
+$lblSub.Location = New-Object System.Drawing.Point(10, 34)
+$panel = New-Object System.Windows.Forms.Form
+$panel.FormBorderStyle = "None"
+$panel.TopMost = $true
+$panel.ShowInTaskbar = $false
+$panel.BackColor = [System.Drawing.Color]::FromArgb(6,40,31)
+$panel.Size = New-Object System.Drawing.Size(240, 66)
+$panel.Controls.Add($lblMain)
+$panel.Controls.Add($lblSub)
+$wa = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+$panel.Location = New-Object System.Drawing.Point(($wa.Right - 250), ($wa.Bottom - 76))
+$panel.Add_DoubleClick({ Start-Process $AppUrl })
+$script:drag = @{ on=$false; x=0; y=0 }
+$panel.Add_MouseDown({ param($s,$e) if ($e.Button -eq "Left") { $script:drag.on=$true; $script:drag.x=$e.X; $script:drag.y=$e.Y } })
+$panel.Add_MouseMove({ param($s,$e) if ($script:drag.on) { $p=[System.Windows.Forms.Cursor]::Position; $panel.Location = New-Object System.Drawing.Point(($p.X - $script:drag.x), ($p.Y - $script:drag.y)) } })
+$panel.Add_MouseUp({ $script:drag.on=$false })
 
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 5000
@@ -61,6 +104,10 @@ $timer.Add_Tick({
   $s = [int]($next.date - $now).TotalSeconds
   $cd = "{0:00}:{1:00}:{2:00}" -f ($s/3600), (($s%3600)/60), ($s%60)
   $ni.Text = "{0} {1} -{2}" -f $RU[$next.key], $next.date.ToString("HH:mm"), $cd
+  $short = if ($s -ge 3600) { "{0}ч" -f [int]($s/3600) } else { "{0}м" -f [int]($s/60) }
+  try { $old = $ni.Icon; $ni.Icon = New-CountdownIcon $short; if ($old) { $old.Dispose() } } catch {}
+  $lblMain.Text = "{0} {1}" -f $RU[$next.key], $next.date.ToString("HH:mm")
+  $lblSub.Text = "осталось " + $cd
   $dk = "{0}_{1}" -f $next.key, (Get-Date).ToString("yyyy-MM-dd")
   if ($s -le 600 -and $s -gt 540 -and $next.key -ne "Sunrise" -and $script:last10 -ne $dk) { $script:last10 = $dk
     $ni.ShowBalloonTip(10000, "Подготовка к молитве", ("{0} через 10 минут ({1}). Соверши вуду." -f $RU[$next.key], $next.date.ToString("HH:mm")), [System.Windows.Forms.ToolTipIcon]::Info) }
@@ -71,6 +118,7 @@ $timer.Add_Tick({
 $script:day = (Get-Date).ToString("dd-MM-yyyy")
 $script:last10 = ""; $script:last0 = ""
 $timer.Start()
+$panel.Show()
 Log "Виджет запущен"
 $ni.ShowBalloonTip(5000, "Намаз-виджет", "Виджет запущен. Наведи на значок в трее.", [System.Windows.Forms.ToolTipIcon]::Info)
 [System.Windows.Forms.Application]::Run($ctx)
