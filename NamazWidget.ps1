@@ -15,7 +15,18 @@ public class WinApi {
 }
 "@
 
-$Lat = 45.1342; $Lon = 33.60; $Method = 3; $School = 1   # Саки, Egypt-метод (сверен с islam.global), Ханафи
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ConfigFile = Join-Path $ScriptDir "config.json"
+if (Test-Path -LiteralPath $ConfigFile) {
+  $cfg = Get-Content -LiteralPath $ConfigFile -Raw | ConvertFrom-Json
+  $Lat = $cfg.latitude ?? 45.1342
+  $Lon = $cfg.longitude ?? 33.60
+  $Method = $cfg.method ?? 3
+  $School = $cfg.school ?? 1
+} else {
+  $Lat = 45.1342; $Lon = 33.60; $Method = 3; $School = 1
+}
+# Саки, Egypt-метод (сверен с islam.global), Ханафи
 $AppUrl = "https://remageht.github.io/namaz-vakit/"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $LogFile = Join-Path $ScriptDir "widget.log"
