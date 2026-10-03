@@ -1,0 +1,53 @@
+name: Namaz Widget CI
+
+on:
+  push:
+    paths:
+      - '**/NamazWidget.ps1'
+      - '**/manifest.json'
+  pull_request:
+    paths:
+      - '**/NamazWidget.ps1'
+      - '**/manifest.json'
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install PowerShell
+        uses: microsoft/setup-powershell@v2
+        
+      - name: Validate PowerShell syntax
+        run: |
+          $errors = $null
+          [void][System.Management.Automation.PSParser]::Tokenize(
+            [System.IO.File]::ReadAllText(
+              "NamazWidget.ps1",
+              [System.Text.Encoding]::UTF8
+            ),
+            [ref]$errors
+          )
+          if ($errors.Count -gt 0) {
+            Write-Error "Syntax errors found: $($errors.Count)"
+            exit 1
+          }
+          Write-Output "PowerShell syntax valid"
+          
+      - name: Validate manifest.json
+        run: |
+          $json = Get-Content -Path "manifest.json" -Raw | ConvertFrom-Json
+          Write-Output "Manifest name: $($json.name)"
+          Write-Output "Manifest short_name: $($json.short_name)"
+          Write-Output "Manifest display: $($json.display)"
+          
+      - name: Check required files exist
+        run: |
+          @("LICENSE", "README.md", "index.html", "manifest.json", "sw.js", "icon-192.png", "icon-512.png") | ForEach-Object {
+            if (-not (Test-Path $_)) {
+              Write-Error "Missing: $_"
+              exit 1
+            }
+          }
+          Write-Output "All required files present"
