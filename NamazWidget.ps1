@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 public class WinApi {
   [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
   [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
   public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
 }
 "@
@@ -164,7 +165,7 @@ $timer.Add_Tick({
   $vis = ($show -and -not $script:userHidden)
   if ($panel.Visible -ne $vis) { $panel.Visible = $vis }
   if (-not $vis -and $sched.Visible) { $sched.Hide() }
-  if ($vis) { try { $panel.BringToFront() } catch {} }
+  if ($vis) { try { [void][WinApi]::SetWindowPos($panel.Handle, [IntPtr](-1), 0, 0, 0, 0, 0x0013) } catch {} }
   $ni.Text = "{0} {1} -{2}" -f $RU[$next.key], $next.date.ToString("HH:mm"), $cd
   $short = if ($s -ge 3600) { "{0}ч" -f [int]($s/3600) } else { "{0}м" -f [int]($s/60) }
   try { $old = $ni.Icon; $ni.Icon = New-CountdownIcon $short; if ($old) { $old.Dispose() } } catch {}
