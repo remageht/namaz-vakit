@@ -66,27 +66,35 @@ $exit = $menu.Items.Add("Выход"); $exit.Add_Click({ $ni.Visible = $false; $
 $ni.ContextMenuStrip = $menu
 $ni.Add_DoubleClick({ Start-Process $AppUrl })
 
-# Мини-панель: время всегда видно на экране (без наведения), справа над часами
+# Мини-панель в стиле виджета погоды: иконка + две строки, слева внизу рядом с погодой
+$pic = New-Object System.Windows.Forms.PictureBox
+$pic.Size = New-Object System.Drawing.Size(32, 32)
+$pic.Location = New-Object System.Drawing.Point(8, 8)
+$pic.SizeMode = "StretchImage"
+try { $ip = Join-Path $ScriptDir "icon-192.png"
+  if (Test-Path -LiteralPath $ip) { $pic.Image = [System.Drawing.Image]::FromFile($ip) }
+} catch {}
 $lblMain = New-Object System.Windows.Forms.Label
-$lblMain.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
-$lblMain.ForeColor = [System.Drawing.Color]::FromArgb(212,175,55)
+$lblMain.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+$lblMain.ForeColor = [System.Drawing.Color]::White
 $lblMain.AutoSize = $true
-$lblMain.Location = New-Object System.Drawing.Point(10, 6)
+$lblMain.Location = New-Object System.Drawing.Point(48, 3)
 $lblSub = New-Object System.Windows.Forms.Label
-$lblSub.Font = New-Object System.Drawing.Font("Segoe UI", 11)
-$lblSub.ForeColor = [System.Drawing.Color]::White
+$lblSub.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$lblSub.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
 $lblSub.AutoSize = $true
-$lblSub.Location = New-Object System.Drawing.Point(10, 34)
+$lblSub.Location = New-Object System.Drawing.Point(48, 24)
 $panel = New-Object System.Windows.Forms.Form
 $panel.FormBorderStyle = "None"
 $panel.TopMost = $true
 $panel.ShowInTaskbar = $false
-$panel.BackColor = [System.Drawing.Color]::FromArgb(6,40,31)
-$panel.Size = New-Object System.Drawing.Size(240, 66)
+$panel.BackColor = [System.Drawing.Color]::FromArgb(43,43,43)
+$panel.Size = New-Object System.Drawing.Size(210, 48)
+$panel.Controls.Add($pic)
 $panel.Controls.Add($lblMain)
 $panel.Controls.Add($lblSub)
 $wa = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
-$panel.Location = New-Object System.Drawing.Point(($wa.Right - 250), ($wa.Bottom - 76))
+$panel.Location = New-Object System.Drawing.Point(($wa.Left + 10), ($wa.Bottom - 58))
 $panel.Add_DoubleClick({ Start-Process $AppUrl })
 $script:drag = @{ on=$false; x=0; y=0 }
 $panel.Add_MouseDown({ param($s,$e) if ($e.Button -eq "Left") { $script:drag.on=$true; $script:drag.x=$e.X; $script:drag.y=$e.Y } })
@@ -107,7 +115,8 @@ $timer.Add_Tick({
   $short = if ($s -ge 3600) { "{0}ч" -f [int]($s/3600) } else { "{0}м" -f [int]($s/60) }
   try { $old = $ni.Icon; $ni.Icon = New-CountdownIcon $short; if ($old) { $old.Dispose() } } catch {}
   $lblMain.Text = "{0} {1}" -f $RU[$next.key], $next.date.ToString("HH:mm")
-  $lblSub.Text = "осталось " + $cd
+  $hh = [int]($s/3600); $mm = [int](($s%3600)/60)
+  if ($hh -gt 0) { $lblSub.Text = "осталось {0} ч {1} мин" -f $hh, $mm } else { $lblSub.Text = "осталось {0} мин" -f $mm }
   $dk = "{0}_{1}" -f $next.key, (Get-Date).ToString("yyyy-MM-dd")
   if ($s -le 600 -and $s -gt 540 -and $next.key -ne "Sunrise" -and $script:last10 -ne $dk) { $script:last10 = $dk
     $ni.ShowBalloonTip(10000, "Подготовка к молитве", ("{0} через 10 минут ({1}). Соверши вуду." -f $RU[$next.key], $next.date.ToString("HH:mm")), [System.Windows.Forms.ToolTipIcon]::Info) }
