@@ -9,6 +9,8 @@ public class WinApi {
   [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
   [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
   [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
+  [DllImport("user32.dll")] public static extern IntPtr GetWindowLongPtr(IntPtr h, int n);
+  [DllImport("user32.dll")] public static extern IntPtr SetWindowLongPtr(IntPtr h, int n, IntPtr v);
   public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
 }
 "@
@@ -140,6 +142,7 @@ $sched.Add_Deactivate({ $sched.Hide() })
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 5000
 $timer.Add_Tick({
+try {
   $now = Get-Date
   if ((Get-Date).ToString("dd-MM-yyyy") -ne $script:day) { $script:timings = Get-Timings; $script:day = (Get-Date).ToString("dd-MM-yyyy") }
   $next = $null
@@ -163,9 +166,9 @@ $timer.Add_Tick({
     }
   }
   $vis = ($show -and -not $script:userHidden)
-  if ($panel.Visible -ne $vis) { $panel.Visible = $vis }
-  if (-not $vis -and $sched.Visible) { $sched.Hide() }
-  if ($vis) { try { [void][WinApi]::SetWindowPos($panel.Handle, [IntPtr](-1), 0, 0, 0, 0, 0x0013) } catch {} }
+  if ($panel.Visible -ne $vis) { $panel.Visible = $vis; Log ("panel visible -> " + $vis) }
+  if ($panel.WindowState -eq [System.Windows.Forms.FormWindowState]::Minimized) { try { $panel.WindowState = [System.Windows.Forms.FormWindowState]::Normal; Log "panel restored from minimized" } catch {} }
+  if ($vis) { try { [void][WinApi]::SetWindowPos($panel.Handle, [IntPtr](-1), 0, 0, 0, 0, 0x0033) } catch {} }
   $ni.Text = "{0} {1} -{2}" -f $RU[$next.key], $next.date.ToString("HH:mm"), $cd
   $short = if ($s -ge 3600) { "{0}ч" -f [int]($s/3600) } else { "{0}м" -f [int]($s/60) }
   try { $old = $ni.Icon; $ni.Icon = New-CountdownIcon $short; if ($old) { $old.Dispose() } } catch {}
@@ -178,11 +181,13 @@ $timer.Add_Tick({
   if ($s -le 5 -and $script:last0 -ne $dk) { $script:last0 = $dk
     if ($next.key -eq "Sunrise") { $ni.ShowBalloonTip(10000, "Восход", "Время Фаджра вышло.", [System.Windows.Forms.ToolTipIcon]::Info) }
     else { $ni.ShowBalloonTip(10000, "Время намаза", ("Начался: {0}." -f $RU[$next.key]), [System.Windows.Forms.ToolTipIcon]::Info) } }
+} catch { Log ("TICK-ERR: " + $_.Exception.Message) }
 })
 $script:day = (Get-Date).ToString("dd-MM-yyyy")
 $script:last10 = ""; $script:last0 = ""
 $timer.Start()
 $panel.Show()
+try { $ex = [WinApi]::GetWindowLongPtr($panel.Handle, -20); [void][WinApi]::SetWindowLongPtr($panel.Handle, -20, [IntPtr](([int64]$ex -bor 0x80))) } catch {}
 Log "Виджет запущен"
 $ni.ShowBalloonTip(5000, "Намаз-виджет", "Виджет запущен. Наведи на значок в трее.", [System.Windows.Forms.ToolTipIcon]::Info)
 [System.Windows.Forms.Application]::Run($ctx)
