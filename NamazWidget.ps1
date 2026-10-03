@@ -2,6 +2,15 @@
 # Показывает следующий намаз + обратный отсчёт, балуны за 10 мин и в начале.
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class WinApi {
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+  public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
+}
+"@
 
 $Lat = 45.1342; $Lon = 33.60; $Method = 3; $School = 1   # Саки, Egypt-метод (сверен с islam.global), Ханафи
 $AppUrl = "https://remageht.github.io/namaz-vakit/"
@@ -61,7 +70,8 @@ $ctx = New-Object System.Windows.Forms.ApplicationContext
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $open = $menu.Items.Add("Открыть приложение"); $open.Add_Click({ Start-Process $AppUrl })
 $ref = $menu.Items.Add("Обновить время"); $ref.Add_Click({ $script:timings = Get-Timings })
-$tog = $menu.Items.Add("Скрыть панель"); $tog.Add_Click({ $panel.Visible = -not $panel.Visible; $tog.Text = if ($panel.Visible) { "Скрыть панель" } else { "Показать панель" } })
+$script:userHidden = $false
+$tog = $menu.Items.Add("Скрыть панель"); $tog.Add_Click({ $script:userHidden = -not $script:userHidden; $tog.Text = if ($script:userHidden) { "Показать панель" } else { "Скрыть панель" } })
 $exit = $menu.Items.Add("Выход"); $exit.Add_Click({ $ni.Visible = $false; $sched.Close(); $panel.Close(); $ctx.ExitThread() })
 $ni.ContextMenuStrip = $menu
 $ni.Add_DoubleClick({ Start-Process $AppUrl })
@@ -142,7 +152,19 @@ $timer.Add_Tick({
   elseif ($w.Top -gt $b.Top) { $panel.Location = New-Object System.Drawing.Point(($w.Left + 140), ($w.Top - 48)) }
   elseif ($w.Left -gt $b.Left) { $panel.Location = New-Object System.Drawing.Point($w.Left, ($w.Bottom - 58)) }
   else { $panel.Location = New-Object System.Drawing.Point(($w.Right - 220), ($w.Bottom - 58)) }
-  try { $panel.BringToFront() } catch {}
+  $show = $true
+  if ($b.Equals($w)) { $show = $false }
+  else {
+    $fg = [WinApi]::GetForegroundWindow()
+    $rc = New-Object WinApi+RECT
+    if ([WinApi]::GetWindowRect($fg, [ref]$rc)) {
+      if (($rc.Right - $rc.Left) -ge $b.Width -and ($rc.Bottom - $rc.Top) -ge $b.Height) { $show = $false }
+    }
+  }
+  $vis = ($show -and -not $script:userHidden)
+  if ($panel.Visible -ne $vis) { $panel.Visible = $vis }
+  if (-not $vis -and $sched.Visible) { $sched.Hide() }
+  if ($vis) { try { $panel.BringToFront() } catch {} }
   $ni.Text = "{0} {1} -{2}" -f $RU[$next.key], $next.date.ToString("HH:mm"), $cd
   $short = if ($s -ge 3600) { "{0}ч" -f [int]($s/3600) } else { "{0}м" -f [int]($s/60) }
   try { $old = $ni.Icon; $ni.Icon = New-CountdownIcon $short; if ($old) { $old.Dispose() } } catch {}
