@@ -51,7 +51,7 @@
 ### Пошаговая инструкция:
 1. Загрузите файлы репозитория в ветку `main` на GitHub:
    ```bash
-   git add .
+   git add index.html manifest.json sw.js icon-*.png README.md .gitignore
    git commit -m "feat: finalize PWA configuration"
    git push origin main
    ```
