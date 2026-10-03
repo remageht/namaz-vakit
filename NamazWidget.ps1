@@ -124,11 +124,7 @@ $panel.Add_Click({
   if ($sched.Visible) { $sched.Hide() } else { $sched.Show() }
 })
 $sched.Add_Deactivate({ $sched.Hide() })
-$script:drag = @{ on=$false; x=0; y=0 }
-$script:moved = $false
-$panel.Add_MouseDown({ param($s,$e) if ($e.Button -eq "Left") { $script:drag.on=$true; $script:drag.x=$e.X; $script:drag.y=$e.Y; $script:moved=$true } })
-$panel.Add_MouseMove({ param($s,$e) if ($script:drag.on) { $p=[System.Windows.Forms.Cursor]::Position; $panel.Location = New-Object System.Drawing.Point(($p.X - $script:drag.x), ($p.Y - $script:drag.y)) } })
-$panel.Add_MouseUp({ $script:drag.on=$false })
+# Плашка зафиксирована: перетаскивание отключено, позиция только рядом с погодой
 
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 5000
@@ -140,7 +136,13 @@ $timer.Add_Tick({
   if (-not $next) { $d = (To-Date $script:timings.Fajr).AddDays(1); $next = @{ key="Fajr"; date=$d } }
   $s = [int]($next.date - $now).TotalSeconds
   $cd = "{0:00}:{1:00}:{2:00}" -f ($s/3600), (($s%3600)/60), ($s%60)
-  if (-not $script:moved) { $w = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea; $panel.Location = New-Object System.Drawing.Point(($w.Left + 140), $w.Bottom) }
+  $scr = [System.Windows.Forms.Screen]::PrimaryScreen
+  $b = $scr.Bounds; $w = $scr.WorkingArea
+  if ($w.Bottom -lt $b.Bottom) { $panel.Location = New-Object System.Drawing.Point(($w.Left + 140), $w.Bottom) }
+  elseif ($w.Top -gt $b.Top) { $panel.Location = New-Object System.Drawing.Point(($w.Left + 140), ($w.Top - 48)) }
+  elseif ($w.Left -gt $b.Left) { $panel.Location = New-Object System.Drawing.Point($w.Left, ($w.Bottom - 58)) }
+  else { $panel.Location = New-Object System.Drawing.Point(($w.Right - 220), ($w.Bottom - 58)) }
+  try { $panel.BringToFront() } catch {}
   $ni.Text = "{0} {1} -{2}" -f $RU[$next.key], $next.date.ToString("HH:mm"), $cd
   $short = if ($s -ge 3600) { "{0}ч" -f [int]($s/3600) } else { "{0}м" -f [int]($s/60) }
   try { $old = $ni.Icon; $ni.Icon = New-CountdownIcon $short; if ($old) { $old.Dispose() } } catch {}
