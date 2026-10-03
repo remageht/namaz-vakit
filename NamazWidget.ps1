@@ -62,7 +62,7 @@ $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $open = $menu.Items.Add("Открыть приложение"); $open.Add_Click({ Start-Process $AppUrl })
 $ref = $menu.Items.Add("Обновить время"); $ref.Add_Click({ $script:timings = Get-Timings })
 $tog = $menu.Items.Add("Скрыть панель"); $tog.Add_Click({ $panel.Visible = -not $panel.Visible; $tog.Text = if ($panel.Visible) { "Скрыть панель" } else { "Показать панель" } })
-$exit = $menu.Items.Add("Выход"); $exit.Add_Click({ $ni.Visible = $false; $panel.Close(); $ctx.ExitThread() })
+$exit = $menu.Items.Add("Выход"); $exit.Add_Click({ $ni.Visible = $false; $sched.Close(); $panel.Close(); $ctx.ExitThread() })
 $ni.ContextMenuStrip = $menu
 $ni.Add_DoubleClick({ Start-Process $AppUrl })
 
@@ -94,8 +94,36 @@ $panel.Controls.Add($pic)
 $panel.Controls.Add($lblMain)
 $panel.Controls.Add($lblSub)
 $wa = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
-$panel.Location = New-Object System.Drawing.Point(($wa.Left + 10), ($wa.Bottom - 58))
+$panel.Location = New-Object System.Drawing.Point(($wa.Left + 140), $wa.Bottom)
 $panel.Add_DoubleClick({ Start-Process $AppUrl })
+
+# Всплывающее расписание дня (как панель молитв у Awqat): клик по плашке
+$sched = New-Object System.Windows.Forms.Form
+$sched.FormBorderStyle = "FixedSingle"
+$sched.TopMost = $true
+$sched.ShowInTaskbar = $false
+$sched.BackColor = [System.Drawing.Color]::FromArgb(32,32,32)
+$sched.Size = New-Object System.Drawing.Size(200, 210)
+$sched.Text = "Намаз сегодня"
+$slbls = @{}
+$y = 8
+foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) {
+  $l = New-Object System.Windows.Forms.Label
+  $l.Font = New-Object System.Drawing.Font("Segoe UI", 11)
+  $l.ForeColor = [System.Drawing.Color]::White
+  $l.AutoSize = $true
+  $l.Location = New-Object System.Drawing.Point(12, $y)
+  $l.Tag = $k
+  $sched.Controls.Add($l)
+  $slbls[$k] = $l
+  $y += 30
+}
+$panel.Add_Click({
+  foreach ($k in $slbls.Keys) { $slbls[$k].Text = "{0}  {1}" -f $RU[$k], $script:timings.$k.Substring(0,5) }
+  $sched.Location = New-Object System.Drawing.Point($panel.Left, ($panel.Top - 220))
+  if ($sched.Visible) { $sched.Hide() } else { $sched.Show() }
+})
+$sched.Add_Deactivate({ $sched.Hide() })
 $script:drag = @{ on=$false; x=0; y=0 }
 $panel.Add_MouseDown({ param($s,$e) if ($e.Button -eq "Left") { $script:drag.on=$true; $script:drag.x=$e.X; $script:drag.y=$e.Y } })
 $panel.Add_MouseMove({ param($s,$e) if ($script:drag.on) { $p=[System.Windows.Forms.Cursor]::Position; $panel.Location = New-Object System.Drawing.Point(($p.X - $script:drag.x), ($p.Y - $script:drag.y)) } })
