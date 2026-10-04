@@ -40,6 +40,50 @@ $Order = @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")
 
 function Log($m){ Add-Content -LiteralPath $LogFile -Value ("[{0}] {1}" -f (Get-Date -Format "HH:mm:ss"), $m) -Encoding UTF8 }
 
+function Calc-PrayerTimes([double]$lat, [double]$lon, [datetime]$date) {
+  $pi = [Math]::PI; $dr = $pi / 180.0
+  $yr = $date.Year; $mo = $date.Month; $dy = $date.Day
+  $a = [Math]::Floor(($mo + 9) / 12)
+  $jd = 367*$yr - [Math]::Floor(7*($yr+$a)/4) + [Math]::Floor(275*$mo/9) + $dy + 1721013.5
+  $d = $jd - 2451545.0
+  $g = (357.529 + 0.98560028*$d) % 360
+  $q = (280.459 + 0.98564736*$d) % 360
+  $Lv = ($q + 1.915*[Math]::Sin($g*$dr) + 0.020*[Math]::Sin(2*$g*$dr)) % 360
+  $e  = 23.439 - 0.00000036*$d
+  $RA = ([Math]::Atan2([Math]::Cos($e*$dr)*[Math]::Sin($Lv*$dr), [Math]::Cos($Lv*$dr)) / $dr + 360) % 360
+  $D  = [Math]::Asin([Math]::Sin($e*$dr)*[Math]::Sin($Lv*$dr)) / $dr
+  $EqT = $q/15 - $RA/15
+  $Tnoon = 12 - $lon/15 - $EqT
+  function fHA([double]$angle) {
+    $cosH = ([Math]::Sin(-$angle*$dr) - [Math]::Sin($lat*$dr)*[Math]::Sin($D*$dr)) / ([Math]::Cos($lat*$dr)*[Math]::Cos($D*$dr))
+    if ([Math]::Abs($cosH) -gt 1) { return 1.0 }
+    return [Math]::Acos($cosH) / $dr / 15.0
+  }
+  $asrHA = [Math]::Atan(1.0 / (2.0 + [Math]::Tan([Math]::Abs($lat - $D)*$dr))) / $dr / 15.0
+  $tz = [TimeZoneInfo]::Local.GetUtcOffset($date).TotalHours
+  function fHHMM([double]$h) { $h = (($h + $tz) % 24 + 24) % 24; "{0:00}:{1:00}" -f [int]$h, [int](($h % 1)*60) }
+  return [PSCustomObject]@{
+    Fajr    = fHHMM($Tnoon - (fHA(19.5)))
+    Sunrise = fHHMM($Tnoon - (fHA(0.8333)))
+    Dhuhr   = fHHMM($Tnoon + 0.017)
+    Asr     = fHHMM($Tnoon + $asrHA)
+    Maghrib = fHHMM($Tnoon + (fHA(0.8333)))
+    Isha    = fHHMM($Tnoon + (fHA(17.5)))
+  }
+}
+
+function Compare-Timings($a, $b) {
+  $maxDiff = 0
+  foreach ($k in @("Fajr","Dhuhr","Asr","Maghrib","Isha")) {
+    try {
+      $p1 = $a.$k.Substring(0,5).Split(":"); $p2 = $b.$k.Substring(0,5).Split(":")
+      $diff = [Math]::Abs([int]$p1[0]*60+[int]$p1[1] - ([int]$p2[0]*60+[int]$p2[1]))
+      if ($diff -gt $maxDiff) { $maxDiff = $diff }
+    } catch {}
+  }
+  return $maxDiff
+}
+
 function Get-Timings {
   $today = (Get-Date).ToString("dd-MM-yyyy")
   if (Test-Path -LiteralPath $CacheFile) {
@@ -49,16 +93,22 @@ function Get-Timings {
   try {
     $r = Invoke-RestMethod -Uri "https://api.aladhan.com/v1/timings/${today}?latitude=${Lat}&longitude=${Lon}&method=${Method}&school=${School}" -TimeoutSec 15
     $t = $r.data.timings
+    try { $off = Calc-PrayerTimes $Lat $Lon (Get-Date); $maxD = Compare-Timings $t $off
+      if ($maxD -gt 2) { Log "WARN офлайн-расхождение ${maxD} мин" } else { Log "Офлайн сверка OK лтч${maxD} мин" }
+    } catch {}
     @{ date = $today; timings = $t } | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $CacheFile
     Log "Время загружено: Фаджр $($t.Fajr), Иша $($t.Isha)"
     return $t
-  } catch { Log "API ошибка: $($_.Exception.Message)"; return $null }
+  } catch {
+    Log "API ошибка: $($_.Exception.Message) — офлайн-расчёт"
+    $off = Calc-PrayerTimes $Lat $Lon (Get-Date)
+    Log "Офлайн: Фаджр $($off.Fajr), Иша $($off.Isha)"
+    return $off
+  }
 }
 
-function To-Date($t) { $parts = $t.Substring(0,5).Split(":"); $h = [int]$parts[0]; $mi = [int]$parts[1]; $d = Get-Date; return (Get-Date -Year $d.Year -Month $d.Month -Day $d.Day -Hour $h -Minute $mi -Second 0) }
-
 $timings = Get-Timings
-if (-not $timings) { [System.Windows.Forms.MessageBox]::Show("Нет интернета и нет кэша времени намаза."); exit 1 }
+if (-not $timings) { [System.Windows.Forms.MessageBox]::Show("Ошибка расчёта времени намаза."); exit 1 }
 
 function New-CountdownIcon($text) {
   $bmp = New-Object System.Drawing.Bitmap(16,16)
@@ -559,10 +609,17 @@ try {
   if ($s -le 5 -and $script:last0 -ne $dk) { $script:last0 = $dk
     if ($next.key -eq "Sunrise") { $ni.ShowBalloonTip(10000, $T.sunrise, $T.fajrOut, [System.Windows.Forms.ToolTipIcon]::Info) }
     else { $ni.ShowBalloonTip(10000, $T.time, ($T.started -f $Names[$next.key]), [System.Windows.Forms.ToolTipIcon]::Info) } }
+  # Утреннее уведомление с именем дня — раз в день
+  $morningKey = "morning_" + (Get-Date).ToString("yyyy-MM-dd")
+  if ($script:lastMorning -ne $morningKey) {
+    $script:lastMorning = $morningKey
+    $ni.ShowBalloonTip(12000, "Имя дня ☝ — №$($nidx+1)", "$($AN[$nidx][0]) · $($AN[$nidx][1])`r`n$($AN[$nidx][2])", [System.Windows.Forms.ToolTipIcon]::Info)
+    Log "Утреннее имя: №$($nidx+1) $($AN[$nidx][1])"
+  }
 } catch { Log ("TICK-ERR: " + $_.Exception.Message) }
 })
 $script:day = (Get-Date).ToString("dd-MM-yyyy")
-$script:last10 = ""; $script:last0 = ""; $script:tbOwner = 0; $script:lastShort = ""
+$script:last10 = ""; $script:last0 = ""; $script:tbOwner = 0; $script:lastShort = ""; $script:lastMorning = ""
 $timer.Start()
 Apply-Compact
 try { $ex = [WinApi]::GetWindowLongPtr($panel.Handle, -20); [void][WinApi]::SetWindowLongPtr($panel.Handle, -20, [IntPtr](([int64]$ex -bor 0x80))) } catch {}
