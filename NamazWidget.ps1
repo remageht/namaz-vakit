@@ -502,7 +502,7 @@ public class WinApi {
 "@
 
 $timer = New-Object System.Windows.Forms.Timer
-$timer.Interval = 500
+$timer.Interval = 250
 $timer.Add_Tick({
 try {
   $now = Get-Date
@@ -542,7 +542,8 @@ try {
   $nidx = Get-NameIdx
   $ni.Text = "{0} {1} -{2} · {3}" -f $Names[$next.key], $next.date.ToString("HH:mm"), $cd, $AN[$nidx][1]
   $short = if ($s -ge 3600) { "{0}ч" -f [int]($s/3600) } else { "{0}м" -f [int]($s/60) }
-  try { $old = $ni.Icon; $ni.Icon = New-CountdownIcon $short; if ($old) { $old.Dispose() } } catch {}
+  if ($script:lastShort -ne $short) { $script:lastShort = $short
+    try { $old = $ni.Icon; $ni.Icon = New-CountdownIcon $short; if ($old) { $old.Dispose() } } catch {} }
   $lblMain.Text = "{0} {1}" -f $Names[$next.key], $next.date.ToString("HH:mm")
   $hh = [int]($s/3600); $mm = [int](($s%3600)/60); $ss = [int]($s%60)
   if ($ShowCD) {
@@ -561,7 +562,7 @@ try {
 } catch { Log ("TICK-ERR: " + $_.Exception.Message) }
 })
 $script:day = (Get-Date).ToString("dd-MM-yyyy")
-$script:last10 = ""; $script:last0 = ""; $script:tbOwner = 0
+$script:last10 = ""; $script:last0 = ""; $script:tbOwner = 0; $script:lastShort = ""
 $timer.Start()
 Apply-Compact
 try { $ex = [WinApi]::GetWindowLongPtr($panel.Handle, -20); [void][WinApi]::SetWindowLongPtr($panel.Handle, -20, [IntPtr](([int64]$ex -bor 0x80))) } catch {}
