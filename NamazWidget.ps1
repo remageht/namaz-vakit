@@ -247,7 +247,7 @@ $sched.TopMost = $true
 $sched.ShowInTaskbar = $false
 $sched.BackColor = [System.Drawing.Color]::FromArgb(32,32,32)
 $sched.Opacity = 0.95
-$sched.Size = New-Object System.Drawing.Size(220, 386)
+$sched.Size = New-Object System.Drawing.Size(220, 400)
 $shName = New-Object System.Windows.Forms.Label
 $shName.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
 $shName.ForeColor = [System.Drawing.Color]::FromArgb(212,175,55)
@@ -290,7 +290,7 @@ $shPlace.AutoSize = $true
 $shPlace.Location = New-Object System.Drawing.Point(12, 68)
 $sched.Controls.Add($shPlace)
 $sSt = @{}; $sNm = @{}; $sTm = @{}
-$y = 130
+$y = 140
 foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) {
   $l1 = New-Object System.Windows.Forms.Label
   $l1.Font = New-Object System.Drawing.Font("Segoe UI", 11)
@@ -316,7 +316,7 @@ $ayah = New-Object System.Windows.Forms.Label
 $ayah.Font = New-Object System.Drawing.Font("Segoe UI", 11)
 $ayah.ForeColor = [System.Drawing.Color]::FromArgb(255,233,168)
 $ayah.Size = New-Object System.Drawing.Size(196, 56)
-$ayah.Location = New-Object System.Drawing.Point(12, 318)
+$ayah.Location = New-Object System.Drawing.Point(12, 330)
 $ayah.TextAlign = "MiddleCenter"
 $ayah.Text = "إن الصلاة كانت على المؤمنين كتابا موقوتا"
 $sched.Controls.Add($ayah)
@@ -330,7 +330,7 @@ $dayClick = {
   $shHijri.Text = "{0} {1} {2}" -f $hc.GetDayOfMonth($now2), $HijriMonths[$hc.GetMonth($now2)-1], $hc.GetYear($now2)
   $shPlace.Text = $Place
   $nn = Get-NameIdx
-  $shName.Text = "☝ №{0}: {1} — {2}" -f ($nn + 1), $AN[$nn][1], $AN[$nn][2]
+  $shName.Text = "☝ №{0} · {1} · {2} — {3}" -f ($nn + 1), $AN[$nn][0], $AN[$nn][1], $AN[$nn][2]
   $gold = [System.Drawing.Color]::FromArgb(212,175,55)
   $gray = [System.Drawing.Color]::FromArgb(150,150,150)
   $white = [System.Drawing.Color]::White
@@ -341,7 +341,18 @@ $dayClick = {
     elseif ((To-Date $script:timings.$k) -lt $now2) { $sSt[$k].Text = "✓"; $sSt[$k].ForeColor = $gray; $sNm[$k].ForeColor = $gray; $sTm[$k].ForeColor = $gray }
     else { $sSt[$k].Text = "○"; $sSt[$k].ForeColor = $white; $sNm[$k].ForeColor = $white; $sTm[$k].ForeColor = $white }
   }
-  $sched.Location = New-Object System.Drawing.Point($panel.Left, ($panel.Top - 396))
+  [void]$sched.Handle
+  $y2 = $shName.Bottom + 6
+  $i = 0
+  foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) {
+    $sSt[$k].Top = $y2 + $i * 30
+    $sNm[$k].Top = $y2 + $i * 30
+    $sTm[$k].Top = $y2 + $i * 30
+    $i++
+  }
+  $ayah.Top = $y2 + 180 + 8
+  $sched.Height = $ayah.Bottom + 12
+  $sched.Location = New-Object System.Drawing.Point($panel.Left, ($panel.Top - $sched.Height - 10))
   if ($sched.Visible) { $sched.Hide() } else { $sched.Show() }
 }
 foreach ($c in @($panel, $pic, $lblMain, $lblSub)) { $c.Add_Click($dayClick); $c.Add_DoubleClick($openApp) }
