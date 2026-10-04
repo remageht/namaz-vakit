@@ -18,6 +18,7 @@ public class WinApi {
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ConfigFile = Join-Path $ScriptDir "config.json"
 $Lat = 45.1342; $Lon = 33.60; $Method = 3; $School = 1; $Place = "Саки"
+$Lang = "ru"; $StartupOn = $true; $ShowCD = $true; $ShowSec = $false; $Compact = $false; $RemMin = 10
 if (Test-Path -LiteralPath $ConfigFile) {
   try { $cfg = Get-Content -LiteralPath $ConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($cfg.latitude -ne $null) { $Lat = $cfg.latitude }
@@ -25,8 +26,22 @@ if (Test-Path -LiteralPath $ConfigFile) {
     if ($cfg.method -ne $null) { $Method = $cfg.method }
     if ($cfg.school -ne $null) { $School = $cfg.school }
     if ($cfg.place -ne $null -and $cfg.place -ne "") { $Place = $cfg.place }
+    if ($cfg.lang -ne $null) { $Lang = $cfg.lang }
+    if ($cfg.startup -ne $null) { $StartupOn = [bool]$cfg.startup }
+    if ($cfg.showCountdown -ne $null) { $ShowCD = [bool]$cfg.showCountdown }
+    if ($cfg.showSeconds -ne $null) { $ShowSec = [bool]$cfg.showSeconds }
+    if ($cfg.compact -ne $null) { $Compact = [bool]$cfg.compact }
+    if ($cfg.reminderMinutes -ne $null) { $RemMin = [int]$cfg.reminderMinutes }
   } catch {}
 }
+$STR = @{
+  ru = @{ prep="Подготовка к молитве"; prepBody="{0} через {1} мин ({2}). Соверши вуду."; time="Время намаза"; started="Начался: {0}."; sunrise="Восход"; fajrOut="Время Фаджра вышло."; left="осталось"; h="ч"; m="мин" }
+  en = @{ prep="Prayer reminder"; prepBody="{0} in {1} min ({2}). Make wudu."; time="Prayer time"; started="{0} started."; sunrise="Shuruq"; fajrOut="Fajr time is over."; left="left"; h="h"; m="min" }
+}
+$NamesRU = @{ Fajr="Фаджр"; Sunrise="Восход"; Dhuhr="Зухр"; Asr="Аср"; Maghrib="Магриб"; Isha="Иша" }
+$NamesEN = @{ Fajr="Fajr"; Sunrise="Shuruq"; Dhuhr="Dhuhr"; Asr="Asr"; Maghrib="Maghrib"; Isha="Isha" }
+function Update-Lang { if ($Lang -eq "en") { $script:Names = $NamesEN; $script:T = $STR.en } else { $script:Names = $NamesRU; $script:T = $STR.ru } }
+Update-Lang
 # Саки, Egypt-метод (сверен с islam.global), Ханафи
 $AppUrl = "https://remageht.github.io/namaz-vakit/"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -170,7 +185,7 @@ foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) {
   $l2.ForeColor = [System.Drawing.Color]::White
   $l2.AutoSize = $true
   $l2.Location = New-Object System.Drawing.Point(38, $y)
-  $l2.Text = $RU[$k]
+  $l2.Text = $Names[$k]
   $l3 = New-Object System.Windows.Forms.Label
   $l3.Font = New-Object System.Drawing.Font("Segoe UI", 11)
   $l3.ForeColor = [System.Drawing.Color]::White
@@ -202,6 +217,7 @@ $dayClick = {
   $gray = [System.Drawing.Color]::FromArgb(150,150,150)
   $white = [System.Drawing.Color]::White
   foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) {
+    $sNm[$k].Text = $Names[$k]
     $sTm[$k].Text = $script:timings.$k.Substring(0,5)
     if ($k -eq $nextK) { $sSt[$k].Text = "→"; $sSt[$k].ForeColor = $gold; $sNm[$k].ForeColor = $gold; $sTm[$k].ForeColor = $gold }
     elseif ((To-Date $script:timings.$k) -lt $now2) { $sSt[$k].Text = "✓"; $sSt[$k].ForeColor = $gray; $sNm[$k].ForeColor = $gray; $sTm[$k].ForeColor = $gray }
@@ -213,6 +229,120 @@ $dayClick = {
 foreach ($c in @($panel, $pic, $lblMain, $lblSub)) { $c.Add_Click($dayClick); $c.Add_DoubleClick($openApp) }
 $sched.Add_Deactivate({ $sched.Hide() })
 # Плашка зафиксирована: перетаскивание отключено, позиция только рядом с погодой
+
+function Apply-Compact {
+  if ($Compact) {
+    $panel.Size = New-Object System.Drawing.Size(160, 40)
+    $pic.Size = New-Object System.Drawing.Size(24, 24)
+    $pic.Location = New-Object System.Drawing.Point(6, 8)
+    $lblMain.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+    $lblMain.Location = New-Object System.Drawing.Point(36, 1)
+    $lblSub.Font = New-Object System.Drawing.Font("Segoe UI", 8)
+    $lblSub.Location = New-Object System.Drawing.Point(36, 19)
+  } else {
+    $panel.Size = New-Object System.Drawing.Size(210, 48)
+    $pic.Size = New-Object System.Drawing.Size(32, 32)
+    $pic.Location = New-Object System.Drawing.Point(8, 8)
+    $lblMain.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+    $lblMain.Location = New-Object System.Drawing.Point(48, 3)
+    $lblSub.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+    $lblSub.Location = New-Object System.Drawing.Point(48, 24)
+  }
+}
+
+function Save-Config {
+  @{ latitude=$Lat; longitude=$Lon; method=$Method; school=$School; place=$Place; lang=$Lang; startup=$StartupOn; showCountdown=$ShowCD; showSeconds=$ShowSec; compact=$Compact; reminderMinutes=$RemMin } | ConvertTo-Json | Set-Content -LiteralPath $ConfigFile -Encoding UTF8
+}
+
+function Set-Startup($on) {
+  $lnk = Join-Path ([Environment]::GetFolderPath("Startup")) "Namaz Widget.lnk"
+  if ($on) {
+    $ws = New-Object -ComObject WScript.Shell
+    $sc = $ws.CreateShortcut($lnk)
+    $sc.TargetPath = "wscript.exe"
+    $sc.Arguments = '"C:\dev\namaz-app\Start-NamazWidget.vbs"'
+    $sc.WorkingDirectory = "C:\dev\namaz-app"
+    $sc.Description = "Namaz Widget"
+    $sc.Save()
+  } else { if (Test-Path -LiteralPath $lnk) { Remove-Item -LiteralPath $lnk -Force } }
+}
+
+$settings = New-Object System.Windows.Forms.Form
+$settings.Text = "Настройки"
+$settings.FormBorderStyle = "FixedDialog"
+$settings.MaximizeBox = $false
+$settings.MinimizeBox = $false
+$settings.TopMost = $true
+$settings.ShowInTaskbar = $false
+$settings.BackColor = [System.Drawing.Color]::FromArgb(32,32,32)
+$settings.ForeColor = [System.Drawing.Color]::White
+$settings.Size = New-Object System.Drawing.Size(320, 340)
+function Add-CB($text, $y) {
+  $c = New-Object System.Windows.Forms.CheckBox
+  $c.Text = $text; $c.AutoSize = $true
+  $c.Location = New-Object System.Drawing.Point(14, $y)
+  $c.ForeColor = [System.Drawing.Color]::White
+  $c.BackColor = [System.Drawing.Color]::FromArgb(32,32,32)
+  $settings.Controls.Add($c)
+  return $c
+}
+$slLang = New-Object System.Windows.Forms.Label
+$slLang.Text = "Язык / Language"; $slLang.AutoSize = $true
+$slLang.Location = New-Object System.Drawing.Point(14, 12)
+$slLang.ForeColor = [System.Drawing.Color]::White
+$settings.Controls.Add($slLang)
+$cbLang = New-Object System.Windows.Forms.ComboBox
+$cbLang.Items.Add("Русский") | Out-Null; $cbLang.Items.Add("English") | Out-Null
+$cbLang.DropDownStyle = "DropDownList"
+$cbLang.Location = New-Object System.Drawing.Point(14, 32)
+$cbLang.Width = 200
+$settings.Controls.Add($cbLang)
+$cbStartup = Add-CB "Автозапуск Windows" 64
+$cbCD = Add-CB "Показывать обратный отсчёт" 92
+$cbSec = Add-CB "Показывать секунды" 120
+$cbCompact = Add-CB "Компактный режим" 148
+$slRem = New-Object System.Windows.Forms.Label
+$slRem.Text = "Напоминание за (мин, 0=выкл)"; $slRem.AutoSize = $true
+$slRem.Location = New-Object System.Drawing.Point(14, 178)
+$slRem.ForeColor = [System.Drawing.Color]::White
+$settings.Controls.Add($slRem)
+$numRem = New-Object System.Windows.Forms.NumericUpDown
+$numRem.Minimum = 0; $numRem.Maximum = 60
+$numRem.Location = New-Object System.Drawing.Point(14, 198)
+$numRem.Width = 80
+$settings.Controls.Add($numRem)
+$btnSave = New-Object System.Windows.Forms.Button
+$btnSave.Text = "Сохранить"; $btnSave.Location = New-Object System.Drawing.Point(14, 240)
+$btnSave.DialogResult = "OK"
+$settings.Controls.Add($btnSave)
+$btnCancel = New-Object System.Windows.Forms.Button
+$btnCancel.Text = "Отмена"; $btnCancel.Location = New-Object System.Drawing.Point(110, 240)
+$btnCancel.DialogResult = "Cancel"
+$settings.Controls.Add($btnCancel)
+$settings.AcceptButton = $btnSave
+$settings.CancelButton = $btnCancel
+$st = $menu.Items.Add("Настройки")
+$st.Add_Click({
+  if ($Lang -eq "en") { $cbLang.SelectedIndex = 1 } else { $cbLang.SelectedIndex = 0 }
+  $cbStartup.Checked = $StartupOn
+  $cbCD.Checked = $ShowCD
+  $cbSec.Checked = $ShowSec
+  $cbCompact.Checked = $Compact
+  $numRem.Value = $RemMin
+  if ($settings.ShowDialog() -eq "OK") {
+    if ($cbLang.SelectedIndex -eq 1) { $Lang = "en" } else { $Lang = "ru" }
+    $StartupOn = $cbStartup.Checked
+    $ShowCD = $cbCD.Checked
+    $ShowSec = $cbSec.Checked
+    $Compact = $cbCompact.Checked
+    $RemMin = [int]$numRem.Value
+    Update-Lang
+    Apply-Compact
+    Set-Startup $StartupOn
+    Save-Config
+    Log "Настройки сохранены"
+  }
+})
 
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 5000
@@ -244,23 +374,29 @@ try {
   if ($panel.Visible -ne $vis) { $panel.Visible = $vis; Log ("panel visible -> " + $vis) }
   if ($panel.WindowState -eq [System.Windows.Forms.FormWindowState]::Minimized) { try { $panel.WindowState = [System.Windows.Forms.FormWindowState]::Normal; Log "panel restored from minimized" } catch {} }
   if ($vis) { try { [void][WinApi]::SetWindowPos($panel.Handle, [IntPtr](-1), 0, 0, 0, 0, 0x0033) } catch {} }
-  $ni.Text = "{0} {1} -{2}" -f $RU[$next.key], $next.date.ToString("HH:mm"), $cd
+  $ni.Text = "{0} {1} -{2}" -f $Names[$next.key], $next.date.ToString("HH:mm"), $cd
   $short = if ($s -ge 3600) { "{0}ч" -f [int]($s/3600) } else { "{0}м" -f [int]($s/60) }
   try { $old = $ni.Icon; $ni.Icon = New-CountdownIcon $short; if ($old) { $old.Dispose() } } catch {}
-  $lblMain.Text = "{0} {1}" -f $RU[$next.key], $next.date.ToString("HH:mm")
-  $hh = [int]($s/3600); $mm = [int](($s%3600)/60)
-  if ($hh -gt 0) { $lblSub.Text = "осталось {0} ч {1} мин" -f $hh, $mm } else { $lblSub.Text = "осталось {0} мин" -f $mm }
+  $lblMain.Text = "{0} {1}" -f $Names[$next.key], $next.date.ToString("HH:mm")
+  $hh = [int]($s/3600); $mm = [int](($s%3600)/60); $ss = [int]($s%60)
+  if ($ShowCD) {
+    if ($ShowSec) { $lblSub.Text = "{0} {1:00}:{2:00}:{3:00}" -f $T.left, $hh, $mm, $ss }
+    elseif ($hh -gt 0) { $lblSub.Text = "{0} {1} {2} {3} {4}" -f $T.left, $hh, $T.h, $mm, $T.m }
+    else { $lblSub.Text = "{0} {1} {2}" -f $T.left, $mm, $T.m }
+  } else { $lblSub.Text = "" }
   $dk = "{0}_{1}" -f $next.key, (Get-Date).ToString("yyyy-MM-dd")
-  if ($s -le 600 -and $s -gt 540 -and $next.key -ne "Sunrise" -and $script:last10 -ne $dk) { $script:last10 = $dk
-    $ni.ShowBalloonTip(10000, "Подготовка к молитве", ("{0} через 10 минут ({1}). Соверши вуду." -f $RU[$next.key], $next.date.ToString("HH:mm")), [System.Windows.Forms.ToolTipIcon]::Info) }
+  $rw = $RemMin * 60
+  if ($RemMin -gt 0 -and $s -le $rw -and $s -gt ($rw - 60) -and $next.key -ne "Sunrise" -and $script:last10 -ne $dk) { $script:last10 = $dk
+    $ni.ShowBalloonTip(10000, $T.prep, ($T.prepBody -f $Names[$next.key], $RemMin, $next.date.ToString("HH:mm")), [System.Windows.Forms.ToolTipIcon]::Info) }
   if ($s -le 5 -and $script:last0 -ne $dk) { $script:last0 = $dk
-    if ($next.key -eq "Sunrise") { $ni.ShowBalloonTip(10000, "Восход", "Время Фаджра вышло.", [System.Windows.Forms.ToolTipIcon]::Info) }
-    else { $ni.ShowBalloonTip(10000, "Время намаза", ("Начался: {0}." -f $RU[$next.key]), [System.Windows.Forms.ToolTipIcon]::Info) } }
+    if ($next.key -eq "Sunrise") { $ni.ShowBalloonTip(10000, $T.sunrise, $T.fajrOut, [System.Windows.Forms.ToolTipIcon]::Info) }
+    else { $ni.ShowBalloonTip(10000, $T.time, ($T.started -f $Names[$next.key]), [System.Windows.Forms.ToolTipIcon]::Info) } }
 } catch { Log ("TICK-ERR: " + $_.Exception.Message) }
 })
 $script:day = (Get-Date).ToString("dd-MM-yyyy")
 $script:last10 = ""; $script:last0 = ""
 $timer.Start()
+Apply-Compact
 $panel.Show()
 try { $ex = [WinApi]::GetWindowLongPtr($panel.Handle, -20); [void][WinApi]::SetWindowLongPtr($panel.Handle, -20, [IntPtr](([int64]$ex -bor 0x80))) } catch {}
 Log "Виджет запущен"

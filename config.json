@@ -3,5 +3,11 @@
   "longitude": 33.6,
   "method": 3,
   "school": 1,
-  "place": "Саки"
+  "place": "Саки",
+  "lang": "ru",
+  "startup": true,
+  "showCountdown": true,
+  "showSeconds": false,
+  "compact": false,
+  "reminderMinutes": 10
 }
