@@ -11,6 +11,7 @@ public class WinApi {
   [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
   [DllImport("user32.dll")] public static extern IntPtr GetWindowLongPtr(IntPtr h, int n);
   [DllImport("user32.dll")] public static extern IntPtr SetWindowLongPtr(IntPtr h, int n, IntPtr v);
+  [DllImport("user32.dll")] public static extern IntPtr FindWindow(string c, string w);
   public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
 }
 "@
@@ -143,6 +144,7 @@ $HijriMonths = @("Мухаррам","Сафар","Раби I","Раби II","Д�
 $WeekDays = @("воскресенье","понедельник","вторник","среда","четверг","пятница","суббота")
 $sched = New-Object System.Windows.Forms.Form
 $sched.FormBorderStyle = "None"
+$sched.StartPosition = "Manual"
 $sched.TopMost = $true
 $sched.ShowInTaskbar = $false
 $sched.BackColor = [System.Drawing.Color]::FromArgb(32,32,32)
@@ -278,6 +280,7 @@ function Set-Startup($on) {
 
 $settings = New-Object System.Windows.Forms.Form
 $settings.Text = "Настройки"
+$settings.StartPosition = "CenterScreen"
 $settings.FormBorderStyle = "FixedDialog"
 $settings.MaximizeBox = $false
 $settings.MinimizeBox = $false
@@ -384,6 +387,14 @@ try {
   if ($panel.Visible -ne $vis) { $panel.Visible = $vis; Log ("panel visible -> " + $vis) }
   if ($panel.WindowState -eq [System.Windows.Forms.FormWindowState]::Minimized) { try { $panel.WindowState = [System.Windows.Forms.FormWindowState]::Normal; Log "panel restored from minimized" } catch {} }
   if ($vis) { try { [void][WinApi]::SetWindowPos($panel.Handle, [IntPtr](-1), 0, 0, 0, 0, 0x0033) } catch {} }
+  try {
+    $tb = [WinApi]::FindWindow("Shell_TrayWnd", $null)
+    if ($tb -ne [IntPtr]::Zero -and $tb.ToInt64() -ne $script:tbOwner) {
+      [void][WinApi]::SetWindowLongPtr($panel.Handle, -8, $tb)
+      $script:tbOwner = $tb.ToInt64()
+      Log "panel attached to taskbar"
+    }
+  } catch {}
   $ni.Text = "{0} {1} -{2}" -f $Names[$next.key], $next.date.ToString("HH:mm"), $cd
   $short = if ($s -ge 3600) { "{0}ч" -f [int]($s/3600) } else { "{0}м" -f [int]($s/60) }
   try { $old = $ni.Icon; $ni.Icon = New-CountdownIcon $short; if ($old) { $old.Dispose() } } catch {}
@@ -404,7 +415,7 @@ try {
 } catch { Log ("TICK-ERR: " + $_.Exception.Message) }
 })
 $script:day = (Get-Date).ToString("dd-MM-yyyy")
-$script:last10 = ""; $script:last0 = ""
+$script:last10 = ""; $script:last0 = ""; $script:tbOwner = 0
 $timer.Start()
 Apply-Compact
 $panel.Show()
