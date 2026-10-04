@@ -17,14 +17,15 @@ public class WinApi {
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ConfigFile = Join-Path $ScriptDir "config.json"
+$Lat = 45.1342; $Lon = 33.60; $Method = 3; $School = 1; $Place = "Саки"
 if (Test-Path -LiteralPath $ConfigFile) {
-  $cfg = Get-Content -LiteralPath $ConfigFile -Raw | ConvertFrom-Json
-  $Lat = $cfg.latitude ?? 45.1342
-  $Lon = $cfg.longitude ?? 33.60
-  $Method = $cfg.method ?? 3
-  $School = $cfg.school ?? 1
-} else {
-  $Lat = 45.1342; $Lon = 33.60; $Method = 3; $School = 1
+  try { $cfg = Get-Content -LiteralPath $ConfigFile -Raw | ConvertFrom-Json
+    if ($cfg.latitude -ne $null) { $Lat = $cfg.latitude }
+    if ($cfg.longitude -ne $null) { $Lon = $cfg.longitude }
+    if ($cfg.method -ne $null) { $Method = $cfg.method }
+    if ($cfg.school -ne $null) { $School = $cfg.school }
+    if ($cfg.place -ne $null -and $cfg.place -ne "") { $Place = $cfg.place }
+  } catch {}
 }
 # Саки, Egypt-метод (сверен с islam.global), Ханафи
 $AppUrl = "https://remageht.github.io/namaz-vakit/"
@@ -113,6 +114,7 @@ $panel.FormBorderStyle = "None"
 $panel.TopMost = $true
 $panel.ShowInTaskbar = $false
 $panel.BackColor = [System.Drawing.Color]::FromArgb(43,43,43)
+$panel.Opacity = 0.85
 $panel.Size = New-Object System.Drawing.Size(210, 48)
 $panel.Controls.Add($pic)
 $panel.Controls.Add($lblMain)
@@ -121,30 +123,91 @@ $wa = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
 $panel.Location = New-Object System.Drawing.Point(($wa.Left + 140), $wa.Bottom)
 $panel.Add_DoubleClick({ Start-Process $AppUrl })
 
-# Всплывающее расписание дня (как панель молитв у Awqat): клик по плашке
+# Всплывающая панель дня в стиле Awqat: шапка, статусы молитв, аят
+$HijriMonths = @("Мухаррам","Сафар","Раби I","Раби II","Джумада I","Джумада II","Раджаб","Шаабан","Рамадан","Шавваль","Зуль-каада","Зуль-хиджа")
+$WeekDays = @("воскресенье","понедельник","вторник","среда","четверг","пятница","суббота")
 $sched = New-Object System.Windows.Forms.Form
-$sched.FormBorderStyle = "FixedSingle"
+$sched.FormBorderStyle = "None"
 $sched.TopMost = $true
 $sched.ShowInTaskbar = $false
 $sched.BackColor = [System.Drawing.Color]::FromArgb(32,32,32)
-$sched.Size = New-Object System.Drawing.Size(200, 210)
-$sched.Text = "Намаз сегодня"
-$slbls = @{}
-$y = 8
+$sched.Opacity = 0.95
+$sched.Size = New-Object System.Drawing.Size(220, 352)
+$shTitle = New-Object System.Windows.Forms.Label
+$shTitle.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
+$shTitle.ForeColor = [System.Drawing.Color]::FromArgb(212,175,55)
+$shTitle.AutoSize = $true
+$shTitle.Location = New-Object System.Drawing.Point(12, 8)
+$shTitle.Text = "Намаз"
+$sched.Controls.Add($shTitle)
+$shDay = New-Object System.Windows.Forms.Label
+$shDay.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+$shDay.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
+$shDay.AutoSize = $true
+$shDay.Location = New-Object System.Drawing.Point(12, 32)
+$sched.Controls.Add($shDay)
+$shHijri = New-Object System.Windows.Forms.Label
+$shHijri.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+$shHijri.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
+$shHijri.AutoSize = $true
+$shHijri.Location = New-Object System.Drawing.Point(12, 50)
+$sched.Controls.Add($shHijri)
+$shPlace = New-Object System.Windows.Forms.Label
+$shPlace.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+$shPlace.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
+$shPlace.AutoSize = $true
+$shPlace.Location = New-Object System.Drawing.Point(12, 68)
+$sched.Controls.Add($shPlace)
+$sSt = @{}; $sNm = @{}; $sTm = @{}
+$y = 96
 foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) {
-  $l = New-Object System.Windows.Forms.Label
-  $l.Font = New-Object System.Drawing.Font("Segoe UI", 11)
-  $l.ForeColor = [System.Drawing.Color]::White
-  $l.AutoSize = $true
-  $l.Location = New-Object System.Drawing.Point(12, $y)
-  $l.Tag = $k
-  $sched.Controls.Add($l)
-  $slbls[$k] = $l
+  $l1 = New-Object System.Windows.Forms.Label
+  $l1.Font = New-Object System.Drawing.Font("Segoe UI", 11)
+  $l1.AutoSize = $true
+  $l1.Location = New-Object System.Drawing.Point(12, $y)
+  $l2 = New-Object System.Windows.Forms.Label
+  $l2.Font = New-Object System.Drawing.Font("Segoe UI", 11)
+  $l2.ForeColor = [System.Drawing.Color]::White
+  $l2.AutoSize = $true
+  $l2.Location = New-Object System.Drawing.Point(38, $y)
+  $l2.Text = $RU[$k]
+  $l3 = New-Object System.Windows.Forms.Label
+  $l3.Font = New-Object System.Drawing.Font("Segoe UI", 11)
+  $l3.ForeColor = [System.Drawing.Color]::White
+  $l3.Size = New-Object System.Drawing.Size(70, 20)
+  $l3.Location = New-Object System.Drawing.Point(136, $y)
+  $l3.TextAlign = "MiddleRight"
+  $sched.Controls.Add($l1); $sched.Controls.Add($l2); $sched.Controls.Add($l3)
+  $sSt[$k] = $l1; $sNm[$k] = $l2; $sTm[$k] = $l3
   $y += 30
 }
+$ayah = New-Object System.Windows.Forms.Label
+$ayah.Font = New-Object System.Drawing.Font("Segoe UI", 11)
+$ayah.ForeColor = [System.Drawing.Color]::FromArgb(255,233,168)
+$ayah.Size = New-Object System.Drawing.Size(196, 56)
+$ayah.Location = New-Object System.Drawing.Point(12, 284)
+$ayah.TextAlign = "MiddleCenter"
+$ayah.Text = "إن الصلاة كانت على المؤمنين كتابا موقوتا"
+$sched.Controls.Add($ayah)
 $panel.Add_Click({
-  foreach ($k in $slbls.Keys) { $slbls[$k].Text = "{0}  {1}" -f $RU[$k], $script:timings.$k.Substring(0,5) }
-  $sched.Location = New-Object System.Drawing.Point($panel.Left, ($panel.Top - 220))
+  $now2 = Get-Date
+  $nextK = $null
+  foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) { if ((To-Date $script:timings.$k) -gt $now2) { $nextK = $k; break } }
+  if (-not $nextK) { $nextK = "Fajr" }
+  $hc = New-Object System.Globalization.HijriCalendar
+  $shDay.Text = $WeekDays[[int]$now2.DayOfWeek]
+  $shHijri.Text = "{0} {1} {2}" -f $hc.GetDayOfMonth($now2), $HijriMonths[$hc.GetMonth($now2)-1], $hc.GetYear($now2)
+  $shPlace.Text = $Place
+  $gold = [System.Drawing.Color]::FromArgb(212,175,55)
+  $gray = [System.Drawing.Color]::FromArgb(150,150,150)
+  $white = [System.Drawing.Color]::White
+  foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) {
+    $sTm[$k].Text = $script:timings.$k.Substring(0,5)
+    if ($k -eq $nextK) { $sSt[$k].Text = "→"; $sSt[$k].ForeColor = $gold; $sNm[$k].ForeColor = $gold; $sTm[$k].ForeColor = $gold }
+    elseif ((To-Date $script:timings.$k) -lt $now2) { $sSt[$k].Text = "✓"; $sSt[$k].ForeColor = $gray; $sNm[$k].ForeColor = $gray; $sTm[$k].ForeColor = $gray }
+    else { $sSt[$k].Text = "○"; $sSt[$k].ForeColor = $white; $sNm[$k].ForeColor = $white; $sTm[$k].ForeColor = $white }
+  }
+  $sched.Location = New-Object System.Drawing.Point($panel.Left, ($panel.Top - 362))
   if ($sched.Visible) { $sched.Hide() } else { $sched.Show() }
 })
 $sched.Add_Deactivate({ $sched.Hide() })
