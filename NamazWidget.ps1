@@ -502,7 +502,7 @@ public class WinApi {
 "@
 
 $timer = New-Object System.Windows.Forms.Timer
-$timer.Interval = 5000
+$timer.Interval = 500
 $timer.Add_Tick({
 try {
   $now = Get-Date
