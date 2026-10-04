@@ -2,19 +2,6 @@
 # Показывает следующий намаз + обратный отсчёт, балуны за 10 мин и в начале.
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public class WinApi {
-  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
-  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
-  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
-  [DllImport("user32.dll")] public static extern IntPtr GetWindowLongPtr(IntPtr h, int n);
-  [DllImport("user32.dll")] public static extern IntPtr SetWindowLongPtr(IntPtr h, int n, IntPtr v);
-  [DllImport("user32.dll")] public static extern IntPtr FindWindow(string c, string w);
-  public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
-}
-"@
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ConfigFile = Join-Path $ScriptDir "config.json"
@@ -137,11 +124,114 @@ $panel.Controls.Add($lblMain)
 $panel.Controls.Add($lblSub)
 $wa = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
 $panel.Location = New-Object System.Drawing.Point(($wa.Left + 140), $wa.Bottom)
+$lblMain.Text = "Загрузка..."
+$panel.Show()
 $openApp = { $sched.Hide(); Start-Process $AppUrl }
 
 # Всплывающая панель дня в стиле Awqat: шапка, статусы молитв, аят
 $HijriMonths = @("Мухаррам","Сафар","Раби I","Раби II","Джумада I","Джумада II","Раджаб","Шаабан","Рамадан","Шавваль","Зуль-каада","Зуль-хиджа")
 $WeekDays = @("воскресенье","понедельник","вторник","среда","четверг","пятница","суббота")
+$AN = @(
+@("الله","Аллах","Бог — Единственный, достойный поклонения"),
+@("الرحمن","Ар-Рахман","Милостивый ко всем творениям"),
+@("الرحيم","Ар-Рахим","Милосердный к верующим"),
+@("الملك","Аль-Малик","Властелин всего сущего"),
+@("القدوس","Аль-Куддус","Святой, Пречистый от недостатков"),
+@("السلام","Ас-Салям","Дарующий мир и благополучие"),
+@("المؤمن","Аль-Мумин","Дарующий безопасность и веру"),
+@("المهيمن","Аль-Мухаймин","Хранитель и Наблюдающий за всем"),
+@("العزيز","Аль-Азиз","Могущественный, Непобедимый"),
+@("الجبار","Аль-Джаббар","Подчиняющий всё Своей воле"),
+@("المتكبر","Аль-Мутакаббир","Превознесённый над недостатками"),
+@("الخالق","Аль-Халик","Творец всего"),
+@("البارئ","Аль-Бари","Создатель из небытия"),
+@("المصور","Аль-Мусаввир","Дарующий облик творениям"),
+@("الغفار","Аль-Гаффар","Всепрощающий"),
+@("القهار","Аль-Каххар","Всеподчиняющий Своему могуществу"),
+@("الوهاب","Аль-Ваххаб","Дарующий безмерно"),
+@("الرزاق","Ар-Раззак","Наделяющий уделом"),
+@("الفتاح","Аль-Фаттах","Открывающий милость и победу"),
+@("العليم","Аль-Алим","Всезнающий"),
+@("القابض","Аль-Кабид","Удерживающий удел"),
+@("الباسط","Аль-Басит","Простирающий удел"),
+@("الخافض","Аль-Хафид","Унижающий высокомерных"),
+@("الرافع","Ар-Рафи","Возвышающий достойных"),
+@("المعز","Аль-Муизз","Дарующий могущество"),
+@("المذل","Аль-Музилль","Принижающий ослушников"),
+@("السميع","Ас-Сами","Всеслышащий"),
+@("البصير","Аль-Басир","Всевидящий"),
+@("الحكم","Аль-Хакам","Справедливый Судья"),
+@("العدل","Аль-Адль","Абсолютно Справедливый"),
+@("اللطيف","Аль-Латиф","Добрый и Проницательный"),
+@("الخبير","Аль-Хабир","Всесведущий о сокровенном"),
+@("الحليم","Аль-Халим","Снисходительный к ослушникам"),
+@("العظيم","Аль-Азым","Великий"),
+@("الغفور","Аль-Гафур","Много прощающий"),
+@("الشكور","Аш-Шакур","Воздающий за малое многим"),
+@("العلي","Аль-Алий","Всевышний"),
+@("الكبير","Аль-Кабир","Величайший"),
+@("الحفيظ","Аль-Хафиз","Хранящий всё"),
+@("المقيت","Аль-Мукит","Дарующий пропитание, Всевластный"),
+@("الحسيب","Аль-Хасиб","Достаточный, Требующий отчёта"),
+@("الجليل","Аль-Джалиль","Величественный"),
+@("الكريم","Аль-Карим","Щедрый"),
+@("الرقيب","Ар-Ракиб","Наблюдающий за всем"),
+@("المجيب","Аль-Муджиб","Отвечающий на мольбы"),
+@("الواسع","Аль-Васи","Всеобъемлющий"),
+@("الحكيم","Аль-Хаким","Мудрый"),
+@("الودود","Аль-Вадуд","Любящий Своих рабов"),
+@("المجيد","Аль-Маджид","Славный"),
+@("الباعث","Аль-Баис","Воскрешающий мёртвых"),
+@("الشهيد","Аш-Шахид","Свидетель всего"),
+@("الحق","Аль-Хакк","Истинный, Вечная истина"),
+@("الوكيل","Аль-Вакиль","Попечитель, на Кого полагаются"),
+@("القوي","Аль-Кавий","Сильный"),
+@("المتين","Аль-Матин","Незыблемый, Прочный"),
+@("الولي","Аль-Валий","Покровитель верующих"),
+@("الحميد","Аль-Хамид","Достохвальный"),
+@("المحصي","Аль-Мухси","Исчисляющий всё"),
+@("المبدئ","Аль-Мубди","Начинающий творение"),
+@("المعيد","Аль-Муид","Возвращающий к жизни"),
+@("المحيي","Аль-Мухйи","Оживляющий"),
+@("المميت","Аль-Мумит","Умерщвляющий"),
+@("الحي","Аль-Хайй","Вечно Живой"),
+@("القيوم","Аль-Каййум","Сущий, Держатель всего"),
+@("الواجد","Аль-Ваджид","Находящий, ни в чём не нуждающийся"),
+@("الماجد","Аль-Маджид","Благородный"),
+@("الواحد","Аль-Вахид","Единственный"),
+@("الصمد","Ас-Самад","Самодостаточный, к Кому обращаются"),
+@("القادر","Аль-Кадир","Всемогущий"),
+@("المقتدر","Аль-Муктадир","Могущественный во всём"),
+@("المقدم","Аль-Мукаддим","Выдвигающий вперёд, кого пожелает"),
+@("المؤخر","Аль-Муаххир","Отодвигающий, кого пожелает"),
+@("الأول","Аль-Авваль","Первый — до Него ничего не было"),
+@("الآخر","Аль-Ахир","Последний — после Него ничего не будет"),
+@("الظاهر","Аз-Захир","Явный, Очевидный"),
+@("الباطن","Аль-Батин","Скрытый от взоров"),
+@("الوالي","Аль-Вали","Правитель всего"),
+@("المتعالي","Аль-Мутаали","Превознесённый над всем"),
+@("البر","Аль-Барр","Благодетельный"),
+@("التواب","Ат-Тавваб","Принимающий покаяние"),
+@("المنتقم","Аль-Мунтаким","Воздающий непокорным"),
+@("العفو","Аль-Афувв","Изглаживающий грехи"),
+@("الرؤوف","Ар-Рауф","Сострадательный"),
+@("مالك الملك","Малик-уль-Мульк","Владыка всякого владычества"),
+@("ذو الجلال والإكرام","Зу-ль-Джаляли валь-Икрам","Обладатель величия и почёта"),
+@("المقسط","Аль-Муксит","Воздающий по справедливости"),
+@("الجامع","Аль-Джами","Собирающий людей в Судный день"),
+@("الغني","Аль-Ганий","Богатый, ни в чём не нуждающийся"),
+@("المغني","Аль-Мугни","Обогащающий, кого пожелает"),
+@("المانع","Аль-Мани","Удерживающий зло и вред"),
+@("الضار","Ад-Дарр","Вредящий по Своей мудрости"),
+@("النافع","Ан-Нафи","Приносящий пользу"),
+@("النور","Ан-Нур","Свет небес и земли"),
+@("الهادي","Аль-Хади","Ведущий прямым путём"),
+@("البديع","Аль-Бади","Бесподобный Творец"),
+@("الباقي","Аль-Баки","Вечный, Пребывающий"),
+@("الوارث","Аль-Варис","Наследующий всё сущее"),
+@("الرشيد","Ар-Рашид","Направляющий к правильному"),
+@("الصبور","Ас-Сабур","Терпеливый к ослушникам")
+)
 $sched = New-Object System.Windows.Forms.Form
 $sched.FormBorderStyle = "None"
 $sched.StartPosition = "Manual"
@@ -149,7 +239,14 @@ $sched.TopMost = $true
 $sched.ShowInTaskbar = $false
 $sched.BackColor = [System.Drawing.Color]::FromArgb(32,32,32)
 $sched.Opacity = 0.95
-$sched.Size = New-Object System.Drawing.Size(220, 352)
+$sched.Size = New-Object System.Drawing.Size(220, 386)
+$shName = New-Object System.Windows.Forms.Label
+$shName.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$shName.ForeColor = [System.Drawing.Color]::FromArgb(212,175,55)
+$shName.AutoSize = $true
+$shName.MaximumSize = New-Object System.Drawing.Size(196, 0)
+$shName.Location = New-Object System.Drawing.Point(12, 86)
+$sched.Controls.Add($shName)
 $shTitle = New-Object System.Windows.Forms.Label
 $shTitle.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
 $shTitle.ForeColor = [System.Drawing.Color]::FromArgb(212,175,55)
@@ -185,7 +282,7 @@ $shPlace.AutoSize = $true
 $shPlace.Location = New-Object System.Drawing.Point(12, 68)
 $sched.Controls.Add($shPlace)
 $sSt = @{}; $sNm = @{}; $sTm = @{}
-$y = 96
+$y = 130
 foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) {
   $l1 = New-Object System.Windows.Forms.Label
   $l1.Font = New-Object System.Drawing.Font("Segoe UI", 11)
@@ -211,7 +308,7 @@ $ayah = New-Object System.Windows.Forms.Label
 $ayah.Font = New-Object System.Drawing.Font("Segoe UI", 11)
 $ayah.ForeColor = [System.Drawing.Color]::FromArgb(255,233,168)
 $ayah.Size = New-Object System.Drawing.Size(196, 56)
-$ayah.Location = New-Object System.Drawing.Point(12, 284)
+$ayah.Location = New-Object System.Drawing.Point(12, 318)
 $ayah.TextAlign = "MiddleCenter"
 $ayah.Text = "إن الصلاة كانت على المؤمنين كتابا موقوتا"
 $sched.Controls.Add($ayah)
@@ -224,6 +321,8 @@ $dayClick = {
   $shDay.Text = $WeekDays[[int]$now2.DayOfWeek]
   $shHijri.Text = "{0} {1} {2}" -f $hc.GetDayOfMonth($now2), $HijriMonths[$hc.GetMonth($now2)-1], $hc.GetYear($now2)
   $shPlace.Text = $Place
+  $nn = (Get-Date).DayOfYear % $AN.Count
+  $shName.Text = "☝ №{0}: {1} — {2}" -f ($nn + 1), $AN[$nn][1], $AN[$nn][2]
   $gold = [System.Drawing.Color]::FromArgb(212,175,55)
   $gray = [System.Drawing.Color]::FromArgb(150,150,150)
   $white = [System.Drawing.Color]::White
@@ -234,7 +333,7 @@ $dayClick = {
     elseif ((To-Date $script:timings.$k) -lt $now2) { $sSt[$k].Text = "✓"; $sSt[$k].ForeColor = $gray; $sNm[$k].ForeColor = $gray; $sTm[$k].ForeColor = $gray }
     else { $sSt[$k].Text = "○"; $sSt[$k].ForeColor = $white; $sNm[$k].ForeColor = $white; $sTm[$k].ForeColor = $white }
   }
-  $sched.Location = New-Object System.Drawing.Point($panel.Left, ($panel.Top - 362))
+  $sched.Location = New-Object System.Drawing.Point($panel.Left, ($panel.Top - 396))
   if ($sched.Visible) { $sched.Hide() } else { $sched.Show() }
 }
 foreach ($c in @($panel, $pic, $lblMain, $lblSub)) { $c.Add_Click($dayClick); $c.Add_DoubleClick($openApp) }
@@ -357,6 +456,20 @@ function Show-Settings {
 $st = $menu.Items.Add("Настройки")
 $st.Add_Click({ Show-Settings })
 
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class WinApi {
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
+  [DllImport("user32.dll")] public static extern IntPtr GetWindowLongPtr(IntPtr h, int n);
+  [DllImport("user32.dll")] public static extern IntPtr SetWindowLongPtr(IntPtr h, int n, IntPtr v);
+  [DllImport("user32.dll")] public static extern IntPtr FindWindow(string c, string w);
+  public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
+}
+"@
+
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 5000
 $timer.Add_Tick({
@@ -395,7 +508,8 @@ try {
       Log "panel attached to taskbar"
     }
   } catch {}
-  $ni.Text = "{0} {1} -{2}" -f $Names[$next.key], $next.date.ToString("HH:mm"), $cd
+  $nidx = (Get-Date).DayOfYear % $AN.Count
+  $ni.Text = "{0} {1} -{2} · {3}" -f $Names[$next.key], $next.date.ToString("HH:mm"), $cd, $AN[$nidx][1]
   $short = if ($s -ge 3600) { "{0}ч" -f [int]($s/3600) } else { "{0}м" -f [int]($s/60) }
   try { $old = $ni.Icon; $ni.Icon = New-CountdownIcon $short; if ($old) { $old.Dispose() } } catch {}
   $lblMain.Text = "{0} {1}" -f $Names[$next.key], $next.date.ToString("HH:mm")
@@ -405,6 +519,7 @@ try {
     elseif ($hh -gt 0) { $lblSub.Text = "{0} {1} {2} {3} {4}" -f $T.left, $hh, $T.h, $mm, $T.m }
     else { $lblSub.Text = "{0} {1} {2}" -f $T.left, $mm, $T.m }
   } else { $lblSub.Text = "" }
+  if ((Get-Date).Second % 15 -ge 10) { $lblSub.Text = "☝ №{0} {1}" -f ($nidx + 1), $AN[$nidx][1] }
   $dk = "{0}_{1}" -f $next.key, (Get-Date).ToString("yyyy-MM-dd")
   $rw = $RemMin * 60
   if ($RemMin -gt 0 -and $s -le $rw -and $s -gt ($rw - 60) -and $next.key -ne "Sunrise" -and $script:last10 -ne $dk) { $script:last10 = $dk
@@ -418,7 +533,6 @@ $script:day = (Get-Date).ToString("dd-MM-yyyy")
 $script:last10 = ""; $script:last0 = ""; $script:tbOwner = 0
 $timer.Start()
 Apply-Compact
-$panel.Show()
 try { $ex = [WinApi]::GetWindowLongPtr($panel.Handle, -20); [void][WinApi]::SetWindowLongPtr($panel.Handle, -20, [IntPtr](([int64]$ex -bor 0x80))) } catch {}
 Log "Виджет запущен"
 $ni.ShowBalloonTip(5000, "Намаз-виджет", "Виджет запущен. Наведи на значок в трее.", [System.Windows.Forms.ToolTipIcon]::Info)
