@@ -155,6 +155,15 @@ $shTitle.AutoSize = $true
 $shTitle.Location = New-Object System.Drawing.Point(12, 8)
 $shTitle.Text = "Намаз"
 $sched.Controls.Add($shTitle)
+$gear = New-Object System.Windows.Forms.Label
+$gear.Font = New-Object System.Drawing.Font("Segoe UI", 12)
+$gear.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
+$gear.AutoSize = $true
+$gear.Location = New-Object System.Drawing.Point(192, 6)
+$gear.Text = "⚙"
+$gear.Cursor = "Hand"
+$sched.Controls.Add($gear)
+$gear.Add_Click({ Show-Settings })
 $shDay = New-Object System.Windows.Forms.Label
 $shDay.Font = New-Object System.Drawing.Font("Segoe UI", 10)
 $shDay.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
@@ -321,8 +330,7 @@ $btnCancel.DialogResult = "Cancel"
 $settings.Controls.Add($btnCancel)
 $settings.AcceptButton = $btnSave
 $settings.CancelButton = $btnCancel
-$st = $menu.Items.Add("Настройки")
-$st.Add_Click({
+function Show-Settings {
   if ($Lang -eq "en") { $cbLang.SelectedIndex = 1 } else { $cbLang.SelectedIndex = 0 }
   $cbStartup.Checked = $StartupOn
   $cbCD.Checked = $ShowCD
@@ -342,7 +350,9 @@ $st.Add_Click({
     Save-Config
     Log "Настройки сохранены"
   }
-})
+}
+$st = $menu.Items.Add("Настройки")
+$st.Add_Click({ Show-Settings })
 
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 5000
