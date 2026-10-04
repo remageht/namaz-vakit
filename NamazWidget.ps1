@@ -121,7 +121,7 @@ $panel.Controls.Add($lblMain)
 $panel.Controls.Add($lblSub)
 $wa = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
 $panel.Location = New-Object System.Drawing.Point(($wa.Left + 140), $wa.Bottom)
-$panel.Add_DoubleClick({ Start-Process $AppUrl })
+$openApp = { $sched.Hide(); Start-Process $AppUrl }
 
 # Всплывающая панель дня в стиле Awqat: шапка, статусы молитв, аят
 $HijriMonths = @("Мухаррам","Сафар","Раби I","Раби II","Джумада I","Джумада II","Раджаб","Шаабан","Рамадан","Шавваль","Зуль-каада","Зуль-хиджа")
@@ -189,7 +189,7 @@ $ayah.Location = New-Object System.Drawing.Point(12, 284)
 $ayah.TextAlign = "MiddleCenter"
 $ayah.Text = "إن الصلاة كانت على المؤمنين كتابا موقوتا"
 $sched.Controls.Add($ayah)
-$panel.Add_Click({
+$dayClick = {
   $now2 = Get-Date
   $nextK = $null
   foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) { if ((To-Date $script:timings.$k) -gt $now2) { $nextK = $k; break } }
@@ -209,7 +209,8 @@ $panel.Add_Click({
   }
   $sched.Location = New-Object System.Drawing.Point($panel.Left, ($panel.Top - 362))
   if ($sched.Visible) { $sched.Hide() } else { $sched.Show() }
-})
+}
+foreach ($c in @($panel, $pic, $lblMain, $lblSub)) { $c.Add_Click($dayClick); $c.Add_DoubleClick($openApp) }
 $sched.Add_Deactivate({ $sched.Hide() })
 # Плашка зафиксирована: перетаскивание отключено, позиция только рядом с погодой
 
