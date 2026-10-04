@@ -232,6 +232,14 @@ $AN = @(
 @("الرشيد","Ар-Рашид","Направляющий к правильному"),
 @("الصبور","Ас-Сабур","Терпеливый к ослушникам")
 )
+$NamesStartFile = Join-Path $ScriptDir "names_start.txt"
+if (-not (Test-Path -LiteralPath $NamesStartFile)) { (Get-Date).ToString("yyyy-MM-dd") | Set-Content -LiteralPath $NamesStartFile -Encoding UTF8 }
+function Get-NameIdx {
+  try { $ns = [datetime]::ParseExact(((Get-Content -LiteralPath $NamesStartFile -Raw).Trim()), "yyyy-MM-dd", $null) }
+  catch { $ns = (Get-Date).Date }
+  $d = [int](((Get-Date).Date - $ns).TotalDays)
+  return ((($d % $AN.Count) + $AN.Count) % $AN.Count)
+}
 $sched = New-Object System.Windows.Forms.Form
 $sched.FormBorderStyle = "None"
 $sched.StartPosition = "Manual"
@@ -321,7 +329,7 @@ $dayClick = {
   $shDay.Text = $WeekDays[[int]$now2.DayOfWeek]
   $shHijri.Text = "{0} {1} {2}" -f $hc.GetDayOfMonth($now2), $HijriMonths[$hc.GetMonth($now2)-1], $hc.GetYear($now2)
   $shPlace.Text = $Place
-  $nn = (Get-Date).DayOfYear % $AN.Count
+  $nn = Get-NameIdx
   $shName.Text = "☝ №{0}: {1} — {2}" -f ($nn + 1), $AN[$nn][1], $AN[$nn][2]
   $gold = [System.Drawing.Color]::FromArgb(212,175,55)
   $gray = [System.Drawing.Color]::FromArgb(150,150,150)
@@ -508,7 +516,7 @@ try {
       Log "panel attached to taskbar"
     }
   } catch {}
-  $nidx = (Get-Date).DayOfYear % $AN.Count
+  $nidx = Get-NameIdx
   $ni.Text = "{0} {1} -{2} · {3}" -f $Names[$next.key], $next.date.ToString("HH:mm"), $cd, $AN[$nidx][1]
   $short = if ($s -ge 3600) { "{0}ч" -f [int]($s/3600) } else { "{0}м" -f [int]($s/60) }
   try { $old = $ni.Icon; $ni.Icon = New-CountdownIcon $short; if ($old) { $old.Dispose() } } catch {}
@@ -519,7 +527,7 @@ try {
     elseif ($hh -gt 0) { $lblSub.Text = "{0} {1} {2} {3} {4}" -f $T.left, $hh, $T.h, $mm, $T.m }
     else { $lblSub.Text = "{0} {1} {2}" -f $T.left, $mm, $T.m }
   } else { $lblSub.Text = "" }
-  if ((Get-Date).Second % 15 -ge 10) { $lblSub.Text = "☝ №{0} {1}" -f ($nidx + 1), $AN[$nidx][1] }
+  if ((Get-Date).Second % 15 -ge 10) { $lblSub.Text = "☝ " + $AN[$nidx][0] }
   $dk = "{0}_{1}" -f $next.key, (Get-Date).ToString("yyyy-MM-dd")
   $rw = $RemMin * 60
   if ($RemMin -gt 0 -and $s -le $rw -and $s -gt ($rw - 60) -and $next.key -ne "Sunrise" -and $script:last10 -ne $dk) { $script:last10 = $dk

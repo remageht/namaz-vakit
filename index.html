@@ -662,6 +662,7 @@
       <button class="btn btn-ghost" id="btnNamePrev">←</button>
       <button class="btn btn-ghost" id="btnNameListen">🔊</button>
       <button class="btn btn-ghost" id="btnNameNext">→</button>
+      <button class="btn btn-ghost" id="btnNameReset" title="Начать цикл с №1">↺</button>
     </div>
   </div>
   <div class="card" style="text-align:center;">
@@ -1435,11 +1436,22 @@ const ALLAH_NAMES = [
 ["الصبور","Ас-Сабур","Терпеливый к ослушникам"]
 ];
 
-function dayOfYear() {
-  const n = new Date();
-  return Math.floor((n - new Date(n.getFullYear(), 0, 0)) / 864e5);
+function namesStart() {
+  let s = store.get('names_start');
+  if (!s) {
+    const d = new Date();
+    s = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    store.set('names_start', s);
+  }
+  return s;
 }
-let nameIdx = dayOfYear() % ALLAH_NAMES.length;
+function dayIdx() {
+  const [y, m, dd] = namesStart().split('-').map(Number);
+  const t0 = new Date(y, m - 1, dd);
+  const t1 = new Date(); t1.setHours(0, 0, 0, 0);
+  return (((Math.floor((t1 - t0) / 864e5)) % ALLAH_NAMES.length) + ALLAH_NAMES.length) % ALLAH_NAMES.length;
+}
+let nameIdx = dayIdx();
 
 function renderName() {
   const [ar, tr, ru] = ALLAH_NAMES[nameIdx];
@@ -1447,11 +1459,16 @@ function renderName() {
   document.getElementById('nameTr').textContent = tr;
   document.getElementById('nameRu').textContent = ru;
   document.getElementById('nameNum').textContent = `№ ${nameIdx + 1} из 99`;
-  document.getElementById('nameDayLabel').textContent = (nameIdx === dayOfYear() % ALLAH_NAMES.length) ? 'Имя сегодняшнего дня' : 'Выбранное имя';
+  document.getElementById('nameDayLabel').textContent = (nameIdx === dayIdx()) ? 'Имя сегодняшнего дня' : 'Выбранное имя';
 }
 document.getElementById('btnNamePrev').onclick = () => { nameIdx = (nameIdx + ALLAH_NAMES.length - 1) % ALLAH_NAMES.length; renderName(); };
 document.getElementById('btnNameNext').onclick = () => { nameIdx = (nameIdx + 1) % ALLAH_NAMES.length; renderName(); };
 document.getElementById('btnNameListen').onclick = () => speakArabic(ALLAH_NAMES[nameIdx][0]);
+document.getElementById('btnNameReset').onclick = () => {
+  const d = new Date();
+  store.set('names_start', `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+  nameIdx = dayIdx(); renderName();
+};
 renderName();
 
 (function buildNamesGrid() {
