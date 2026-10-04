@@ -606,6 +606,7 @@
 
     <label>Быстрый выбор города:</label>
     <div class="cities-grid">
+      <button class="city-btn" onclick="setCity(45.1342, 33.60, 'Саки')">Саки</button>
       <button class="city-btn" onclick="setCity(55.7558, 37.6173, 'Москва')">Москва</button>
       <button class="city-btn" onclick="setCity(59.9343, 30.3351, 'СПб')">СПб</button>
       <button class="city-btn" onclick="setCity(55.7887, 49.1221, 'Казань')">Казань</button>
@@ -670,12 +671,12 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
 // ==========================================
 // 2. СОСТОЯНИЕ И НАСТРОЙКИ (LOCALSTORAGE)
 // ==========================================
-const DEFAULT_MOSCOW = { lat: 55.7558, lon: 37.6173 };
+const DEFAULT_LOC = { lat: 45.1342, lon: 33.60 };
 
 const S = {
-  lat: parseFloat(localStorage.getItem('lat')) || DEFAULT_MOSCOW.lat,
-  lon: parseFloat(localStorage.getItem('lon')) || DEFAULT_MOSCOW.lon,
-  method: localStorage.getItem('method') || '2',
+  lat: parseFloat(localStorage.getItem('lat')) || DEFAULT_LOC.lat,
+  lon: parseFloat(localStorage.getItem('lon')) || DEFAULT_LOC.lon,
+  method: localStorage.getItem('method') || '3',
   school: localStorage.getItem('school') || '1',
   notif10: localStorage.getItem('notif10') !== 'off',
   notif0: localStorage.getItem('notif0') !== 'off',
@@ -1119,12 +1120,14 @@ function speakArabic(text) {
   }
 }
 
+const SPEECH_TEXTS = [];
 function makeTextCard(ar, tr, ru) {
+  const idx = SPEECH_TEXTS.push(ar) - 1;
   return `
     <div class="ar">${ar}</div>
     <div class="tr">🗣 <b>Транскрипция:</b> ${tr}</div>
     <div class="ru">📖 <b>Перевод:</b> ${ru}</div>
-    <button class="speak-btn" onclick="speakArabic(${JSON.stringify(ar)})">
+    <button class="speak-btn" data-speech="${idx}">
       🔊 Прослушать на арабском (ar-SA)
     </button>
   `;
@@ -1276,6 +1279,9 @@ const LESSONS_DATA = {
 function renderLesson(tabKey) {
   const container = document.getElementById('lessons');
   container.innerHTML = LESSONS_DATA[tabKey] || '';
+  container.querySelectorAll('[data-speech]').forEach(b => {
+    b.onclick = () => speakArabic(SPEECH_TEXTS[+b.dataset.speech]);
+  });
 }
 
 document.querySelectorAll('#lessonTabs button').forEach(btn => {

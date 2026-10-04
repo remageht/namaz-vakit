@@ -1,4 +1,4 @@
-const CACHE_NAME = 'namaz-v1';
+const CACHE_NAME = 'namaz-v2';
 const ASSETS = [
   './',
   './index.html',
