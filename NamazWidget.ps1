@@ -95,6 +95,14 @@ $ni.ContextMenuStrip = $menu
 $ni.Add_DoubleClick({ Start-Process $AppUrl })
 
 # Мини-панель в стиле виджета погоды: иконка + две строки, слева внизу рядом с погодой
+function New-AppFont($size, $bold) {
+  try {
+    if ($bold) { return New-Object System.Drawing.Font("Segoe UI Variable Display", $size, [System.Drawing.FontStyle]::Bold) }
+    return New-Object System.Drawing.Font("Segoe UI Variable Text", $size)
+  } catch {}
+  if ($bold) { return New-Object System.Drawing.Font("Segoe UI", $size, [System.Drawing.FontStyle]::Bold) }
+  return New-Object System.Drawing.Font("Segoe UI", $size)
+}
 $pic = New-Object System.Windows.Forms.PictureBox
 $pic.Size = New-Object System.Drawing.Size(32, 32)
 $pic.Location = New-Object System.Drawing.Point(8, 8)
@@ -116,7 +124,7 @@ $panel = New-Object System.Windows.Forms.Form
 $panel.FormBorderStyle = "None"
 $panel.TopMost = $true
 $panel.ShowInTaskbar = $false
-$panel.BackColor = [System.Drawing.Color]::FromArgb(43,43,43)
+$panel.BackColor = [System.Drawing.Color]::FromArgb(33,39,41)
 $panel.Opacity = 0.85
 $panel.Size = New-Object System.Drawing.Size(210, 48)
 $panel.Controls.Add($pic)
@@ -364,17 +372,17 @@ function Apply-Compact {
     $panel.Size = New-Object System.Drawing.Size(160, 40)
     $pic.Size = New-Object System.Drawing.Size(24, 24)
     $pic.Location = New-Object System.Drawing.Point(6, 8)
-    $lblMain.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+    $lblMain.Font = New-AppFont 9 $true
     $lblMain.Location = New-Object System.Drawing.Point(36, 1)
-    $lblSub.Font = New-Object System.Drawing.Font("Segoe UI", 8)
+    $lblSub.Font = New-AppFont 8 $false
     $lblSub.Location = New-Object System.Drawing.Point(36, 19)
   } else {
     $panel.Size = New-Object System.Drawing.Size(210, 48)
     $pic.Size = New-Object System.Drawing.Size(32, 32)
     $pic.Location = New-Object System.Drawing.Point(8, 8)
-    $lblMain.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+$lblMain.Font = New-AppFont 11 $true
     $lblMain.Location = New-Object System.Drawing.Point(48, 3)
-    $lblSub.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$lblSub.Font = New-AppFont 9 $false
     $lblSub.Location = New-Object System.Drawing.Point(48, 24)
   }
 }
@@ -485,6 +493,10 @@ public class WinApi {
   [DllImport("user32.dll")] public static extern IntPtr GetWindowLongPtr(IntPtr h, int n);
   [DllImport("user32.dll")] public static extern IntPtr SetWindowLongPtr(IntPtr h, int n, IntPtr v);
   [DllImport("user32.dll")] public static extern IntPtr FindWindow(string c, string w);
+  [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr h, int attr, ref int val, int size);
+  [DllImport("user32.dll")] public static extern int SetWindowCompositionAttribute(IntPtr h, ref CompAttrData d);
+  [StructLayout(LayoutKind.Sequential)] public struct AccentPolicy { public int AccentState; public int AccentFlags; public int GradientColor; public int AnimationId; }
+  [StructLayout(LayoutKind.Sequential)] public struct CompAttrData { public int Attribute; public IntPtr Data; public int SizeOfData; }
   public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
 }
 "@
@@ -553,6 +565,20 @@ $script:last10 = ""; $script:last0 = ""; $script:tbOwner = 0
 $timer.Start()
 Apply-Compact
 try { $ex = [WinApi]::GetWindowLongPtr($panel.Handle, -20); [void][WinApi]::SetWindowLongPtr($panel.Handle, -20, [IntPtr](([int64]$ex -bor 0x80))) } catch {}
+try {
+  $corner = 2
+  [void][WinApi]::DwmSetWindowAttribute($panel.Handle, 33, [ref]$corner, 4)
+  $ac = New-Object WinApi+AccentPolicy
+  $ac.AccentState = 4; $ac.AccentFlags = 0; $ac.GradientColor = 0xE8292721; $ac.AnimationId = 0
+  $sz = [System.Runtime.InteropServices.Marshal]::SizeOf($ac)
+  $ptr = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($sz)
+  [System.Runtime.InteropServices.Marshal]::StructureToPtr($ac, $ptr, $false)
+  $cd = New-Object WinApi+CompAttrData
+  $cd.Attribute = 19; $cd.Data = $ptr; $cd.SizeOfData = $sz
+  [void][WinApi]::SetWindowCompositionAttribute($panel.Handle, [ref]$cd)
+  [System.Runtime.InteropServices.Marshal]::FreeHGlobal($ptr)
+  Log "acrylic on"
+} catch { Log "acrylic off" }
 Log "Виджет запущен"
 $ni.ShowBalloonTip(5000, "Намаз-виджет", "Виджет запущен. Наведи на значок в трее.", [System.Windows.Forms.ToolTipIcon]::Info)
 [System.Windows.Forms.Application]::Run($ctx)
