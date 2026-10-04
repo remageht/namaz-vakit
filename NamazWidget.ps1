@@ -19,7 +19,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ConfigFile = Join-Path $ScriptDir "config.json"
 $Lat = 45.1342; $Lon = 33.60; $Method = 3; $School = 1; $Place = "Саки"
 if (Test-Path -LiteralPath $ConfigFile) {
-  try { $cfg = Get-Content -LiteralPath $ConfigFile -Raw | ConvertFrom-Json
+  try { $cfg = Get-Content -LiteralPath $ConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($cfg.latitude -ne $null) { $Lat = $cfg.latitude }
     if ($cfg.longitude -ne $null) { $Lon = $cfg.longitude }
     if ($cfg.method -ne $null) { $Method = $cfg.method }
