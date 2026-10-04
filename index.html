@@ -673,13 +673,19 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
 // ==========================================
 const DEFAULT_LOC = { lat: 45.1342, lon: 33.60 };
 
+const store = {
+  m: {},
+  get(k) { try { const v = window['localStorage'].getItem(k); if (v !== null) return v; } catch (e) {} return (k in this.m) ? this.m[k] : null; },
+  set(k, v) { try { window['localStorage'].setItem(k, v); } catch (e) {} try { this.m[k] = String(v); } catch (e2) {} }
+};
+
 const S = {
-  lat: parseFloat(localStorage.getItem('lat')) || DEFAULT_LOC.lat,
-  lon: parseFloat(localStorage.getItem('lon')) || DEFAULT_LOC.lon,
-  method: localStorage.getItem('method') || '3',
-  school: localStorage.getItem('school') || '1',
-  notif10: localStorage.getItem('notif10') !== 'off',
-  notif0: localStorage.getItem('notif0') !== 'off',
+  lat: parseFloat(store.get('lat')) || DEFAULT_LOC.lat,
+  lon: parseFloat(store.get('lon')) || DEFAULT_LOC.lon,
+  method: store.get('method') || '3',
+  school: store.get('school') || '1',
+  notif10: store.get('notif10') !== 'off',
+  notif0: store.get('notif0') !== 'off',
 };
 
 let timings = null;
@@ -863,14 +869,14 @@ function checkNotifications(diffMs) {
   const k0 = `n0_${nextPrayer.key}_${dayKey}`;
 
   // 10 минут до намаза (между 10:00 и 09:40)
-  if (S.notif10 && diffMs <= 10 * 60 * 1000 && diffMs > 9 * 60 * 1000 && !localStorage.getItem(k10)) {
-    localStorage.setItem(k10, '1');
+  if (S.notif10 && diffMs <= 10 * 60 * 1000 && diffMs > 9 * 60 * 1000 && !store.get(k10)) {
+    store.set(k10, '1');
     triggerNotification('Подготовка к молитве ⏳', `Осталось 10 минут до ${PRAYERS_RU[nextPrayer.key]}. Совершите омовение (вуду).`);
   }
 
   // 00:00 - наступление времени намаза (первые 20 секунд)
-  if (S.notif0 && diffMs <= 20000 && !localStorage.getItem(k0)) {
-    localStorage.setItem(k0, '1');
+  if (S.notif0 && diffMs <= 20000 && !store.get(k0)) {
+    store.set(k0, '1');
     triggerNotification('Время намаза 🕌', `Наступило время молитвы: ${PRAYERS_RU[nextPrayer.key]}`);
   }
 }
@@ -924,8 +930,8 @@ document.getElementById('btnGeo').onclick = () => {
     pos => {
       S.lat = pos.coords.latitude;
       S.lon = pos.coords.longitude;
-      localStorage.setItem('lat', S.lat);
-      localStorage.setItem('lon', S.lon);
+      store.set('lat', S.lat);
+      store.set('lon', S.lon);
       document.getElementById('inLat').value = S.lat.toFixed(4);
       document.getElementById('inLon').value = S.lon.toFixed(4);
       loadTimings();
@@ -942,8 +948,8 @@ function setCity(lat, lon, name) {
   document.getElementById('inLon').value = lon;
   S.lat = lat;
   S.lon = lon;
-  localStorage.setItem('lat', lat);
-  localStorage.setItem('lon', lon);
+  store.set('lat', lat);
+  store.set('lon', lon);
   loadTimings();
   alert(`Город установлен: ${name}`);
 }
@@ -965,10 +971,10 @@ document.getElementById('btnSave').onclick = () => {
   S.method = document.getElementById('inMethod').value;
   S.school = document.getElementById('inSchool').value;
 
-  localStorage.setItem('lat', S.lat);
-  localStorage.setItem('lon', S.lon);
-  localStorage.setItem('method', S.method);
-  localStorage.setItem('school', S.school);
+  store.set('lat', S.lat);
+  store.set('lon', S.lon);
+  store.set('method', S.method);
+  store.set('school', S.school);
 
   loadTimings();
   alert('Настройки сохранены и расписание обновлено!');
@@ -1306,13 +1312,13 @@ if ('serviceWorker' in navigator) {
 loadTimings();
 
 // Попытка фонового уточнения по GPS, если геопозиция ещё не сохранялась
-if (!localStorage.getItem('lat') && navigator.geolocation) {
+if (!store.get('lat') && navigator.geolocation) {
   navigator.geolocation.getCurrentPosition(
     pos => {
       S.lat = pos.coords.latitude;
       S.lon = pos.coords.longitude;
-      localStorage.setItem('lat', S.lat);
-      localStorage.setItem('lon', S.lon);
+      store.set('lat', S.lat);
+      store.set('lon', S.lon);
       document.getElementById('inLat').value = S.lat.toFixed(4);
       document.getElementById('inLon').value = S.lon.toFixed(4);
       loadTimings();
