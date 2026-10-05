@@ -1370,24 +1370,42 @@ function onDeviceOrientation(e) {
 const ARABIC_TEXTS = {
   fatiha: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۝ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ۝ الرَّحْمَٰنِ الرَّحِيمِ ۝ مَالِكِ يَوْمِ الدِّينِ ۝ إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ ۝ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ ۝ صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ',
   fatiha_tr: 'Бисмилляхир-рахманир-рахим. Альхамду лилляхи раббиль-алямин. Ар-рахманир-рахим. Малики яумид-дин. Иййакя наъбуду ва иййакя настаъин. Ихдинас-сыраталь-мустакым. Сыратал-лязина анъамта аляйхим, гайриль-магдуби аляйхим ва ляд-даллин. Амин.',
+  fatiha_la: 'Bismillāhir-Raḥmānir-Raḥīm. Al-ḥamdu lillāhi Rabbil-‘ālamīn. Ar-Raḥmānir-Raḥīm. Māliki yawmid-dīn. Iyyāka na‘budu wa iyyāka nasta‘īn. Ihdinaṣ-ṣirāṭal-mustaqīm. Ṣirāṭallaḏīna an‘amta ‘alayhim gayril-magḍūbi ‘alayhim walad-ḍāllīn. Āmīn.',
   fatiha_ru: 'Во имя Аллаха, Милостивого, Милосердного! Хвала Аллаху, Господу миров, Милостивому, Милосердному, Властелину Дня воздаяния! Тебе одному мы поклоняемся и Тебя одного молим о помощи. Веди нас прямым путем, путем тех, кого Ты облагодетельствовал, не тех, на кого пал гнев, и не заблудших.',
 
   ikhlas: 'قُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ',
   ikhlas_tr: 'Куль хуваллаху ахад. Аллахус-самад. Лям ялид ва лям юляд. Ва лям йакул-ляху куфуван ахад.',
+  ikhlas_la: 'Qul Huwallāhu Aḥad. Allāhuṣ-Ṣamad. Lam yalid wa lam yūlad. Wa lam yakun lahū kufuwan aḥad.',
   ikhlas_ru: 'Скажи: «Он — Аллах Единый, Аллах Самодостаточный. Он не родил и не был рожден, и нет никого, равного Ему».',
 
   tashahhud: 'التَّحِيَّاتُ لِلَّهِ وَالصَّلَوَاتُ وَالطَّيِّبَاتُ، السَّلَامُ عَلَيْكَ أَيُّهَا النَّبِيُّ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ، السَّلَامُ عَلَيْنَا وَعَلَىٰ عِبَادِ اللَّهِ الصَّالِحِينَ، أَشْهَدُ أَنْ لَا إِلَٰهَ إِلَّا اللَّهُ وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُهُ وَرَسُولُهُ',
   tashahhud_tr: 'Ат-тахиййату лилляхи вас-салявату ват-таййибат. Ас-саляму аляйкя аййухан-набиййу ва рахматуллахи ва баракятух. Ас-саляму аляйна ва аля гыбадилляхис-салихин. Ашхаду алля иляха илляллах ва ашхаду анна Мухаммадан абдуху ва расулюх.',
+  tashahhud_la: 'At-taḥiyyātu lillāhi waṣ-ṣalawātu waṭ-ṭayyibāt. As-salāmu ‘alayka ayyuhan-Nabiyyu wa raḥmatullāhi wa barakātuh. As-salāmu ‘alaynā wa ‘alā ‘ibādillāhiṣ-ṣāliḥīn. Ashhadu allā ilāha illallāh, wa ashhadu anna Muḥammadan ‘abduhū wa rasūluh.',
   tashahhud_ru: 'Приветствия Аллаху, молитвы и добрые дела. Мир тебе, о Пророк, милость Аллаха и Его благословения. Мир нам и праведным рабам Аллаха. Свидетельствую, что нет божества кроме Аллаха, и свидетельствую, что Мухаммад — Его раб и посланник.',
 
   salawat: 'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ وَعَلَىٰ آلِ مُحَمَّدٍ كَمَا صَلَّيْتَ عَلَىٰ إِبْرَاهِيمَ وَعَلَىٰ آلِ إِبْرَاهِيمَ إِنَّكَ حَمِيدٌ مَجِيدٌ، اللَّهُمَّ بَارِكْ عَلَىٰ مُحَمَّدٍ وَعَلَىٰ آلِ مُحَمَّدٍ كَمَا بَارَكْتَ عَلَىٰ إِبْرَاهِيمَ وَعَلَىٰ آلِ إِبْرَاهِيمَ إِنَّكَ حَمِيدٌ مَجِيدٌ',
   salawat_tr: 'Аллахумма салли аля Мухаммадин ва аля али Мухаммад, кяма салляйта аля Ибрахима ва аля али Ибрахим, иннакя хамидун маджид. Аллахумма барик аля Мухаммадин ва аля али Мухаммад, кяма баракта аля Ибрахима ва аля али Ибрахим, иннакя хамидун маджид.',
+  salawat_la: 'Allāhumma ṣalli ‘alā Muḥammadin wa ‘alā āli Muḥammad, kamā ṣallayta ‘alā Ibrāhīma wa ‘alā āli Ibrāhīm, innaka Ḥamīdun Majīd. Allāhumma bārik ‘alā Muḥammadin wa ‘alā āli Muḥammad, kamā bārakta ‘alā Ibrāhīma wa ‘alā āli Ibrāhīm, innaka Ḥamīdun Majīd.',
   salawat_ru: 'О Аллах, благослови Мухаммада и семью Мухаммада, как благословил Ты Ибрахима и семью Ибрахима. Поистине, Ты — Достойный хвалы, Славный! О Аллах, ниспошли благодать на Мухаммада и семью Мухаммада, как ниспослал Ты благодать на Ибрахима и семью Ибрахима. Поистине, Ты — Достойный хвалы, Славный!',
+
+  rabbana: 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ',
+  rabbana_tr: 'Раббана атина фид-дунья хасанатан ва филь-ахырати хасанатан ва кына газабан-нар.',
+  rabbana_la: 'Rabbanā ātinā fid-dunyā ḥasanatan wa fīl-ākhirati ḥasanatan wa qinā ‘adhāban-nār.',
+  rabbana_ru: 'Господь наш! Одари нас добром в этом мире и добром в Вечной жизни и защити нас от мучений в Огне.',
 
   wudu_dua: 'أَشْهَدُ أَنْ لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُهُ وَرَسُولُهُ، اللَّهُمَّ اجْعَلْنِي مِنَ التَّوَّابِينَ وَاجْعَلْنِي مِنَ الْمُتَطَهِّرِينَ',
   wudu_dua_tr: 'Ашхаду алля иляха илляллаху вахдаху ля шарика лях, ва ашхаду анна Мухаммадан абдуху ва расулюх. Аллахумма-дж\'альни минат-таввабина вадж\'альни миналь-мутатагхирин.',
+  wudu_dua_la: 'Ashhadu allā ilāha illallāhu waḥdahū lā sharīka lah, wa ashhadu anna Muḥammadan ‘abduhū wa rasūluh. Allāhummāj-‘alnī minat-tawwābīna waj-‘alnī minal-mutaṭahhirīn.',
   wudu_dua_ru: 'Свидетельствую, что нет божества кроме одного лишь Аллаха, у Которого нет сотоварищей, и свидетельствую, что Мухаммад — Его раб и посланник. О Аллах, сделай меня из кающихся и сделай меня из очищающихся.'
 };
+
+let translitScript = store.get('translit_script') || 'cyrl';
+
+function setTranslitScript(s) {
+  translitScript = s;
+  store.set('translit_script', s);
+  renderLesson('texts');
+}
 
 function speakArabic(text) {
   try {
@@ -1406,11 +1424,17 @@ function speakArabic(text) {
 }
 
 const SPEECH_TEXTS = [];
-function makeTextCard(ar, tr, ru) {
+function makeTextCard(ar, tr_cyrl, tr_la, ru) {
+  if (arguments.length === 3) {
+    ru = tr_la;
+    tr_la = tr_cyrl;
+  }
+  const tr = (translitScript === 'latn') ? (tr_la || tr_cyrl) : tr_cyrl;
+  const scriptLabel = (translitScript === 'latn') ? 'Latin' : 'Кириллица';
   const idx = SPEECH_TEXTS.push(ar) - 1;
   return `
     <div class="ar">${ar}</div>
-    <div class="tr">🗣 <b>Транскрипция:</b> ${tr}</div>
+    <div class="tr">🗣 <b>Транскрипция (${scriptLabel}):</b> ${tr}</div>
     <div class="ru">📖 <b>Перевод:</b> ${ru}</div>
     <button class="speak-btn" data-speech="${idx}">
       🔊 Прослушать на арабском (ar-SA)
@@ -1534,36 +1558,58 @@ const LESSONS_DATA = {
     '<b>Время:</b> от исчезновения вечерней зари до рассвета (Фаджра).<br><b>Структура:</b> 4 сунна + <b>4 фард</b> + 2 сунна + 3 витр.<br>В первых двух ракаатах фарда Коран читается <b>вслух</b>, в 3-м и 4-м — только Аль-Фатиха <b>тихо (про себя)</b>.'
   ),
 
-  texts: `
-    <div class="step">
-      <h4>Сура «Аль-Фатиха» (Открывающая)</h4>
-      <div class="sub">Обязательно читается стоя в каждом ракаате каждого намаза.</div>
-      ${makeTextCard(ARABIC_TEXTS.fatiha, ARABIC_TEXTS.fatiha_tr, ARABIC_TEXTS.fatiha_ru)}
-    </div>
-
-    <div class="step">
-      <h4>Сура «Аль-Ихлас» (Искренность)</h4>
-      <div class="sub">Короткая сура, читаемая после Аль-Фатихи в 1-м и 2-м ракаатах.</div>
-      ${makeTextCard(ARABIC_TEXTS.ikhlas, ARABIC_TEXTS.ikhlas_tr, ARABIC_TEXTS.ikhlas_ru)}
-    </div>
-
-    <div class="step">
-      <h4>Ташаххуд («Ат-тахиййат»)</h4>
-      <div class="sub">Читается сидя после 2-го ракаата и в финальном сидении перед окончанием молитвы.</div>
-      ${makeTextCard(ARABIC_TEXTS.tashahhud, ARABIC_TEXTS.tashahhud_tr, ARABIC_TEXTS.tashahhud_ru)}
-    </div>
-
-    <div class="step">
-      <h4>Салават Пророку ﷺ</h4>
-      <div class="sub">Читается в финальном сидении после Ташаххуда перед словами приветствия (Таслим).</div>
-      ${makeTextCard(ARABIC_TEXTS.salawat, ARABIC_TEXTS.salawat_tr, ARABIC_TEXTS.salawat_ru)}
-    </div>
-  `
+  texts: ''
 };
 
+function getTextsLessonHtml() {
+  const isLat = (translitScript === 'latn');
+  return `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; background:#082f25; padding:8px 12px; border-radius:10px; border:1px solid var(--border);">
+      <span style="font-size:13px; font-weight:600;">Алфавит транскрипции:</span>
+      <div style="display:flex; gap:6px;">
+        <button class="btn btn-ghost ${!isLat ? 'active' : ''}" id="btnScriptCyrl" onclick="setTranslitScript('cyrl')" style="padding:4px 10px; font-size:12px;">Кириллица</button>
+        <button class="btn btn-ghost ${isLat ? 'active' : ''}" id="btnScriptLatn" onclick="setTranslitScript('latn')" style="padding:4px 10px; font-size:12px;">Latin</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <h4>1. Сура «Аль-Фатиха» (Открывающая)</h4>
+      <div class="sub">Обязательно читается стоя в каждом ракаате каждого намаза.</div>
+      ${makeTextCard(ARABIC_TEXTS.fatiha, ARABIC_TEXTS.fatiha_tr, ARABIC_TEXTS.fatiha_la, ARABIC_TEXTS.fatiha_ru)}
+    </div>
+
+    <div class="step">
+      <h4>2. Сура «Аль-Ихлас» (Искренность)</h4>
+      <div class="sub">Короткая сура, читаемая после Аль-Фатихи в 1-м и 2-м ракаатах.</div>
+      ${makeTextCard(ARABIC_TEXTS.ikhlas, ARABIC_TEXTS.ikhlas_tr, ARABIC_TEXTS.ikhlas_la, ARABIC_TEXTS.ikhlas_ru)}
+    </div>
+
+    <div class="step">
+      <h4>3. Ташаххуд («Ат-тахиййат»)</h4>
+      <div class="sub">Читается сидя после 2-го ракаата и в финальном сидении перед окончанием молитвы.</div>
+      ${makeTextCard(ARABIC_TEXTS.tashahhud, ARABIC_TEXTS.tashahhud_tr, ARABIC_TEXTS.tashahhud_la, ARABIC_TEXTS.tashahhud_ru)}
+    </div>
+
+    <div class="step">
+      <h4>4. Салават Пророку ﷺ</h4>
+      <div class="sub">Читается в финальном сидении после Ташаххуда перед словами приветствия (Таслим).</div>
+      ${makeTextCard(ARABIC_TEXTS.salawat, ARABIC_TEXTS.salawat_tr, ARABIC_TEXTS.salawat_la, ARABIC_TEXTS.salawat_ru)}
+    </div>
+
+    <div class="step">
+      <h4>5. Дуа «Раббана атина»</h4>
+      <div class="sub">Кораническая молитва (2:201) в финальном сидении перед Таслимом и после молитвы.</div>
+      ${makeTextCard(ARABIC_TEXTS.rabbana, ARABIC_TEXTS.rabbana_tr, ARABIC_TEXTS.rabbana_la, ARABIC_TEXTS.rabbana_ru)}
+    </div>
+  `;
+}
+
+let activeLessonTab = 'wudu';
+
 function renderLesson(tabKey) {
+  if (tabKey) activeLessonTab = tabKey;
   const container = document.getElementById('lessons');
-  container.innerHTML = LESSONS_DATA[tabKey] || '';
+  container.innerHTML = (activeLessonTab === 'texts') ? getTextsLessonHtml() : (LESSONS_DATA[activeLessonTab] || '');
   container.querySelectorAll('[data-speech]').forEach(b => {
     b.onclick = () => speakArabic(SPEECH_TEXTS[+b.dataset.speech]);
   });
