@@ -579,12 +579,12 @@ function Show-Settings {
   $cbCompact.Checked = $Compact
   $numRem.Value = $RemMin
   if ($settings.ShowDialog() -eq "OK") {
-    if ($cbLang.SelectedIndex -eq 1) { $Lang = "tt" } elseif ($cbLang.SelectedIndex -eq 2) { $Lang = "en" } else { $Lang = "ru" }
-    $StartupOn = $cbStartup.Checked
-    $ShowCD = $cbCD.Checked
-    $ShowSec = $cbSec.Checked
-    $Compact = $cbCompact.Checked
-    $RemMin = [int]$numRem.Value
+    if ($cbLang.SelectedIndex -eq 1) { $script:Lang = "tt" } elseif ($cbLang.SelectedIndex -eq 2) { $script:Lang = "en" } else { $script:Lang = "ru" }
+    $script:StartupOn = $cbStartup.Checked
+    $script:ShowCD = $cbCD.Checked
+    $script:ShowSec = $cbSec.Checked
+    $script:Compact = $cbCompact.Checked
+    $script:RemMin = [int]$numRem.Value
     Update-Lang
     Apply-Compact
 Apply-Theme $Theme
