@@ -5,10 +5,12 @@ on:
     paths:
       - '**/NamazWidget.ps1'
       - '**/manifest.json'
+      - '.github/workflows/**'
   pull_request:
     paths:
       - '**/NamazWidget.ps1'
       - '**/manifest.json'
+      - '.github/workflows/**'
 
 jobs:
   validate:
