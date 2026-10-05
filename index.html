@@ -511,6 +511,37 @@
   .mosque-name { font-weight: 700; font-size: 14px; color: var(--text); }
   .mosque-dist { font-size: 13px; color: var(--gold); font-weight: 600; white-space: nowrap; margin-left: 10px; }
 
+  /* Статистика и трекер намазов */
+  .prayer-check-btn {
+    background: #093327;
+    border: 1px solid #1a5a48;
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 2px;
+    font-size: 11px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s ease;
+    user-select: none;
+  }
+  .prayer-check-btn:hover { border-color: var(--gold); }
+  .prayer-check-btn.checked {
+    background: rgba(34, 197, 94, 0.25);
+    border-color: #22c55e;
+    color: #86efac;
+    font-weight: 700;
+  }
+  .streak-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #165341;
+  }
+  .streak-dot.active {
+    background: var(--gold);
+    box-shadow: 0 0 5px rgba(212, 175, 55, 0.6);
+  }
+
   footer {
     text-align: center;
     color: var(--muted);
@@ -556,6 +587,31 @@
     </div>
     <div class="sub" id="locInfo" style="margin-top: 10px;">📍 Определение координат…</div>
     <button class="btn btn-green" id="btnGeo">📍 Определить автоматически (GPS)</button>
+  </div>
+
+  <div class="card" id="cardPrayerStats">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <b style="font-size:15px;">📊 Молитвы сегодня</b>
+      <span id="streakBadge" style="background:rgba(212,175,55,0.2); color:var(--gold); border:1px solid rgba(212,175,55,0.4); padding:2px 8px; border-radius:12px; font-size:12px; font-weight:700;">🔥 Серия: 0 дн.</span>
+    </div>
+    <div class="sub" style="margin:4px 0 10px;">Отмечайте выполненные молитвы. Прогресс сохраняется в памяти.</div>
+    <div style="background:#082f25; border-radius:10px; height:8px; overflow:hidden; margin-bottom:12px;">
+      <div id="prayerProgressBar" style="background:var(--accent); height:100%; width:0%; transition:width .3s ease;"></div>
+    </div>
+    <div id="prayerCheckGrid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:6px;">
+      <div class="prayer-check-btn" id="chk_Fajr" onclick="togglePrayerCheck('Fajr')">Фаджр<br><span id="chkIcon_Fajr">○</span></div>
+      <div class="prayer-check-btn" id="chk_Dhuhr" onclick="togglePrayerCheck('Dhuhr')">Зухр<br><span id="chkIcon_Dhuhr">○</span></div>
+      <div class="prayer-check-btn" id="chk_Asr" onclick="togglePrayerCheck('Asr')">Аср<br><span id="chkIcon_Asr">○</span></div>
+      <div class="prayer-check-btn" id="chk_Maghrib" onclick="togglePrayerCheck('Maghrib')">Магриб<br><span id="chkIcon_Maghrib">○</span></div>
+      <div class="prayer-check-btn" id="chk_Isha" onclick="togglePrayerCheck('Isha')">Иша<br><span id="chkIcon_Isha">○</span></div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+      <span id="prayerProgressText" class="sub" style="font-size:12px;">Выполнено: 0 из 5</span>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span class="sub" style="font-size:11px;">Неделя:</span>
+        <div id="weekStreakDots" style="display:flex; gap:4px;"></div>
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -1948,6 +2004,99 @@ async function searchNearbyMosques() {
 }
 
 document.getElementById('btnFindMosques').onclick = searchNearbyMosques;
+
+// ==========================================
+// 8e. СТАТИСТИКА И ТРЕКЕР НАМАЗОВ (STREAK)
+// ==========================================
+const TRACKER_PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
+function getTodayTrackerKey(offsetDays = 0) {
+  const d = new Date();
+  if (offsetDays !== 0) d.setDate(d.getDate() + offsetDays);
+  return `pt_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function loadTodayPrayers() {
+  try {
+    const raw = store.get(getTodayTrackerKey(0));
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) {
+    return {};
+  }
+}
+
+function saveTodayPrayers(data) {
+  store.set(getTodayTrackerKey(0), JSON.stringify(data));
+}
+
+function togglePrayerCheck(key) {
+  const data = loadTodayPrayers();
+  data[key] = !data[key];
+  saveTodayPrayers(data);
+  renderPrayerStats();
+}
+
+function renderPrayerStats() {
+  const data = loadTodayPrayers();
+  let completed = 0;
+
+  TRACKER_PRAYERS.forEach(k => {
+    const btn = document.getElementById(`chk_${k}`);
+    const icon = document.getElementById(`chkIcon_${k}`);
+    if (data[k]) {
+      completed++;
+      if (btn) btn.classList.add('checked');
+      if (icon) icon.textContent = '✓';
+    } else {
+      if (btn) btn.classList.remove('checked');
+      if (icon) icon.textContent = '○';
+    }
+  });
+
+  const bar = document.getElementById('prayerProgressBar');
+  if (bar) bar.style.width = `${(completed / 5) * 100}%`;
+
+  const txt = document.getElementById('prayerProgressText');
+  if (txt) txt.textContent = `Выполнено: ${completed} из 5`;
+
+  let streak = 0;
+  let streakBroken = false;
+  const dotsContainer = document.getElementById('weekStreakDots');
+  if (dotsContainer) dotsContainer.innerHTML = '';
+
+  for (let i = 0; i < 7; i++) {
+    const dayKey = getTodayTrackerKey(-i);
+    let dayCount = 0;
+    try {
+      const raw = store.get(dayKey);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        TRACKER_PRAYERS.forEach(k => { if (obj[k]) dayCount++; });
+      }
+    } catch(e) {}
+
+    const isDone = (dayCount >= 3);
+    if (!streakBroken) {
+      if (isDone || (i === 0 && dayCount > 0)) {
+        streak++;
+      } else if (i > 0) {
+        streakBroken = true;
+      }
+    }
+
+    if (dotsContainer) {
+      const dot = document.createElement('div');
+      dot.className = isDone ? 'streak-dot active' : 'streak-dot';
+      dot.title = `День -${i}: ${dayCount}/5`;
+      dotsContainer.appendChild(dot);
+    }
+  }
+
+  const badge = document.getElementById('streakBadge');
+  if (badge) badge.textContent = `🔥 Серия: ${streak} дн.`;
+}
+
+renderPrayerStats();
 
 // ==========================================
 // 9. SERVICE WORKER И СТАРТ
