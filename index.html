@@ -597,6 +597,56 @@
     font-size: 12px;
     padding: 24px 12px 10px;
   }
+
+  .print-only { display: none; }
+  @media print {
+    body {
+      background: #ffffff !important;
+      color: #111827 !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    header, nav, footer, .card, .btn, button, input, select, video, canvas, main {
+      display: none !important;
+    }
+    .print-only {
+      display: block !important;
+      padding: 20px !important;
+    }
+    .print-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    .print-table th, .print-table td {
+      border: 1px solid #374151;
+      padding: 6px 8px;
+      text-align: center;
+      font-size: 11px;
+    }
+    .print-table th {
+      background: #f3f4f6;
+      color: #111827;
+      font-weight: 700;
+    }
+    .print-table tr:nth-child(even) td {
+      background: #f9fafb;
+    }
+    .print-title {
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #111827;
+    }
+    .print-sub {
+      text-align: center;
+      font-size: 12px;
+      color: #4b5563;
+      margin-bottom: 12px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -644,6 +694,10 @@
     </div>
     <div class="sub" id="locInfo" style="margin-top: 10px;">📍 Определение координат…</div>
     <button class="btn btn-green" id="btnGeo">📍 <span data-i18n="locAutoBtn">Определить автоматически (GPS)</span></button>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <button class="btn btn-ghost" id="btnExportCsvTimes" onclick="exportMonthlyCsv()" style="flex:1; font-size:12px;">📥 Экспорт CSV</button>
+      <button class="btn btn-ghost" id="btnPrintScheduleTimes" onclick="printSchedule()" style="flex:1; font-size:12px;">🖨 Печать</button>
+    </div>
   </div>
 
   <div class="card" id="cardPrayerStats">
@@ -884,6 +938,10 @@
       <div class="cal-head">Чт</div><div class="cal-head">Пт</div><div class="cal-head">Сб</div><div class="cal-head">Вс</div>
     </div>
     <div class="cal-grid" id="calDaysGrid"></div>
+    <div style="display:flex; gap:8px; margin-top:12px;">
+      <button class="btn btn-gold" id="btnExportCsv" onclick="exportMonthlyCsv()" style="flex:1;">📥 Скачать CSV</button>
+      <button class="btn btn-ghost" id="btnPrintSchedule" onclick="printSchedule()" style="flex:1;">🖨 Печать расписания</button>
+    </div>
   </div>
   <div class="card" id="calDayDetails" style="text-align:center;">
     <div class="label">Выбранный день</div>
@@ -2582,6 +2640,181 @@ setAppTheme(savedAppTheme);
 setAppLang(currentLang);
 
 // ==========================================
+// 8h. ОФЛАЙН-РАСЧЁТ, CSV ЭКСПОРТ И ПЕЧАТЬ РАСПИСАНИЯ
+// ==========================================
+function calcOfflinePrayerTimes(lat, lon, date, method = 3, school = 1) {
+  const pi = Math.PI, dr = pi / 180.0;
+  let yr = date.getFullYear(), mo = date.getMonth() + 1, dy = date.getDate();
+  if (mo <= 2) { yr -= 1; mo += 12; }
+  const A = Math.floor(yr / 100), B = 2 - A + Math.floor(A / 4);
+  const jd = Math.floor(365.25 * (yr + 4716)) + Math.floor(30.6001 * (mo + 1)) + dy + B - 1524.5;
+  const D = jd - 2451545.0;
+  let g = (357.529 + 0.98560028 * D) % 360; if (g < 0) g += 360;
+  let q = (280.459 + 0.98564736 * D) % 360; if (q < 0) q += 360;
+  let L = (q + 1.915 * Math.sin(g * dr) + 0.020 * Math.sin(2 * g * dr)) % 360; if (L < 0) L += 360;
+  const e = 23.439 - 0.00000036 * D;
+  const dec = Math.asin(Math.sin(e * dr) * Math.sin(L * dr)) / dr;
+  let RA = Math.atan2(Math.cos(e * dr) * Math.sin(L * dr), Math.cos(L * dr)) / dr;
+  RA = (RA % 360 + 360) % 360;
+  let EqT = (q - RA) / 15.0;
+  while (EqT > 12) EqT -= 24; while (EqT < -12) EqT += 24;
+
+  const tz = -date.getTimezoneOffset() / 60.0;
+  const noon = 12 + tz - (lon / 15.0) - EqT;
+
+  const sunAngleTime = (angle, dir) => {
+    const phi = lat * dr, delta = dec * dr;
+    const cosH = (-Math.sin(angle * dr) - Math.sin(phi) * Math.sin(delta)) / (Math.cos(phi) * Math.cos(delta));
+    if (cosH > 1 || cosH < -1) return null;
+    const H = Math.acos(cosH) / dr / 15.0;
+    return dir ? (noon - H) : (noon + H);
+  };
+
+  const asrTime = (factor) => {
+    const phi = lat * dr, delta = dec * dr;
+    const acot = factor + Math.tan(Math.abs(phi - delta));
+    const alt = Math.atan(1.0 / acot) / dr;
+    return sunAngleTime(alt, false);
+  };
+
+  const toHM = (decHours) => {
+    if (decHours == null) return '--:--';
+    let dh = (decHours % 24 + 24) % 24;
+    const h = Math.floor(dh);
+    const m = Math.round((dh - h) * 60);
+    const rh = (m === 60) ? (h + 1) % 24 : h;
+    const rm = (m === 60) ? 0 : m;
+    return `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`;
+  };
+
+  const fajrDeg = 19.5, ishaDeg = 17.5;
+  const asrFactor = (school === 1 || school === '1') ? 2.0 : 1.0;
+
+  return {
+    Fajr: toHM(sunAngleTime(fajrDeg, true)),
+    Sunrise: toHM(sunAngleTime(0.833, true)),
+    Dhuhr: toHM(noon),
+    Asr: toHM(asrTime(asrFactor)),
+    Maghrib: toHM(sunAngleTime(0.833, false)),
+    Isha: toHM(sunAngleTime(ishaDeg, false))
+  };
+}
+
+async function getMonthScheduleData(year, month) {
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  let apiDays = null;
+  try {
+    const url = `https://api.aladhan.com/v1/calendar/${year}/${month + 1}?latitude=${S.lat}&longitude=${S.lon}&method=${S.method}&school=${S.school}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.data) apiDays = data.data;
+    }
+  } catch (e) {
+    console.warn('Aladhan calendar API offline, using local math fallback:', e);
+  }
+
+  const daysList = [];
+  for (let day = 1; day <= lastDay; day++) {
+    const dateObj = new Date(year, month, day);
+    const h = getHijriDate(dateObj);
+    let t = null;
+    if (apiDays && apiDays[day - 1] && apiDays[day - 1].timings) {
+      const at = apiDays[day - 1].timings;
+      t = {
+        Fajr: at.Fajr.slice(0, 5),
+        Sunrise: at.Sunrise.slice(0, 5),
+        Dhuhr: at.Dhuhr.slice(0, 5),
+        Asr: at.Asr.slice(0, 5),
+        Maghrib: at.Maghrib.slice(0, 5),
+        Isha: at.Isha.slice(0, 5)
+      };
+    } else {
+      t = calcOfflinePrayerTimes(S.lat, S.lon, dateObj, S.method, S.school);
+    }
+    daysList.push({
+      day,
+      dateObj,
+      dateStr: `${String(day).padStart(2, '0')}.${String(month + 1).padStart(2, '0')}.${year}`,
+      weekday: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][dateObj.getDay()],
+      hijriStr: `${h.day} ${HIJRI_MONTHS_RU[h.month]} ${h.year} г.х.`,
+      timings: t
+    });
+  }
+  return daysList;
+}
+
+async function exportMonthlyCsv() {
+  const y = (typeof calYear !== 'undefined') ? calYear : new Date().getFullYear();
+  const m = (typeof calMonth !== 'undefined') ? calMonth : new Date().getMonth();
+  const schedule = await getMonthScheduleData(y, m);
+
+  let csv = '\uFEFF';
+  csv += 'Дата;День;Хиджри;Фаджр;Восход;Зухр;Аср;Магриб;Иша\r\n';
+  schedule.forEach(row => {
+    csv += `${row.dateStr};${row.weekday};${row.hijriStr};${row.timings.Fajr};${row.timings.Sunrise};${row.timings.Dhuhr};${row.timings.Asr};${row.timings.Maghrib};${row.timings.Isha}\r\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `namaz_timetable_${String(m + 1).padStart(2, '0')}_${y}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function printSchedule() {
+  const y = (typeof calYear !== 'undefined') ? calYear : new Date().getFullYear();
+  const m = (typeof calMonth !== 'undefined') ? calMonth : new Date().getMonth();
+  const schedule = await getMonthScheduleData(y, m);
+
+  const container = document.getElementById('printScheduleContainer');
+  if (!container) return;
+
+  const monthName = GREG_MONTHS_RU[m];
+  let html = `
+    <div class="print-title">🕌 Расписание намаза — ${monthName} ${y}</div>
+    <div class="print-sub">📍 Координаты: ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Метод: ${S.method} • Школа: Ханафи (1)</div>
+    <table class="print-table">
+      <thead>
+        <tr>
+          <th>Дата</th>
+          <th>День</th>
+          <th>Хиджри</th>
+          <th>Фаджр</th>
+          <th>Восход</th>
+          <th>Зухр</th>
+          <th>Аср</th>
+          <th>Магриб</th>
+          <th>Иша</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  schedule.forEach(r => {
+    html += `
+      <tr>
+        <td><b>${r.dateStr}</b></td>
+        <td>${r.weekday}</td>
+        <td>${r.hijriStr}</td>
+        <td><b>${r.timings.Fajr}</b></td>
+        <td>${r.timings.Sunrise}</td>
+        <td><b>${r.timings.Dhuhr}</b></td>
+        <td><b>${r.timings.Asr}</b></td>
+        <td><b>${r.timings.Maghrib}</b></td>
+        <td><b>${r.timings.Isha}</b></td>
+      </tr>
+    `;
+  });
+  html += `</tbody></table>`;
+  container.innerHTML = html;
+  window.print();
+}
+
+// ==========================================
 // 9. SERVICE WORKER И СТАРТ
 // ==========================================
 if ('serviceWorker' in navigator) {
@@ -2610,6 +2843,8 @@ if (!store.get('lat') && navigator.geolocation) {
   );
 }
 </script>
+
+<div id="printScheduleContainer" class="print-only"></div>
 
 </body>
 </html>
