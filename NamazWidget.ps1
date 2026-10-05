@@ -76,8 +76,8 @@ function Calc-PrayerTimes([double]$lat, [double]$lon, [datetime]$date) {
   $asrAlt = [Math]::Atan(1.0 / (2.0 + [Math]::Tan([Math]::Abs($lat - $dec) * $dr))) / $dr
 
   # Углы Fajr 18°/19.5° и Isha 17°/17.5° в соответствии со стандартами
-  $fajrAngle = if ($Method -eq 3) { 18.0 } else { 19.5 }
-  $ishaAngle = if ($Method -eq 3) { 17.0 } else { 17.5 }
+  $fajrAngle = if ($Method -eq 3) { 19.5 } else { 18.0 }
+  $ishaAngle = if ($Method -eq 3) { 17.5 } else { 17.0 }
 
   $fajr    = $Tnoon - (fHA (-$fajrAngle))
   $sunrise = $Tnoon - (fHA (-0.8333))
