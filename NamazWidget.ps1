@@ -43,35 +43,58 @@ function Log($m){ Add-Content -LiteralPath $LogFile -Value ("[{0}] {1}" -f (Get-
 function Calc-PrayerTimes([double]$lat, [double]$lon, [datetime]$date) {
   $pi = [Math]::PI; $dr = $pi / 180.0
   $yr = $date.Year; $mo = $date.Month; $dy = $date.Day
-  $a = [Math]::Floor(($mo + 9) / 12)
-  $jd = 367*$yr - [Math]::Floor(7*($yr+$a)/4) + [Math]::Floor(275*$mo/9) + $dy + 1721013.5
-  $d = $jd - 2451545.0
-  $g = (357.529 + 0.98560028*$d) % 360
-  $q = (280.459 + 0.98564736*$d) % 360
-  $Lv = ($q + 1.915*[Math]::Sin($g*$dr) + 0.020*[Math]::Sin(2*$g*$dr)) % 360
-  $e  = 23.439 - 0.00000036*$d
-  $RA = ([Math]::Atan2([Math]::Cos($e*$dr)*[Math]::Sin($Lv*$dr), [Math]::Cos($Lv*$dr)) / $dr + 360) % 360
-  $D  = [Math]::Asin([Math]::Sin($e*$dr)*[Math]::Sin($Lv*$dr)) / $dr
-  $EqT = $q/15 - $RA/15
-  $Tnoon = 12 - $lon/15 - $EqT
-  function fHA([double]$angle) {
-    $cosH = ([Math]::Sin(-$angle*$dr) - [Math]::Sin($lat*$dr)*[Math]::Sin($D*$dr)) / ([Math]::Cos($lat*$dr)*[Math]::Cos($D*$dr))
-    if ([Math]::Abs($cosH) -gt 1) { return 1.0 }
+  if ($mo -le 2) { $yr -= 1; $mo += 12 }
+  $A = [Math]::Floor($yr / 100); $B = 2 - $A + [Math]::Floor($A / 4)
+  $jd = [Math]::Floor(365.25 * ($yr + 4716)) + [Math]::Floor(30.6001 * ($mo + 1)) + $dy + $B - 1524.5
+  $D = $jd - 2451545.0
+  $g = (357.529 + 0.98560028 * $D) % 360; if ($g -lt 0) { $g += 360 }
+  $q = (280.459 + 0.98564736 * $D) % 360; if ($q -lt 0) { $q += 360 }
+  $L = ($q + 1.915 * [Math]::Sin($g * $dr) + 0.020 * [Math]::Sin(2 * $g * $dr)) % 360; if ($L -lt 0) { $L += 360 }
+  $e = 23.439 - 0.00000036 * $D
+  $dec = [Math]::Asin([Math]::Sin($e * $dr) * [Math]::Sin($L * $dr)) / $dr
+  $RA = [Math]::Atan2([Math]::Cos($e * $dr) * [Math]::Sin($L * $dr), [Math]::Cos($L * $dr)) / $dr
+  $RA = ($RA % 360 + 360) % 360
+  $EqT = ($q - $RA) / 15.0
+  while ($EqT -gt 12) { $EqT -= 24 }; while ($EqT -lt -12) { $EqT += 24 }
+
+  $tz = [TimeZoneInfo]::Local.GetUtcOffset($date).TotalHours
+  $Tnoon = 12.0 + $tz - ($lon / 15.0) - $EqT
+
+  function fHA([double]$altDeg) {
+    $cosH = ([Math]::Sin($altDeg * $dr) - [Math]::Sin($lat * $dr) * [Math]::Sin($dec * $dr)) / ([Math]::Cos($lat * $dr) * [Math]::Cos($dec * $dr))
+    if ($cosH -gt 1.0) { $cosH = 1.0 } elseif ($cosH -lt -1.0) { $cosH = -1.0 }
     return [Math]::Acos($cosH) / $dr / 15.0
   }
-  $asrHA = [Math]::Atan(1.0 / (2.0 + [Math]::Tan([Math]::Abs($lat - $D)*$dr))) / $dr / 15.0
-  $tz = [TimeZoneInfo]::Local.GetUtcOffset($date).TotalHours
-  function fHHMM([double]$h) { $h = (($h + $tz) % 24 + 24) % 24; "{0:00}:{1:00}" -f [int]$h, [int](($h % 1)*60) }
+
+  $asrAlt = [Math]::Atan(1.0 / (2.0 + [Math]::Tan([Math]::Abs($lat - $dec) * $dr))) / $dr
+
+  # Углы Fajr 18°/19.5° и Isha 17°/17.5° в соответствии со стандартами
+  $fajrAngle = if ($Method -eq 3) { 18.0 } else { 19.5 }
+  $ishaAngle = if ($Method -eq 3) { 17.0 } else { 17.5 }
+
+  $fajr    = $Tnoon - (fHA (-$fajrAngle))
+  $sunrise = $Tnoon - (fHA (-0.8333))
+  $dhuhr   = $Tnoon
+  $asr     = $Tnoon + (fHA ($asrAlt))
+  $maghrib = $Tnoon + (fHA (-0.8333))
+  $isha    = $Tnoon + (fHA (-$ishaAngle))
+
+  function fFmt([double]$h) {
+    $h = ($h % 24 + 24) % 24
+    $hh = [Math]::Floor($h); $mm = [Math]::Round(($h - $hh) * 60)
+    if ($mm -eq 60) { $hh += 1; $mm = 0 }
+    "{0:00}:{1:00}" -f [int]$hh, [int]$mm
+  }
+
   return [PSCustomObject]@{
-    Fajr    = fHHMM($Tnoon - (fHA(19.5)))
-    Sunrise = fHHMM($Tnoon - (fHA(0.8333)))
-    Dhuhr   = fHHMM($Tnoon + 0.017)
-    Asr     = fHHMM($Tnoon + $asrHA)
-    Maghrib = fHHMM($Tnoon + (fHA(0.8333)))
-    Isha    = fHHMM($Tnoon + (fHA(17.5)))
+    Fajr    = fFmt $fajr
+    Sunrise = fFmt $sunrise
+    Dhuhr   = fFmt $dhuhr
+    Asr     = fFmt $asr
+    Maghrib = fFmt $maghrib
+    Isha    = fFmt $isha
   }
 }
-
 function Compare-Timings($a, $b) {
   $maxDiff = 0
   foreach ($k in @("Fajr","Dhuhr","Asr","Maghrib","Isha")) {
