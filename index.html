@@ -682,6 +682,26 @@
       <div class="sub">Если датчик ориентации недоступен на компьютере, используйте ползунок для проверки направления.</div>
     </div>
   </div>
+
+  <div class="card" id="cardArQibla">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <b style="font-size:15px;">📷 Дополненная реальность (AR-Кибла)</b>
+      <button class="btn btn-gold" id="btnToggleAr" style="padding:6px 14px; font-size:12px;">📷 Включить камеру</button>
+    </div>
+    <div class="sub" style="margin:4px 0 10px;">Наведите камеру смартфона перед собой, чтобы увидеть направление на Каабу в реальном мире.</div>
+    <div id="arContainer" style="display:none; position:relative; width:100%; height:300px; border-radius:12px; overflow:hidden; background:#000; border:1px solid var(--gold); margin-top:8px;">
+      <video id="arVideo" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover;"></video>
+      <div id="arOverlay" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+        <div id="arReticle" style="width:130px; height:130px; border:2px dashed rgba(212,175,55,0.7); border-radius:50%; display:flex; justify-content:center; align-items:center; position:relative;">
+          <div id="arArrow" style="width:0; height:0; border-left:14px solid transparent; border-right:14px solid transparent; border-bottom:48px solid var(--gold); transform-origin:50% 90%; transition:transform .1s linear;"></div>
+        </div>
+        <div id="arBadge" style="margin-top:14px; background:rgba(6,40,31,0.85); color:var(--text); border:1px solid var(--gold); padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700;">Поворачивайтесь к стрелке</div>
+      </div>
+    </div>
+    <div id="arFallbackNotice" class="sub" style="text-align:center; padding:10px; display:none; background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.25); border-radius:8px; margin-top:8px;">
+      📱 Камера недоступна (требуется HTTPS / мобильное устройство). Доступен стандартный компас с датчиком ориентации выше.
+    </div>
+  </div>
 </section>
 
 <!-- ОБУЧЕНИЕ И УРОКИ -->
@@ -1240,7 +1260,69 @@ function renderCompass() {
     const turnDir = relAngle > 180 ? 'влево' : 'вправо';
     statusEl.innerHTML = `Поверните устройство <b>${turnDir} на ${Math.round(minDelta)}°</b>`;
   }
+
+  // Обновление наложения в AR-режиме
+  updateArOverlay(relAngle, minDelta);
 }
+
+function updateArOverlay(relAngle, minDelta) {
+  const arArrow = document.getElementById('arArrow');
+  const arBadge = document.getElementById('arBadge');
+  if (!arArrow || !arBadge) return;
+  arArrow.style.transform = `rotate(${relAngle}deg)`;
+  if (minDelta < 8) {
+    arBadge.style.background = 'rgba(34,197,94,0.92)';
+    arBadge.innerHTML = '✅ <b>На Кибле!</b> Вы смотрите прямо на Каабу';
+  } else {
+    arBadge.style.background = 'rgba(6,40,31,0.85)';
+    const turnDir = relAngle > 180 ? 'влево' : 'вправо';
+    arBadge.innerHTML = `Поверните ${turnDir} на ${Math.round(minDelta)}°`;
+  }
+}
+
+let arMediaStream = null;
+
+async function toggleArCamera() {
+  const btn = document.getElementById('btnToggleAr');
+  const container = document.getElementById('arContainer');
+  const notice = document.getElementById('arFallbackNotice');
+  const video = document.getElementById('arVideo');
+
+  if (arMediaStream) {
+    arMediaStream.getTracks().forEach(t => t.stop());
+    arMediaStream = null;
+    video.srcObject = null;
+    container.style.display = 'none';
+    notice.style.display = 'none';
+    btn.textContent = '📷 Включить камеру';
+    return;
+  }
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    notice.style.display = 'block';
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false
+    });
+    arMediaStream = stream;
+    video.srcObject = stream;
+    container.style.display = 'block';
+    notice.style.display = 'none';
+    btn.textContent = '⏹ Отключить камеру';
+    renderCompass();
+  } catch(err) {
+    console.warn('AR camera access failed:', err);
+    notice.style.display = 'block';
+    container.style.display = 'none';
+    btn.textContent = '📷 Включить камеру';
+  }
+}
+
+document.getElementById('btnToggleAr').onclick = toggleArCamera;
 
 document.getElementById('simHeading').oninput = e => {
   deviceHeading = parseFloat(e.target.value);
