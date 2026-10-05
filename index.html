@@ -26,6 +26,29 @@
     --warn: #f59e0b;
     --border: #175845;
   }
+
+  body.theme-green {
+    --bg: #03231a;
+    --card: #083c2d;
+    --card-hover: #0c4d3a;
+    --gold: #22c55e;
+    --gold-light: #86efac;
+    --text: #f0fdf4;
+    --muted: #86efac;
+    --accent: #10b981;
+    --border: #134e3e;
+  }
+  body.theme-mono {
+    --bg: #121214;
+    --card: #1f1f23;
+    --card-hover: #27272a;
+    --gold: #e4e4e7;
+    --gold-light: #ffffff;
+    --text: #fafafa;
+    --muted: #a1a1aa;
+    --accent: #a1a1aa;
+    --border: #27272a;
+  }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     margin: 0;
@@ -748,6 +771,13 @@
 <section id="p-settings" class="page">
   <div class="card">
     <h3 style="margin:0 0 8px;">⚙️ Местоположение и метод расчёта</h3>
+
+    <label>Тема оформления:</label>
+    <div style="display:flex; gap:6px; margin:6px 0 14px;">
+      <button class="btn btn-ghost" id="btnThemeGold" onclick="setAppTheme('gold')" style="flex:1;">Золотая</button>
+      <button class="btn btn-ghost" id="btnThemeGreen" onclick="setAppTheme('green')" style="flex:1;">Изумруд</button>
+      <button class="btn btn-ghost" id="btnThemeMono" onclick="setAppTheme('mono')" style="flex:1;">Монохром</button>
+    </div>
 
     <label>Быстрый выбор города:</label>
     <div class="cities-grid">
@@ -2357,6 +2387,22 @@ function stepInspire(d) {
 }
 
 renderDailyInspiration();
+
+// ==========================================
+// 8g. ТЕМЫ ОФОРМЛЕНИЯ (GOLD / GREEN / MONO)
+// ==========================================
+function setAppTheme(theme) {
+  document.body.classList.remove('theme-green', 'theme-mono');
+  if (theme === 'green') document.body.classList.add('theme-green');
+  if (theme === 'mono') document.body.classList.add('theme-mono');
+  store.set('app_theme', theme);
+  ['Gold', 'Green', 'Mono'].forEach(t => {
+    const b = document.getElementById('btnTheme' + t);
+    if (b) b.classList.toggle('active', t.toLowerCase() === theme);
+  });
+}
+const savedAppTheme = store.get('app_theme') || 'gold';
+setAppTheme(savedAppTheme);
 
 // ==========================================
 // 9. SERVICE WORKER И СТАРТ

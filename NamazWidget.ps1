@@ -6,7 +6,7 @@ Add-Type -AssemblyName System.Drawing
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ConfigFile = Join-Path $ScriptDir "config.json"
 $Lat = 45.1342; $Lon = 33.60; $Method = 3; $School = 1; $Place = "Саки"
-$Lang = "ru"; $StartupOn = $true; $ShowCD = $true; $ShowSec = $false; $Compact = $false; $RemMin = 10
+$Lang = "ru"; $StartupOn = $true; $ShowCD = $true; $ShowSec = $false; $Compact = $false; $RemMin = 10; $Theme = "gold"
 if (Test-Path -LiteralPath $ConfigFile) {
   try { $cfg = Get-Content -LiteralPath $ConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($cfg.latitude -ne $null) { $Lat = $cfg.latitude }
@@ -20,6 +20,7 @@ if (Test-Path -LiteralPath $ConfigFile) {
     if ($cfg.showSeconds -ne $null) { $ShowSec = [bool]$cfg.showSeconds }
     if ($cfg.compact -ne $null) { $Compact = [bool]$cfg.compact }
     if ($cfg.reminderMinutes -ne $null) { $RemMin = [int]$cfg.reminderMinutes }
+    if ($cfg.theme -ne $null -and $cfg.theme -ne "") { $Theme = [string]$cfg.theme }
   } catch {}
 }
 $STR = @{
@@ -164,6 +165,10 @@ $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $open = $menu.Items.Add("Открыть приложение"); $open.Add_Click({ Start-Process $AppUrl })
 $ref = $menu.Items.Add("Обновить время"); $ref.Add_Click({ $script:timings = Get-Timings })
 $script:userHidden = $false
+$tMenu = $menu.Items.Add("Тема оформления")
+$tG = $tMenu.DropDownItems.Add("Золотая (Gold)"); $tG.Add_Click({ Apply-Theme "gold"; Save-Config })
+$tGr = $tMenu.DropDownItems.Add("Изумрудная (Green)"); $tGr.Add_Click({ Apply-Theme "green"; Save-Config })
+$tM = $tMenu.DropDownItems.Add("Монохром (Mono)"); $tM.Add_Click({ Apply-Theme "mono"; Save-Config })
 $tog = $menu.Items.Add("Скрыть панель"); $tog.Add_Click({ $script:userHidden = -not $script:userHidden; $tog.Text = if ($script:userHidden) { "Показать панель" } else { "Скрыть панель" } })
 $exit = $menu.Items.Add("Выход"); $exit.Add_Click({ $ni.Visible = $false; $sched.Close(); $panel.Close(); $ctx.ExitThread() })
 $ni.ContextMenuStrip = $menu
@@ -462,8 +467,30 @@ $lblSub.Font = New-AppFont 9 $false
   }
 }
 
+function Apply-Theme($t) {
+  $script:Theme = $t
+  switch ($t) {
+    "green" {
+      $script:ThemeAccent = [System.Drawing.Color]::FromArgb(34, 197, 94)
+      $script:ThemeSub    = [System.Drawing.Color]::FromArgb(159, 195, 181)
+    }
+    "mono" {
+      $script:ThemeAccent = [System.Drawing.Color]::FromArgb(235, 235, 235)
+      $script:ThemeSub    = [System.Drawing.Color]::FromArgb(161, 161, 170)
+    }
+    default {
+      $script:ThemeAccent = [System.Drawing.Color]::FromArgb(212, 175, 55)
+      $script:ThemeSub    = [System.Drawing.Color]::FromArgb(247, 232, 164)
+    }
+  }
+  if ($shTitle) { $shTitle.ForeColor = $script:ThemeAccent }
+  if ($shName)  { $shName.ForeColor = $script:ThemeAccent }
+  if ($lblMain) { $lblMain.ForeColor = $script:ThemeAccent }
+  if ($lblSub)  { $lblSub.ForeColor = $script:ThemeSub }
+}
+
 function Save-Config {
-  @{ latitude=$Lat; longitude=$Lon; method=$Method; school=$School; place=$Place; lang=$Lang; startup=$StartupOn; showCountdown=$ShowCD; showSeconds=$ShowSec; compact=$Compact; reminderMinutes=$RemMin } | ConvertTo-Json | Set-Content -LiteralPath $ConfigFile -Encoding UTF8
+  @{ latitude=$Lat; longitude=$Lon; method=$Method; school=$School; place=$Place; lang=$Lang; startup=$StartupOn; showCountdown=$ShowCD; showSeconds=$ShowSec; compact=$Compact; reminderMinutes=$RemMin; theme=$Theme } | ConvertTo-Json | Set-Content -LiteralPath $ConfigFile -Encoding UTF8
 }
 
 function Set-Startup($on) {
@@ -550,6 +577,7 @@ function Show-Settings {
     $RemMin = [int]$numRem.Value
     Update-Lang
     Apply-Compact
+Apply-Theme $Theme
     Set-Startup $StartupOn
     Save-Config
     Log "Настройки сохранены"
@@ -647,6 +675,7 @@ $script:day = (Get-Date).ToString("dd-MM-yyyy")
 $script:last10 = ""; $script:last0 = ""; $script:tbOwner = 0; $script:lastShort = ""; $script:lastMorning = ""
 $timer.Start()
 Apply-Compact
+Apply-Theme $Theme
 try { $ex = [WinApi]::GetWindowLongPtr($panel.Handle, -20); [void][WinApi]::SetWindowLongPtr($panel.Handle, -20, [IntPtr](([int64]$ex -bor 0x80))) } catch {}
 try {
   $corner = 2
