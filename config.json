@@ -1,13 +1,14 @@
-{
-  "latitude": 45.1342,
-  "longitude": 33.6,
-  "method": 3,
-  "school": 1,
-  "place": "Саки",
-  "lang": "ru",
-  "startup": true,
-  "showCountdown": true,
-  "showSeconds": false,
-  "compact": false,
-  "reminderMinutes": 10
+﻿{
+    "school":  1,
+    "method":  3,
+    "compact":  false,
+    "longitude":  33.6,
+    "reminderMinutes":  10,
+    "showSeconds":  true,
+    "place":  "Саки",
+    "lang":  "ru",
+    "theme":  "gold",
+    "showCountdown":  true,
+    "startup":  true,
+    "latitude":  45.1342
 }
