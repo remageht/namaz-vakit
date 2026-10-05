@@ -216,7 +216,7 @@ $panel.TopMost = $true
 $panel.ShowInTaskbar = $false
 $panel.BackColor = [System.Drawing.Color]::FromArgb(33,39,41)
 $panel.Opacity = 0.85
-$panel.Size = New-Object System.Drawing.Size(210, 48)
+$panel.Size = New-Object System.Drawing.Size(155, 48)
 $panel.Controls.Add($pic)
 $panel.Controls.Add($lblMain)
 $panel.Controls.Add($lblSub)
@@ -459,7 +459,7 @@ $sched.Add_Deactivate({ $sched.Hide() })
 
 function Apply-Compact {
   if ($Compact) {
-    $panel.Size = New-Object System.Drawing.Size(160, 40)
+    $panel.Size = New-Object System.Drawing.Size(130, 40)
     $pic.Size = New-Object System.Drawing.Size(24, 24)
     $pic.Location = New-Object System.Drawing.Point(6, 8)
     $lblMain.Font = New-AppFont 9 $true
@@ -467,7 +467,7 @@ function Apply-Compact {
     $lblSub.Font = New-AppFont 8 $false
     $lblSub.Location = New-Object System.Drawing.Point(36, 19)
   } else {
-    $panel.Size = New-Object System.Drawing.Size(210, 48)
+$panel.Size = New-Object System.Drawing.Size(155, 48)
     $pic.Size = New-Object System.Drawing.Size(32, 32)
     $pic.Location = New-Object System.Drawing.Point(8, 8)
 $lblMain.Font = New-AppFont 11 $true
@@ -660,11 +660,9 @@ try {
   $lblMain.Text = "{0} {1}" -f $Names[$next.key], $next.date.ToString("HH:mm")
   $hh = [int]($s/3600); $mm = [int](($s%3600)/60); $ss = [int]($s%60)
   if ($ShowCD) {
-    if ($ShowSec) { $lblSub.Text = "{0} {1:00}:{2:00}:{3:00}" -f $T.left, $hh, $mm, $ss }
-    elseif ($hh -gt 0) { $lblSub.Text = "{0} {1} {2} {3} {4}" -f $T.left, $hh, $T.h, $mm, $T.m }
-    else { $lblSub.Text = "{0} {1} {2}" -f $T.left, $mm, $T.m }
+    if ($ShowSec) { $lblSub.Text = "{0:00}:{1:00}:{2:00}" -f $hh, $mm, $ss }
+    else { $lblSub.Text = "{0:00}:{1:00}" -f $hh, $mm }
   } else { $lblSub.Text = "" }
-  if ((Get-Date).Second % 15 -ge 10) { $lblSub.Text = "☝ " + $AN[$nidx][0] }
   $dk = "{0}_{1}" -f $next.key, (Get-Date).ToString("yyyy-MM-dd")
   $rw = $RemMin * 60
   if ($RemMin -gt 0 -and $s -le $rw -and $s -gt ($rw - 60) -and $next.key -ne "Sunrise" -and $script:last10 -ne $dk) { $script:last10 = $dk
