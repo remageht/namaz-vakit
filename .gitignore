@@ -4,3 +4,5 @@ node_modules/
 .agent/
 widget.log
 names_start.txt
+
+*.zip
