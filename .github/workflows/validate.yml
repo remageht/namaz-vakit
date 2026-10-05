@@ -15,10 +15,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Install PowerShell
-        uses: microsoft/setup-powershell@v2
-        
+
       - name: Validate PowerShell syntax
         run: |
           $errors = $null
