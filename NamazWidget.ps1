@@ -25,11 +25,17 @@ if (Test-Path -LiteralPath $ConfigFile) {
 }
 $STR = @{
   ru = @{ prep="Подготовка к молитве"; prepBody="{0} через {1} мин ({2}). Соверши вуду."; time="Время намаза"; started="Начался: {0}."; sunrise="Восход"; fajrOut="Время Фаджра вышло."; left="осталось"; h="ч"; m="мин" }
+  tt = @{ prep="Намазга әзерлек"; prepBody="{0} {1} минуттан соң ({2}). Тәһарәт ал."; time="Намаз вакыты"; started="Башланды: {0}."; sunrise="Кояш чыгу"; fajrOut="Иртәнге намаз вакыты чыкты."; left="калды"; h="сәг"; m="мин" }
   en = @{ prep="Prayer reminder"; prepBody="{0} in {1} min ({2}). Make wudu."; time="Prayer time"; started="{0} started."; sunrise="Shuruq"; fajrOut="Fajr time is over."; left="left"; h="h"; m="min" }
 }
 $NamesRU = @{ Fajr="Фаджр"; Sunrise="Восход"; Dhuhr="Зухр"; Asr="Аср"; Maghrib="Магриб"; Isha="Иша" }
+$NamesTT = @{ Fajr="Иртәнге"; Sunrise="Кояш чыгу"; Dhuhr="Өйлә"; Asr="Икенде"; Maghrib="Ахшам"; Isha="Ястү" }
 $NamesEN = @{ Fajr="Fajr"; Sunrise="Shuruq"; Dhuhr="Dhuhr"; Asr="Asr"; Maghrib="Maghrib"; Isha="Isha" }
-function Update-Lang { if ($Lang -eq "en") { $script:Names = $NamesEN; $script:T = $STR.en } else { $script:Names = $NamesRU; $script:T = $STR.ru } }
+function Update-Lang {
+  if ($Lang -eq "tt") { $script:Names = $NamesTT; $script:T = $STR.tt }
+  elseif ($Lang -eq "en") { $script:Names = $NamesEN; $script:T = $STR.en }
+  else { $script:Names = $NamesRU; $script:T = $STR.ru }
+}
 Update-Lang
 # Саки, Egypt-метод (сверен с islam.global), Ханафи
 $AppUrl = "https://remageht.github.io/namaz-vakit/"
@@ -169,6 +175,10 @@ $tMenu = $menu.Items.Add("Тема оформления")
 $tG = $tMenu.DropDownItems.Add("Золотая (Gold)"); $tG.Add_Click({ Apply-Theme "gold"; Save-Config })
 $tGr = $tMenu.DropDownItems.Add("Изумрудная (Green)"); $tGr.Add_Click({ Apply-Theme "green"; Save-Config })
 $tM = $tMenu.DropDownItems.Add("Монохром (Mono)"); $tM.Add_Click({ Apply-Theme "mono"; Save-Config })
+$lMenu = $menu.Items.Add("Язык / Тел / Language")
+$lRu = $lMenu.DropDownItems.Add("Русский (RU)"); $lRu.Add_Click({ $script:Lang = "ru"; Update-Lang; Save-Config })
+$lTt = $lMenu.DropDownItems.Add("Татарча (TT)"); $lTt.Add_Click({ $script:Lang = "tt"; Update-Lang; Save-Config })
+$lEn = $lMenu.DropDownItems.Add("English (EN)"); $lEn.Add_Click({ $script:Lang = "en"; Update-Lang; Save-Config })
 $tog = $menu.Items.Add("Скрыть панель"); $tog.Add_Click({ $script:userHidden = -not $script:userHidden; $tog.Text = if ($script:userHidden) { "Показать панель" } else { "Скрыть панель" } })
 $exit = $menu.Items.Add("Выход"); $exit.Add_Click({ $ni.Visible = $false; $sched.Close(); $panel.Close(); $ctx.ExitThread() })
 $ni.ContextMenuStrip = $menu
@@ -532,7 +542,7 @@ $slLang.Location = New-Object System.Drawing.Point(14, 12)
 $slLang.ForeColor = [System.Drawing.Color]::White
 $settings.Controls.Add($slLang)
 $cbLang = New-Object System.Windows.Forms.ComboBox
-$cbLang.Items.Add("Русский") | Out-Null; $cbLang.Items.Add("English") | Out-Null
+$cbLang.Items.Add("Русский") | Out-Null; $cbLang.Items.Add("Татарча") | Out-Null; $cbLang.Items.Add("English") | Out-Null
 $cbLang.DropDownStyle = "DropDownList"
 $cbLang.Location = New-Object System.Drawing.Point(14, 32)
 $cbLang.Width = 200
@@ -562,14 +572,14 @@ $settings.Controls.Add($btnCancel)
 $settings.AcceptButton = $btnSave
 $settings.CancelButton = $btnCancel
 function Show-Settings {
-  if ($Lang -eq "en") { $cbLang.SelectedIndex = 1 } else { $cbLang.SelectedIndex = 0 }
+  if ($Lang -eq "tt") { $cbLang.SelectedIndex = 1 } elseif ($Lang -eq "en") { $cbLang.SelectedIndex = 2 } else { $cbLang.SelectedIndex = 0 }
   $cbStartup.Checked = $StartupOn
   $cbCD.Checked = $ShowCD
   $cbSec.Checked = $ShowSec
   $cbCompact.Checked = $Compact
   $numRem.Value = $RemMin
   if ($settings.ShowDialog() -eq "OK") {
-    if ($cbLang.SelectedIndex -eq 1) { $Lang = "en" } else { $Lang = "ru" }
+    if ($cbLang.SelectedIndex -eq 1) { $Lang = "tt" } elseif ($cbLang.SelectedIndex -eq 2) { $Lang = "en" } else { $Lang = "ru" }
     $StartupOn = $cbStartup.Checked
     $ShowCD = $cbCD.Checked
     $ShowSec = $cbSec.Checked

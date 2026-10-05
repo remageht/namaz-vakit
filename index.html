@@ -89,6 +89,32 @@
     font-weight: 600;
   }
 
+  .lang-switch {
+    display: inline-flex;
+    gap: 2px;
+    background: rgba(0,0,0,0.3);
+    padding: 2px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .lang-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all .2s ease;
+  }
+  .lang-btn:hover { color: var(--gold-light); }
+  .lang-btn.active {
+    background: var(--gold);
+    color: #06281f;
+    box-shadow: 0 1px 4px rgba(212,175,55,0.4);
+  }
+
   nav.tabs {
     display: flex;
     gap: 6px;
@@ -576,7 +602,15 @@
 <body>
 
 <header>
-  <h1>🕌 <span>Намаз</span> — время и Кибла</h1>
+  <div style="display:flex; justify-content:space-between; align-items:center; max-width:640px; margin:0 auto 4px;">
+    <div style="width:75px;"></div>
+    <h1 style="margin:0; font-size:22px;">🕌 <span data-i18n="appTitle">Намаз</span> — <span data-i18n="appSubtitle">время и Кибла</span></h1>
+    <div class="lang-switch">
+      <button class="lang-btn active" id="btnLangRu" onclick="setAppLang('ru')">RU</button>
+      <button class="lang-btn" id="btnLangTt" onclick="setAppLang('tt')">TT</button>
+      <button class="lang-btn" id="btnLangEn" onclick="setAppLang('en')">EN</button>
+    </div>
+  </div>
   <div id="dates">
     <span id="gregDate">Загрузка даты…</span>
     <span id="hijriTag" class="hijri-tag">Хиджра: ...</span>
@@ -584,20 +618,20 @@
 </header>
 
 <nav class="tabs">
-  <button class="active" data-page="p-times" id="tabTimesBtn">⏰ Время</button>
-  <button data-page="p-qibla" id="tabQiblaBtn">🧭 Кибла</button>
-  <button data-page="p-learn" id="tabLearnBtn">📖 Намаз</button>
-  <button data-page="p-calendar" id="tabCalBtn">📅 Календарь</button>
-  <button data-page="p-mosques" id="tabMosquesBtn">🕌 Мечети</button>
-  <button data-page="p-names" id="tabNamesBtn">☝️ Имена</button>
-  <button data-page="p-settings" id="tabSettingsBtn">⚙️ Настройки</button>
+  <button class="active" data-page="p-times" id="tabTimesBtn">⏰ <span data-i18n="tabTimes">Время</span></button>
+  <button data-page="p-qibla" id="tabQiblaBtn">🧭 <span data-i18n="tabQibla">Кибла</span></button>
+  <button data-page="p-learn" id="tabLearnBtn">📖 <span data-i18n="tabLearn">Намаз</span></button>
+  <button data-page="p-calendar" id="tabCalBtn">📅 <span data-i18n="tabCal">Календарь</span></button>
+  <button data-page="p-mosques" id="tabMosquesBtn">🕌 <span data-i18n="tabMosques">Мечети</span></button>
+  <button data-page="p-names" id="tabNamesBtn">☝️ <span data-i18n="tabNames">Имена</span></button>
+  <button data-page="p-settings" id="tabSettingsBtn">⚙️ <span data-i18n="tabSettings">Настройки</span></button>
 </nav>
 
 <main>
 <!-- ВРЕМЯ НАМАЗА -->
 <section id="p-times" class="page active">
   <div class="card next-card">
-    <div class="label">Следующий намаз</div>
+    <div class="label" data-i18n="nextPrayer">Следующий намаз</div>
     <div class="name" id="nextName">—</div>
     <div class="time" id="nextTime">--:--</div>
     <div class="countdown" id="countdown">--:--:--</div>
@@ -609,12 +643,12 @@
       <div style="text-align:center; padding: 20px;" class="sub">Загрузка расписания молитв…</div>
     </div>
     <div class="sub" id="locInfo" style="margin-top: 10px;">📍 Определение координат…</div>
-    <button class="btn btn-green" id="btnGeo">📍 Определить автоматически (GPS)</button>
+    <button class="btn btn-green" id="btnGeo">📍 <span data-i18n="locAutoBtn">Определить автоматически (GPS)</span></button>
   </div>
 
   <div class="card" id="cardPrayerStats">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-      <b style="font-size:15px;">📊 Молитвы сегодня</b>
+      <b style="font-size:15px;">📊 <span data-i18n="prayersToday">Молитвы сегодня</span></b>
       <span id="streakBadge" style="background:rgba(212,175,55,0.2); color:var(--gold); border:1px solid rgba(212,175,55,0.4); padding:2px 8px; border-radius:12px; font-size:12px; font-weight:700;">🔥 Серия: 0 дн.</span>
     </div>
     <div class="sub" style="margin:4px 0 10px;">Отмечайте выполненные молитвы. Прогресс сохраняется в памяти.</div>
@@ -772,7 +806,14 @@
   <div class="card">
     <h3 style="margin:0 0 8px;">⚙️ Местоположение и метод расчёта</h3>
 
-    <label>Тема оформления:</label>
+    <label data-i18n="lblLang">Язык интерфейса:</label>
+    <div style="display:flex; gap:6px; margin:6px 0 14px;">
+      <button class="btn btn-ghost" id="btnSetLangRu" onclick="setAppLang('ru')" style="flex:1;">Русский</button>
+      <button class="btn btn-ghost" id="btnSetLangTt" onclick="setAppLang('tt')" style="flex:1;">Татарча</button>
+      <button class="btn btn-ghost" id="btnSetLangEn" onclick="setAppLang('en')" style="flex:1;">English</button>
+    </div>
+
+    <label data-i18n="lblTheme">Тема оформления:</label>
     <div style="display:flex; gap:6px; margin:6px 0 14px;">
       <button class="btn btn-ghost" id="btnThemeGold" onclick="setAppTheme('gold')" style="flex:1;">Золотая</button>
       <button class="btn btn-ghost" id="btnThemeGreen" onclick="setAppTheme('green')" style="flex:1;">Изумруд</button>
@@ -818,7 +859,7 @@
       <option value="0">0: Шафии / стандартный (одинарная тень)</option>
     </select>
 
-    <button class="btn btn-gold" id="btnSave">💾 Сохранить и обновить расписание</button>
+    <button class="btn btn-gold" id="btnSave">💾 <span data-i18n="saveSettings">Сохранить и обновить расписание</span></button>
     <div class="sub" style="margin-top:8px;">
       Координаты сохраняются локально в памяти браузера. Расчёт времени выполняется через надёжный Aladhan API.
     </div>
@@ -969,6 +1010,137 @@ const PRAYERS_RU = {
 };
 const ORDER = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 
+const I18N = {
+  ru: {
+    appTitle: 'Намаз',
+    appSubtitle: 'время и Кибла',
+    tabTimes: 'Время',
+    tabQibla: 'Кибла',
+    tabLearn: 'Намаз',
+    tabCal: 'Календарь',
+    tabMosques: 'Мечети',
+    tabNames: 'Имена',
+    tabSettings: 'Настройки',
+    nextPrayer: 'Следующий намаз',
+    locAutoBtn: 'Определить автоматически (GPS)',
+    prayersToday: 'Молитвы сегодня',
+    streak: 'Серия',
+    days: 'дн.',
+    saveSettings: 'Сохранить и обновить расписание',
+    lblTheme: 'Тема оформления:',
+    lblLang: 'Язык интерфейса:',
+    remaining: 'Осталось',
+    hours: 'ч',
+    mins: 'мин',
+    secs: 'сек',
+    at: 'в',
+    badgeNext: 'следующий',
+    prayers: {
+      Fajr: 'Фаджр 🌅',
+      Sunrise: 'Восход ☀️',
+      Dhuhr: 'Зухр ☀️',
+      Asr: 'Аср 🌤',
+      Maghrib: 'Магриб 🌇',
+      Isha: 'Иша 🌙'
+    }
+  },
+  tt: {
+    appTitle: 'Намаз',
+    appSubtitle: 'вакыт һәм Кыбла',
+    tabTimes: 'Вакыт',
+    tabQibla: 'Кыбла',
+    tabLearn: 'Намаз',
+    tabCal: 'Календарь',
+    tabMosques: 'Мәчетләр',
+    tabNames: 'Исемнәр',
+    tabSettings: 'Көйләүләр',
+    nextPrayer: 'Чираттагы намаз',
+    locAutoBtn: 'Автоматик билгеләү (GPS)',
+    prayersToday: 'Бүген намазлар',
+    streak: 'Серия',
+    days: 'көн',
+    saveSettings: 'Сакларга һәм яңартырга',
+    lblTheme: 'Бизәлеш темасы:',
+    lblLang: 'Интерфейс теле:',
+    remaining: 'Калды',
+    hours: 'сәг',
+    mins: 'мин',
+    secs: 'сек',
+    at: '',
+    badgeNext: 'чираттагы',
+    prayers: {
+      Fajr: 'Иртәнге 🌅',
+      Sunrise: 'Кояш чыгу ☀️',
+      Dhuhr: 'Өйлә ☀️',
+      Asr: 'Икенде 🌤',
+      Maghrib: 'Ахшам 🌇',
+      Isha: 'Ястү 🌙'
+    }
+  },
+  en: {
+    appTitle: 'Namaz',
+    appSubtitle: 'times & Qibla',
+    tabTimes: 'Times',
+    tabQibla: 'Qibla',
+    tabLearn: 'Lessons',
+    tabCal: 'Calendar',
+    tabMosques: 'Mosques',
+    tabNames: 'Names',
+    tabSettings: 'Settings',
+    nextPrayer: 'Next Prayer',
+    locAutoBtn: 'Auto-detect location (GPS)',
+    prayersToday: 'Today\'s Prayers',
+    streak: 'Streak',
+    days: 'days',
+    saveSettings: 'Save and update schedule',
+    lblTheme: 'Theme:',
+    lblLang: 'Language:',
+    remaining: 'Remaining',
+    hours: 'h',
+    mins: 'm',
+    secs: 's',
+    at: 'at',
+    badgeNext: 'next',
+    prayers: {
+      Fajr: 'Fajr 🌅',
+      Sunrise: 'Sunrise ☀️',
+      Dhuhr: 'Dhuhr ☀️',
+      Asr: 'Asr 🌤',
+      Maghrib: 'Maghrib 🌇',
+      Isha: 'Isha 🌙'
+    }
+  }
+};
+
+let currentLang = store.get('app_lang') || 'ru';
+
+function getPrayerName(k, lang = currentLang) {
+  return (I18N[lang] && I18N[lang].prayers && I18N[lang].prayers[k]) || PRAYERS_RU[k] || k;
+}
+
+function setAppLang(lang) {
+  if (!I18N[lang]) lang = 'ru';
+  currentLang = lang;
+  store.set('app_lang', lang);
+
+  ['Ru', 'Tt', 'En'].forEach(l => {
+    const b1 = document.getElementById('btnLang' + l);
+    if (b1) b1.classList.toggle('active', l.toLowerCase() === lang);
+    const b2 = document.getElementById('btnSetLang' + l);
+    if (b2) b2.classList.toggle('active', l.toLowerCase() === lang);
+  });
+
+  const dict = I18N[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (dict[k]) el.textContent = dict[k];
+  });
+
+  if (nextPrayer) calcNext();
+  if (timings) renderPrayerList();
+  if (typeof renderPrayerStats === 'function') renderPrayerStats();
+}
+
 function fmtTime(d) {
   return d.toTimeString().slice(0, 5);
 }
@@ -1042,14 +1214,16 @@ function calcNext() {
   }
 
   nextPrayer = found;
-  document.getElementById('nextName').textContent = PRAYERS_RU[found.key];
-  document.getElementById('nextTime').textContent = `в ${fmtTime(found.date)}`;
+  const langObj = I18N[currentLang] || I18N.ru;
+  document.getElementById('nextName').textContent = getPrayerName(found.key);
+  document.getElementById('nextTime').textContent = `${langObj.at ? langObj.at + ' ' : ''}${fmtTime(found.date)}`;
 }
 
 function renderPrayerList() {
   const box = document.getElementById('prayerList');
   if (!timings) return;
   box.innerHTML = '';
+  const langObj = I18N[currentLang] || I18N.ru;
 
   for (const k of ORDER) {
     const isNext = nextPrayer && nextPrayer.key === k;
@@ -1057,8 +1231,8 @@ function renderPrayerList() {
     row.className = 'prayer-row' + (isNext ? ' next-hl' : '');
     row.innerHTML = `
       <span>
-        ${PRAYERS_RU[k]}
-        ${isNext ? '<span class="badge">следующий</span>' : ''}
+        ${getPrayerName(k)}
+        ${isNext ? `<span class="badge">${langObj.badgeNext}</span>` : ''}
       </span>
       <span class="t">${timings[k].slice(0, 5)}</span>
     `;
@@ -1084,9 +1258,10 @@ setInterval(() => {
   const m = Math.floor((diff % 3600000) / 60000);
   const s = Math.floor((diff % 60000) / 1000);
 
+  const langObj = I18N[currentLang] || I18N.ru;
   document.getElementById('countdown').textContent =
     `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  document.getElementById('nextSub').textContent = `Осталось: ${h} ч ${m} мин ${s} сек`;
+  document.getElementById('nextSub').textContent = `${langObj.remaining}: ${h} ${langObj.hours} ${m} ${langObj.mins} ${s} ${langObj.secs}`;
 
   checkNotifications(diff);
 }, 1000);
@@ -2271,7 +2446,8 @@ function renderPrayerStats() {
   }
 
   const badge = document.getElementById('streakBadge');
-  if (badge) badge.textContent = `🔥 Серия: ${streak} дн.`;
+  const sLang = I18N[currentLang] || I18N.ru;
+  if (badge) badge.textContent = `🔥 ${sLang.streak}: ${streak} ${sLang.days}`;
 }
 
 renderPrayerStats();
@@ -2403,6 +2579,7 @@ function setAppTheme(theme) {
 }
 const savedAppTheme = store.get('app_theme') || 'gold';
 setAppTheme(savedAppTheme);
+setAppLang(currentLang);
 
 // ==========================================
 // 9. SERVICE WORKER И СТАРТ
