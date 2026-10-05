@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.remageht.namazvakit",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:D5:A4:4E:51:7A:5A:E6:D3:58:39:69:9F:51:36:C4:01:A0:84:87:6A:19:AC:C1:FD:16:DC:1D:6E:9A"
+      ]
+    }
+  }
+]

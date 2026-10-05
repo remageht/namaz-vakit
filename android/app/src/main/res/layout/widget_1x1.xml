@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="6dp">
+
+    <TextView
+        android:id="@+id/widget_prayer_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🕌 Намаз"
+        android:textColor="#D4AF37"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:maxLines="1" />
+
+    <TextView
+        android:id="@+id/widget_prayer_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="--:--"
+        android:textColor="#FFFFFF"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:layout_marginTop="1dp" />
+
+    <TextView
+        android:id="@+id/widget_prayer_sub"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="следующий"
+        android:textColor="#86EFAC"
+        android:textSize="9sp"
+        android:layout_marginTop="1dp"
+        android:maxLines="1" />
+
+</LinearLayout>
