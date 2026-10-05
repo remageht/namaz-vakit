@@ -465,6 +465,34 @@
     cursor: pointer;
   }
   .city-btn:hover { background: #125541; border-color: var(--gold); }
+
+  /* Хиджри-календарь */
+  .cal-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-head { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding: 4px 0; }
+  .cal-day {
+    background: rgba(12, 59, 46, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 2px;
+    text-align: center;
+    font-size: 12px;
+    min-height: 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .cal-day:hover { border-color: var(--gold); background: rgba(212, 175, 55, 0.1); }
+  .cal-day.today { border-color: var(--gold); background: rgba(212, 175, 55, 0.22); font-weight: 700; }
+  .cal-day.ramadan { border-color: #22c55e; background: rgba(34, 197, 94, 0.16); }
+  .cal-day.holiday { border-color: var(--gold); background: rgba(212, 175, 55, 0.28); box-shadow: 0 0 6px rgba(212, 175, 55, 0.3); }
+  .cal-day.other-month { opacity: 0.35; }
+  .cal-hijri-num { font-size: 10px; color: var(--gold-light); font-weight: 600; }
+  .cal-badge { font-size: 9px; margin-top: 1px; }
+
   footer {
     text-align: center;
     color: var(--muted);
@@ -484,11 +512,12 @@
 </header>
 
 <nav class="tabs">
-  <button class="active" data-page="p-times">⏰ Время</button>
-  <button data-page="p-qibla">🧭 Кибла</button>
-  <button data-page="p-learn">📖 Намаз</button>
-  <button data-page="p-settings">⚙️ Настройки</button>
-  <button data-page="p-names">☝️ Имена</button>
+  <button class="active" data-page="p-times" id="tabTimesBtn">⏰ Время</button>
+  <button data-page="p-qibla" id="tabQiblaBtn">🧭 Кибла</button>
+  <button data-page="p-learn" id="tabLearnBtn">📖 Намаз</button>
+  <button data-page="p-calendar" id="tabCalBtn">📅 Календарь</button>
+  <button data-page="p-names" id="tabNamesBtn">☝️ Имена</button>
+  <button data-page="p-settings" id="tabSettingsBtn">⚙️ Настройки</button>
 </nav>
 
 <main>
@@ -648,6 +677,33 @@
     <div class="sub" style="margin-top:8px;">
       Координаты сохраняются локально в памяти браузера. Расчёт времени выполняется через надёжный Aladhan API.
     </div>
+  </div>
+</section>
+<!-- ХИДЖРИ-КАЛЕНДАРЬ -->
+<section id="p-calendar" class="page">
+  <div class="card">
+    <div class="cal-controls">
+      <button class="btn btn-ghost" id="btnCalPrev" style="padding:6px 12px; font-weight:bold;">←</button>
+      <div style="text-align:center;">
+        <div id="calMonthTitle" style="font-weight:700; font-size:15px; color:var(--gold);">—</div>
+        <div id="calHijriTitle" class="sub" style="font-size:12px; margin-top:2px;">—</div>
+      </div>
+      <button class="btn btn-ghost" id="btnCalNext" style="padding:6px 12px; font-weight:bold;">→</button>
+    </div>
+    <div style="text-align:center; margin-bottom:8px;">
+      <button class="btn btn-ghost" id="btnCalToday" style="padding:4px 10px; font-size:11px;">Сегодня</button>
+    </div>
+    <div class="cal-grid" id="calWeekdays">
+      <div class="cal-head">Пн</div><div class="cal-head">Вт</div><div class="cal-head">Ср</div>
+      <div class="cal-head">Чт</div><div class="cal-head">Пт</div><div class="cal-head">Сб</div><div class="cal-head">Вс</div>
+    </div>
+    <div class="cal-grid" id="calDaysGrid"></div>
+  </div>
+  <div class="card" id="calDayDetails" style="text-align:center;">
+    <div class="label">Выбранный день</div>
+    <div id="calDetailGreg" style="font-size:16px; font-weight:700; margin-top:4px;">—</div>
+    <div id="calDetailHijri" style="font-size:14px; color:var(--gold-light); margin-top:2px;">—</div>
+    <div id="calDetailEvent" style="margin-top:6px; font-size:13px; color:var(--accent); font-weight:600;"></div>
   </div>
 </section>
 <!-- ИМЕНА АЛЛАХА -->
@@ -1587,6 +1643,140 @@ document.getElementById('btnQuizReset').onclick = () => {
   renderQuizScore();
   startQuiz(dayIdx());
 };
+
+// ==========================================
+// 8c. ХИДЖРИ-КАЛЕНДАРЬ НА МЕСЯЦ
+// ==========================================
+const HIJRI_MONTHS_RU = ['', 'Мухаррам', 'Сафар', 'Раби аль-авваль', 'Раби ас-сани', 'Джумада аль-уля', 'Джумада аль-ахира', 'Раджаб', 'Шаабан', 'Рамадан', 'Шавваль', 'Зуль-каада', 'Зуль-хиджа'];
+const GREG_MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+
+function getHijriDate(date) {
+  try {
+    const fmt = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', { day: 'numeric', month: 'numeric', year: 'numeric' });
+    const parts = fmt.formatToParts(date);
+    let hd = 1, hm = 1, hy = 1448;
+    for (const p of parts) {
+      if (p.type === 'day') hd = parseInt(p.value, 10);
+      if (p.type === 'month') hm = parseInt(p.value, 10);
+      if (p.type === 'year') hy = parseInt(p.value, 10);
+    }
+    return { day: hd, month: hm, year: hy };
+  } catch(e) {
+    return { day: 1, month: 1, year: 1448 };
+  }
+}
+
+function getIslamicEvent(hd, hm) {
+  if (hm === 9) {
+    if (hd === 27) return 'Ляйлятуль-кадр (Ночь Могущества) ⭐';
+    return 'Священный месяц Рамадан (Пост) 🌙';
+  }
+  if (hm === 10 && hd === 1) return 'Ураза-байрам (Ид аль-Фитр) 🎉';
+  if (hm === 12) {
+    if (hd === 9) return 'День Арафа 🕋';
+    if (hd >= 10 && hd <= 13) return 'Курбан-байрам (Ид аль-Адха) 🐑';
+  }
+  if (hm === 1 && hd === 1) return 'Мусульманский Новый Год 🌙';
+  if (hm === 1 && hd === 10) return 'День Ашура 🤲';
+  if (hm === 3 && hd === 12) return 'Мавлид ан-Наби (Рождение Пророка ﷺ) 🌸';
+  if (hm === 7 && hd === 27) return 'Исра и Мирадж 🌌';
+  if (hm === 8 && hd === 15) return 'Ночь Бараат 🕊️';
+  return null;
+}
+
+function renderHijriCalendar(year, month) {
+  calYear = year;
+  calMonth = month;
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const totalDays = lastDay.getDate();
+
+  const hFirst = getHijriDate(firstDay);
+  const hLast = getHijriDate(lastDay);
+
+  const monthTitle = `${GREG_MONTHS_RU[month]} ${year}`;
+  const hijriTitle = (hFirst.month === hLast.month)
+    ? `${HIJRI_MONTHS_RU[hFirst.month]} ${hFirst.year} г.х.`
+    : `${HIJRI_MONTHS_RU[hFirst.month]} / ${HIJRI_MONTHS_RU[hLast.month]} ${hLast.year} г.х.`;
+
+  document.getElementById('calMonthTitle').textContent = monthTitle;
+  document.getElementById('calHijriTitle').textContent = hijriTitle;
+
+  const grid = document.getElementById('calDaysGrid');
+  grid.innerHTML = '';
+
+  let startDayOfWeek = (firstDay.getDay() + 6) % 7;
+
+  const prevMonthLastDay = new Date(year, month, 0).getDate();
+  for (let i = startDayOfWeek - 1; i >= 0; i--) {
+    const d = prevMonthLastDay - i;
+    const dateObj = new Date(year, month - 1, d);
+    const h = getHijriDate(dateObj);
+    const el = document.createElement('div');
+    el.className = 'cal-day other-month';
+    el.innerHTML = `<div>${d}</div><div class="cal-hijri-num">${h.day}</div>`;
+    grid.appendChild(el);
+  }
+
+  const today = new Date();
+  const isCurrentMonth = (today.getFullYear() === year && today.getMonth() === month);
+
+  for (let day = 1; day <= totalDays; day++) {
+    const dateObj = new Date(year, month, day);
+    const h = getHijriDate(dateObj);
+    const ev = getIslamicEvent(h.day, h.month);
+
+    const el = document.createElement('div');
+    let cls = 'cal-day';
+    if (isCurrentMonth && today.getDate() === day) cls += ' today';
+    if (h.month === 9) cls += ' ramadan';
+    if (ev && (ev.includes('байрам') || ev.includes('Ляйлятуль-кадр') || ev.includes('Арафа'))) cls += ' holiday';
+    el.className = cls;
+
+    let badge = '';
+    if (h.month === 9 && h.day === 27) badge = '<span class="cal-badge">⭐</span>';
+    else if (h.month === 9) badge = '<span class="cal-badge">🌙</span>';
+    else if (ev && ev.includes('Ураза-байрам')) badge = '<span class="cal-badge">🎉</span>';
+    else if (ev && ev.includes('Курбан-байрам')) badge = '<span class="cal-badge">🐑</span>';
+
+    el.innerHTML = `<div>${day}</div><div class="cal-hijri-num">${h.day}</div>${badge}`;
+    el.onclick = () => {
+      document.getElementById('calDetailGreg').textContent = `${day} ${GREG_MONTHS_RU[month]} ${year}`;
+      document.getElementById('calDetailHijri').textContent = `${h.day} ${HIJRI_MONTHS_RU[h.month]} ${h.year} г.х.`;
+      const evEl = document.getElementById('calDetailEvent');
+      evEl.textContent = ev ? `✨ ${ev}` : (h.month === 9 ? '🌙 День поста Рамадана' : 'Обычный день');
+    };
+    grid.appendChild(el);
+  }
+
+  const selectDay = isCurrentMonth ? today.getDate() : 1;
+  const initDate = new Date(year, month, selectDay);
+  const initH = getHijriDate(initDate);
+  const initEv = getIslamicEvent(initH.day, initH.month);
+  document.getElementById('calDetailGreg').textContent = `${selectDay} ${GREG_MONTHS_RU[month]} ${year}`;
+  document.getElementById('calDetailHijri').textContent = `${initH.day} ${HIJRI_MONTHS_RU[initH.month]} ${initH.year} г.х.`;
+  document.getElementById('calDetailEvent').textContent = initEv ? `✨ ${initEv}` : (initH.month === 9 ? '🌙 День поста Рамадана' : 'Обычный день');
+}
+
+document.getElementById('btnCalPrev').onclick = () => {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderHijriCalendar(calYear, calMonth);
+};
+document.getElementById('btnCalNext').onclick = () => {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderHijriCalendar(calYear, calMonth);
+};
+document.getElementById('btnCalToday').onclick = () => {
+  const n = new Date();
+  renderHijriCalendar(n.getFullYear(), n.getMonth());
+};
+
+renderHijriCalendar(calYear, calMonth);
 
 // ==========================================
 // 9. SERVICE WORKER И СТАРТ
