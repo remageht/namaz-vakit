@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Намаз">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 <style>
   :root {
@@ -493,6 +494,23 @@
   .cal-hijri-num { font-size: 10px; color: var(--gold-light); font-weight: 600; }
   .cal-badge { font-size: 9px; margin-top: 1px; }
 
+  /* Мечети рядом */
+  #mosquesMap { height: 260px; border-radius: 12px; margin: 10px 0; border: 1px solid var(--border); background: #08281e; z-index: 10; }
+  .mosque-item {
+    background: #093327;
+    border: 1px solid #175845;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all .15s ease;
+  }
+  .mosque-item:hover { border-color: var(--gold); }
+  .mosque-name { font-weight: 700; font-size: 14px; color: var(--text); }
+  .mosque-dist { font-size: 13px; color: var(--gold); font-weight: 600; white-space: nowrap; margin-left: 10px; }
+
   footer {
     text-align: center;
     color: var(--muted);
@@ -516,6 +534,7 @@
   <button data-page="p-qibla" id="tabQiblaBtn">🧭 Кибла</button>
   <button data-page="p-learn" id="tabLearnBtn">📖 Намаз</button>
   <button data-page="p-calendar" id="tabCalBtn">📅 Календарь</button>
+  <button data-page="p-mosques" id="tabMosquesBtn">🕌 Мечети</button>
   <button data-page="p-names" id="tabNamesBtn">☝️ Имена</button>
   <button data-page="p-settings" id="tabSettingsBtn">⚙️ Настройки</button>
 </nav>
@@ -706,6 +725,24 @@
     <div id="calDetailEvent" style="margin-top:6px; font-size:13px; color:var(--accent); font-weight:600;"></div>
   </div>
 </section>
+<!-- МЕЧЕТИ РЯДОМ -->
+<section id="p-mosques" class="page">
+  <div class="card">
+    <div class="label">Поиск мечетей</div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+      <b style="font-size:16px;">🕌 Мечети рядом (до 25 км)</b>
+      <button class="btn btn-gold" id="btnFindMosques" style="padding:6px 14px; font-size:12px;">🔍 Найти</button>
+    </div>
+    <div class="sub" id="mosquesStatus" style="margin-top:6px;">Нажмите «Найти» для загрузки мечетей вокруг текущих координат.</div>
+    <div id="mosquesMap"></div>
+  </div>
+  <div class="card">
+    <div class="label">Список мечетей</div>
+    <div id="mosquesList" style="margin-top:8px;">
+      <div class="sub" style="text-align:center; padding:15px;">Список загрузится при поиске…</div>
+    </div>
+  </div>
+</section>
 <!-- ИМЕНА АЛЛАХА -->
 <section id="p-names" class="page">
   <div class="card next">
@@ -754,6 +791,7 @@
   Намаз PWA • Время: Aladhan API • Кааба: 21.4225° N, 39.8262° E • Сверяйте время с местной мечетью
 </footer>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ==========================================
 // 1. НАВИГАЦИЯ ПО ВКЛАДКАМ
@@ -763,7 +801,11 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
     document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll('section.page').forEach(p => p.classList.remove('active'));
-    document.getElementById(btn.dataset.page).classList.add('active');
+    const targetPage = document.getElementById(btn.dataset.page);
+    if (targetPage) targetPage.classList.add('active');
+    if (btn.dataset.page === 'p-mosques' && typeof mosquesMapInstance !== 'undefined' && mosquesMapInstance) {
+      setTimeout(() => mosquesMapInstance.invalidateSize(), 150);
+    }
   };
 });
 
@@ -1777,6 +1819,135 @@ document.getElementById('btnCalToday').onclick = () => {
 };
 
 renderHijriCalendar(calYear, calMonth);
+
+// ==========================================
+// 8d. МЕЧЕТИ РЯДОМ (OVERPASS API + LEAFLET + FALLBACK)
+// ==========================================
+let mosquesMapInstance = null;
+let mosquesLayerGroup = null;
+
+const FALLBACK_MOSQUES = [
+  { name: 'Сакская Соборная мечеть (Янъы Джами)', lat: 45.1328, lon: 33.6015, addr: 'г. Саки, ул. Симферопольская' },
+  { name: 'Мечеть пос. Новофёдоровка', lat: 45.0921, lon: 33.5780, addr: 'пгт Новофёдоровка' },
+  { name: 'Мечеть с. Орехово', lat: 45.1432, lon: 33.6280, addr: 'с. Орехово, Сакский район' },
+  { name: 'Мечеть с. Михайловка', lat: 45.1210, lon: 33.6450, addr: 'с. Михайловка, Сакский район' },
+  { name: 'Мечеть с. Лесновка', lat: 45.1485, lon: 33.5620, addr: 'с. Лесновка, Сакский район' },
+  { name: 'Мечеть Хан-Джами (Джума-Джами)', lat: 45.1958, lon: 33.3775, addr: 'г. Евпатория, ул. Революции' },
+  { name: 'Московская Соборная мечеть', lat: 55.7791, lon: 37.6269, addr: 'г. Москва, Выползов пер., 7' },
+  { name: 'Историческая мечеть', lat: 55.7410, lon: 37.6339, addr: 'г. Москва, Большая Татарская ул., 28' },
+  { name: 'Мемориальная мечеть', lat: 55.7314, lon: 37.5050, addr: 'г. Москва, Поклонная гора' },
+  { name: 'Мечеть «Ярдәм»', lat: 55.8596, lon: 37.6018, addr: 'г. Москва, ул. Хачатуряна, 8' }
+];
+
+function calcHaversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function initMosquesMap(centerLat, centerLon) {
+  if (typeof L === 'undefined') return;
+  const mapEl = document.getElementById('mosquesMap');
+  if (!mapEl) return;
+  if (!mosquesMapInstance) {
+    try {
+      mosquesMapInstance = L.map('mosquesMap').setView([centerLat, centerLon], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap'
+      }).addTo(mosquesMapInstance);
+      mosquesLayerGroup = L.layerGroup().addTo(mosquesMapInstance);
+    } catch(e) {
+      console.warn('Leaflet init error:', e);
+    }
+  } else {
+    try {
+      mosquesMapInstance.setView([centerLat, centerLon], 12);
+      mosquesMapInstance.invalidateSize();
+    } catch(e) {}
+  }
+}
+
+async function searchNearbyMosques() {
+  const statusEl = document.getElementById('mosquesStatus');
+  const listEl = document.getElementById('mosquesList');
+  statusEl.textContent = '🔍 Поиск мечетей через Overpass API (25 км)…';
+
+  const userLat = S.lat;
+  const userLon = S.lon;
+  initMosquesMap(userLat, userLon);
+
+  let mosques = [];
+  try {
+    const q = `[out:json][timeout:12];(node["amenity"="place_of_worship"]["religion"="muslim"](around:25000,${userLat},${userLon});way["amenity"="place_of_worship"]["religion"="muslim"](around:25000,${userLat},${userLon}););out center 25;`;
+    const res = await fetch('https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(q));
+    if (!res.ok) throw new Error('Overpass status ' + res.status);
+    const data = await res.json();
+    if (data && data.elements && data.elements.length > 0) {
+      mosques = data.elements.map(el => {
+        const mLat = el.lat || (el.center && el.center.lat);
+        const mLon = el.lon || (el.center && el.center.lon);
+        const name = (el.tags && (el.tags.name || el.tags['name:ru'] || el.tags['name:en'])) || 'Мечеть';
+        const addr = (el.tags && (el.tags['addr:street'] || el.tags['addr:city'])) || '';
+        return { name, lat: mLat, lon: mLon, addr };
+      }).filter(m => m.lat && m.lon);
+    }
+  } catch(e) {
+    console.warn('Overpass fetch failed, using fallback:', e);
+  }
+
+  // Fallback if 0 found or offline
+  if (mosques.length === 0) {
+    statusEl.innerHTML = '⚠️ Показаны известные ориентиры мечетей (офлайн/заглушка):';
+    mosques = FALLBACK_MOSQUES;
+  } else {
+    statusEl.textContent = `✅ Найдено мечетей рядом: ${mosques.length}`;
+  }
+
+  // Calculate distance & sort
+  mosques.forEach(m => {
+    m.dist = calcHaversineKm(userLat, userLon, m.lat, m.lon);
+  });
+  mosques.sort((a, b) => a.dist - b.dist);
+
+  // Update map markers
+  if (mosquesLayerGroup && typeof L !== 'undefined') {
+    mosquesLayerGroup.clearLayers();
+    try {
+      L.circleMarker([userLat, userLon], { radius: 8, color: '#d4af37', fillColor: '#22c55e', fillOpacity: 0.9 })
+        .addTo(mosquesLayerGroup)
+        .bindPopup('<b>Вы здесь</b>');
+
+      mosques.slice(0, 15).forEach(m => {
+        L.marker([m.lat, m.lon])
+          .addTo(mosquesLayerGroup)
+          .bindPopup(`<b>${m.name}</b><br>${m.dist.toFixed(1)} км<br><a href="https://maps.google.com/?q=${m.lat},${m.lon}" target="_blank" rel="noopener">Маршрут</a>`);
+      });
+    } catch(e) {}
+  }
+
+  // Render list
+  listEl.innerHTML = '';
+  mosques.slice(0, 15).forEach(m => {
+    const item = document.createElement('div');
+    item.className = 'mosque-item';
+    const mapUrl = `https://maps.google.com/?q=${m.lat},${m.lon}`;
+    item.innerHTML = `
+      <div>
+        <div class="mosque-name">🕌 ${m.name}</div>
+        <div class="sub" style="margin-top:2px;">${m.addr ? m.addr + ' • ' : ''}<a href="${mapUrl}" target="_blank" rel="noopener" style="color:var(--gold); text-decoration:none;">Построить маршрут ↗</a></div>
+      </div>
+      <div class="mosque-dist">${m.dist.toFixed(1)} км</div>
+    `;
+    listEl.appendChild(item);
+  });
+}
+
+document.getElementById('btnFindMosques').onclick = searchNearbyMosques;
 
 // ==========================================
 // 9. SERVICE WORKER И СТАРТ
