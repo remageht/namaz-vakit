@@ -110,6 +110,8 @@ function Get-Timings {
 $timings = Get-Timings
 if (-not $timings) { [System.Windows.Forms.MessageBox]::Show("Ошибка расчёта времени намаза."); exit 1 }
 
+function To-Date($t) { $parts = $t.Substring(0,5).Split(":"); $h = [int]$parts[0]; $mi = [int]$parts[1]; $d = Get-Date; return (Get-Date -Year $d.Year -Month $d.Month -Day $d.Day -Hour $h -Minute $mi -Second 0) }
+
 function New-CountdownIcon($text) {
   $bmp = New-Object System.Drawing.Bitmap(16,16)
   $g = [System.Drawing.Graphics]::FromImage($bmp)
