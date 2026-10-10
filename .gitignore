@@ -6,3 +6,9 @@ widget.log
 names_start.txt
 
 *.zip
+*.apk
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/build.log
