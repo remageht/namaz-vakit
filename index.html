@@ -1609,9 +1609,108 @@ document.getElementById('btnToggleAr').onclick = toggleArCamera;
 
 document.getElementById('simHeading').oninput = e => {
   deviceHeading = parseFloat(e.target.value);
+  compassSmoothedDeg = deviceHeading;
+  compassLastRenderedDeg = deviceHeading;
+  compassJitterReset();
   document.getElementById('simVal').textContent = deviceHeading + '°';
   renderCompass();
 };
+
+// --- Компас Киблы: один активный слушатель + low-pass + deadband + подсказка калибровки ---
+var compassActiveType = null;
+var compassGotData = false;
+var compassFallbackTimer = null;
+var compassSmoothedDeg = null;
+var compassLastRenderedDeg = null;
+var compassJitterEvents = [];
+var compassCalibShownAt = 0;
+
+function compassAngDiff(a, b) {
+  return Math.abs((((a - b + 540) % 360 + 360) % 360) - 180);
+}
+
+function compassLerpAngle(prev, next, alpha) {
+  var d = ((((next - prev + 540) % 360 + 360) % 360) - 180);
+  return ((((prev + d * alpha) % 360) + 360) % 360);
+}
+
+function compassEnsureCalibHint() {
+  var box = document.getElementById('qiblaStatusBox');
+  var hint = document.getElementById('compassCalibHint');
+  if (!hint && box && box.parentNode) {
+    hint = document.createElement('div');
+    hint.id = 'compassCalibHint';
+    hint.className = 'sub';
+    hint.style.cssText = 'margin-top:8px;padding:10px;border-radius:10px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.5);font-size:13px;line-height:1.4;';
+    hint.textContent = '⚠️ Стрелка дрожит? Откалибруйте компас: опишите восьмёрку телефоном в воздухе, вдали от металла и магнитов.';
+    hint.style.display = 'none';
+    box.parentNode.insertBefore(hint, box.nextSibling);
+  }
+  return hint;
+}
+
+function compassJitterReset() {
+  compassJitterEvents = [];
+  compassCalibShownAt = 0;
+  var h = document.getElementById('compassCalibHint');
+  if (h) h.style.display = 'none';
+}
+
+function compassNoteRaw(raw) {
+  var now = Date.now();
+  var base = (compassSmoothedDeg === null) ? raw : compassSmoothedDeg;
+  var jump = compassAngDiff(raw, base);
+  if (jump > 25) compassJitterEvents.push(now);
+  compassJitterEvents = compassJitterEvents.filter(function (t) { return (now - t) < 3000; });
+  if (compassJitterEvents.length >= 5) {
+    var hint = compassEnsureCalibHint();
+    if (hint) hint.style.display = 'block';
+    compassCalibShownAt = now;
+    compassJitterEvents = [];
+  } else if (compassCalibShownAt && (now - compassCalibShownAt) > 8000) {
+    var h2 = document.getElementById('compassCalibHint');
+    if (h2) h2.style.display = 'none';
+    compassCalibShownAt = 0;
+  }
+}
+
+function compassApplyHeading(raw) {
+  raw = (((raw % 360) + 360) % 360);
+  compassNoteRaw(raw);
+  if (compassSmoothedDeg === null) compassSmoothedDeg = raw;
+  else compassSmoothedDeg = compassLerpAngle(compassSmoothedDeg, raw, 0.25);
+  if (compassLastRenderedDeg === null || compassAngDiff(compassSmoothedDeg, compassLastRenderedDeg) >= 1) {
+    compassLastRenderedDeg = compassSmoothedDeg;
+    deviceHeading = compassSmoothedDeg;
+    var sim = document.getElementById('simHeading');
+    var simV = document.getElementById('simVal');
+    if (sim && document.activeElement !== sim) {
+      try { sim.value = String(Math.round(compassSmoothedDeg)); } catch (e2) {}
+    }
+    if (simV) simV.textContent = Math.round(compassSmoothedDeg) + '°';
+    renderCompass();
+  }
+}
+
+function compassStopAll() {
+  try { window.removeEventListener('deviceorientationabsolute', onDeviceOrientation, true); } catch (e1) {}
+  try { window.removeEventListener('deviceorientationabsolute', onDeviceOrientation, false); } catch (e2) {}
+  try { window.removeEventListener('deviceorientation', onDeviceOrientation, true); } catch (e3) {}
+  try { window.removeEventListener('deviceorientation', onDeviceOrientation, false); } catch (e4) {}
+  if (compassFallbackTimer) { clearTimeout(compassFallbackTimer); compassFallbackTimer = null; }
+}
+
+function compassStart(type) {
+  compassStopAll();
+  compassGotData = false;
+  compassActiveType = type;
+  window.addEventListener(type, onDeviceOrientation, true);
+  if (type === 'deviceorientationabsolute') {
+    compassFallbackTimer = setTimeout(function () {
+      if (!compassGotData) compassStart('deviceorientation');
+    }, 1500);
+  }
+}
 
 document.getElementById('btnCompass').onclick = async () => {
   try {
@@ -1622,8 +1721,7 @@ document.getElementById('btnCompass').onclick = async () => {
         return;
       }
     }
-    window.addEventListener('deviceorientationabsolute', onDeviceOrientation, true);
-    window.addEventListener('deviceorientation', onDeviceOrientation, true);
+    compassStart('deviceorientationabsolute');
     alert('Компас активирован. Медленно вращайте телефон.');
   } catch (err) {
     console.warn('Компас недоступен:', err);
@@ -1632,18 +1730,22 @@ document.getElementById('btnCompass').onclick = async () => {
 };
 
 function onDeviceOrientation(e) {
+  if (!e) return;
   let h = null;
-  if (e.webkitCompassHeading !== undefined) {
-    // iOS Safari дает точный компасный курс (0..360 от магнитного севера)
+  if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null && !isNaN(e.webkitCompassHeading)) {
+    // iOS Safari: точный компасный курс — приоритет
     h = e.webkitCompassHeading;
-  } else if (e.alpha !== null && e.alpha !== undefined) {
-    // Android (от 0 до 360 против часовой стрелки, инвертируем)
+  } else {
+    // Android: требуем абсолютный курс, когда поле absolute присутствует
+    if (('absolute' in e) && e.absolute !== undefined && e.absolute !== null && e.absolute !== true) return;
+    if (e.alpha === null || e.alpha === undefined || isNaN(e.alpha)) return;
+    // alpha растёт против часовой стрелки — инвертируем к курсу по часовой
     h = (360 - e.alpha) % 360;
   }
 
   if (h !== null && !isNaN(h)) {
-    deviceHeading = h;
-    renderCompass();
+    compassGotData = true;
+    compassApplyHeading(h);
   }
 }
 

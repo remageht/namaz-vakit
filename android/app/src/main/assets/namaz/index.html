@@ -1,0 +1,2952 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Намаз — время, Кибла, обучение</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#06281f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Намаз">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+  :root {
+    --bg: #06281f;
+    --card: #0c3b2e;
+    --card-hover: #0f4a3a;
+    --gold: #d4af37;
+    --gold-light: #f7e8a4;
+    --text: #f0f5f1;
+    --muted: #9fc3b5;
+    --accent: #22c55e;
+    --warn: #f59e0b;
+    --border: #175845;
+  }
+
+  body.theme-green {
+    --bg: #03231a;
+    --card: #083c2d;
+    --card-hover: #0c4d3a;
+    --gold: #22c55e;
+    --gold-light: #86efac;
+    --text: #f0fdf4;
+    --muted: #86efac;
+    --accent: #10b981;
+    --border: #134e3e;
+  }
+  body.theme-mono {
+    --bg: #121214;
+    --card: #1f1f23;
+    --card-hover: #27272a;
+    --gold: #e4e4e7;
+    --gold-light: #ffffff;
+    --text: #fafafa;
+    --muted: #a1a1aa;
+    --accent: #a1a1aa;
+    --border: #27272a;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(180deg, #031510 0%, #06281f 35%, #083227 100%);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+  header {
+    text-align: center;
+    padding: 20px 16px 10px;
+    background: radial-gradient(circle at top, rgba(212,175,55,0.12) 0%, transparent 70%);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: .5px;
+  }
+  header h1 span { color: var(--gold); }
+  #dates {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  .hijri-tag {
+    color: var(--gold-light);
+    background: rgba(212,175,55,0.12);
+    border: 1px solid rgba(212,175,55,0.3);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .lang-switch {
+    display: inline-flex;
+    gap: 2px;
+    background: rgba(0,0,0,0.3);
+    padding: 2px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .lang-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all .2s ease;
+  }
+  .lang-btn:hover { color: var(--gold-light); }
+  .lang-btn.active {
+    background: var(--gold);
+    color: #06281f;
+    box-shadow: 0 1px 4px rgba(212,175,55,0.4);
+  }
+
+  nav.tabs {
+    display: flex;
+    gap: 6px;
+    padding: 10px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(4, 23, 17, 0.94);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #14493b;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  nav.tabs button {
+    flex: 1;
+    border: 1px solid #1a5a48;
+    background: #093327;
+    color: var(--text);
+    border-radius: 12px;
+    padding: 10px 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s ease;
+  }
+  nav.tabs button.active {
+    background: var(--gold);
+    color: #06281f;
+    font-weight: 800;
+    border-color: var(--gold);
+    box-shadow: 0 2px 10px rgba(212,175,55,0.3);
+  }
+
+  main {
+    padding: 0 12px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  section.page { display: none; }
+  section.page.active { display: block; animation: fadeIn .2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin: 12px 0;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+  }
+  .next-card {
+    text-align: center;
+    background: linear-gradient(135deg, #0e4435, #145945);
+    border: 1px solid var(--gold);
+    position: relative;
+    overflow: hidden;
+  }
+  .next-card::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, rgba(212,175,55,0.2) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .next-card .label {
+    color: var(--gold);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+  }
+  .next-card .name {
+    font-size: 32px;
+    font-weight: 800;
+    margin: 4px 0;
+  }
+  .next-card .time {
+    font-size: 20px;
+    color: var(--gold-light);
+    font-weight: 600;
+  }
+  .countdown {
+    font-size: 44px;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    margin: 8px 0;
+    color: #ffffff;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    letter-spacing: 1px;
+  }
+  .sub { color: var(--muted); font-size: 13px; line-height: 1.4; }
+
+  .prayer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 12px;
+    margin: 8px 0;
+    background: #093327;
+    border: 1px solid #165341;
+    transition: all .2s ease;
+  }
+  .prayer-row.next-hl {
+    background: linear-gradient(135deg, #d4af37, #dfbc45);
+    color: #06281f;
+    font-weight: 800;
+    border-color: var(--gold);
+    box-shadow: 0 2px 12px rgba(212,175,55,0.25);
+  }
+  .prayer-row.next-hl .t { color: #06281f; }
+  .prayer-row .t {
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--gold-light);
+  }
+  .badge {
+    font-size: 11px;
+    background: var(--accent);
+    color: #06281f;
+    border-radius: 20px;
+    padding: 2px 8px;
+    margin-left: 8px;
+    font-weight: 800;
+  }
+  .prayer-row.next-hl .badge {
+    background: #06281f;
+    color: var(--gold);
+  }
+
+  .btn {
+    display: block;
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin: 8px 0;
+    text-align: center;
+    transition: transform .1s ease, filter .2s ease;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-gold {
+    background: linear-gradient(135deg, #d4af37, #e0be4b);
+    color: #06281f;
+    box-shadow: 0 2px 10px rgba(212,175,55,0.2);
+  }
+  .btn-green {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #ffffff;
+  }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid #2a7a64;
+    color: var(--text);
+  }
+  .row2 { display: flex; gap: 8px; }
+  .row2 > * { flex: 1; }
+
+  input, select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #2a7a64;
+    background: #082f25;
+    color: var(--text);
+    font-size: 14px;
+    margin: 6px 0;
+  }
+  label { font-size: 13px; color: var(--muted); font-weight: 600; display: block; margin-top: 8px; }
+
+  /* Компас */
+  .compass-wrap { text-align: center; }
+  #compass {
+    width: 250px;
+    height: 250px;
+    margin: 16px auto;
+    position: relative;
+    border-radius: 50%;
+    background: radial-gradient(circle, #0e4435 0%, #06281f 70%, #031711 100%);
+    border: 4px solid var(--gold);
+    box-shadow: 0 0 25px rgba(212,175,55,0.25), inset 0 0 20px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  #dial {
+    position: absolute;
+    inset: 0;
+    transition: transform .12s cubic-bezier(0.1, 0.7, 0.1, 1);
+  }
+  .c-mark {
+    position: absolute;
+    font-weight: 900;
+    font-size: 16px;
+    user-select: none;
+  }
+  .c-mark.N { top: 8px; left: 50%; transform: translateX(-50%); color: #ef4444; }
+  .c-mark.S { bottom: 8px; left: 50%; transform: translateX(-50%); color: var(--muted); }
+  .c-mark.E { right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+  .c-mark.W { left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+  
+  #qiblaArrow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 105px;
+    background: linear-gradient(to top, rgba(212,175,55,0.2), var(--gold));
+    transform-origin: bottom center;
+    border-radius: 4px;
+    box-shadow: 0 0 14px var(--gold);
+    transition: transform .12s cubic-bezier(0.1, 0.7, 0.1, 1);
+  }
+  #qiblaArrow::after {
+    content: '▲';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--gold);
+    font-size: 22px;
+    text-shadow: 0 0 10px rgba(212,175,55,0.8);
+  }
+  #qiblaArrow::before {
+    content: '🕋';
+    position: absolute;
+    top: -42px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 18px;
+  }
+  #centerDot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    background: #ffffff;
+    border: 3px solid var(--gold);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  }
+
+  .qibla-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 12px 0;
+    text-align: left;
+  }
+  .qibla-metric {
+    background: #093327;
+    border: 1px solid #165341;
+    border-radius: 12px;
+    padding: 10px;
+  }
+  .qibla-metric .num {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--gold);
+  }
+  .qibla-status {
+    padding: 10px;
+    border-radius: 12px;
+    font-weight: 800;
+    margin-top: 8px;
+    background: #093327;
+    border: 1px solid #165341;
+  }
+  .qibla-status.aligned {
+    background: #0f4a25;
+    border-color: var(--accent);
+    color: #4ade80;
+    box-shadow: 0 0 16px rgba(34,197,94,0.3);
+  }
+
+  /* Уроки */
+  .lesson-tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 6px 0 12px;
+    scrollbar-width: thin;
+  }
+  .lesson-tabs button {
+    white-space: nowrap;
+    border-radius: 20px;
+    border: 1px solid #2a7a64;
+    background: #093327;
+    color: var(--text);
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all .2s;
+  }
+  .lesson-tabs button.active {
+    background: var(--gold);
+    color: #06281f;
+    font-weight: 800;
+    border-color: var(--gold);
+  }
+  .lesson { display: none; }
+  .lesson.active { display: block; animation: fadeIn .2s ease; }
+  .step {
+    background: #093327;
+    border-left: 4px solid var(--gold);
+    border-radius: 0 12px 12px 0;
+    padding: 12px 14px;
+    margin: 10px 0;
+    border-top: 1px solid #165341;
+    border-right: 1px solid #165341;
+    border-bottom: 1px solid #165341;
+  }
+  .step h4 { margin: 0 0 6px; color: var(--gold); font-size: 15px; }
+  .loud-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .loud-aloud { background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px solid #ef4444; }
+  .loud-silent { background: rgba(59,130,246,0.2); color: #93c5fd; border: 1px solid #3b82f6; }
+
+  .ar {
+    font-size: 22px;
+    direction: rtl;
+    text-align: right;
+    background: #06241b;
+    padding: 12px;
+    border-radius: 10px;
+    margin: 8px 0;
+    line-height: 2.1;
+    font-family: 'Amiri', 'Traditional Arabic', serif;
+    border: 1px solid #14493b;
+    color: #fff;
+  }
+  .tr {
+    font-style: italic;
+    color: var(--gold-light);
+    font-size: 13.5px;
+    line-height: 1.5;
+    margin: 6px 0;
+  }
+  .ru {
+    font-size: 13.5px;
+    color: var(--text);
+    line-height: 1.5;
+    margin: 6px 0;
+  }
+  .speak-btn {
+    background: #175845;
+    border: none;
+    color: #ffffff;
+    border-radius: 8px;
+    padding: 7px 12px;
+    margin-top: 6px;
+    cursor: pointer;
+    font-size: 12.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .speak-btn:hover { background: #1e7058; }
+
+  .install-tip {
+    font-size: 13px;
+    color: var(--muted);
+    background: #082f25;
+    border: 1px solid #165341;
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 14px;
+    line-height: 1.5;
+  }
+  .cities-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin: 8px 0;
+  }
+  .city-btn {
+    background: #093327;
+    border: 1px solid #2a7a64;
+    color: var(--text);
+    padding: 8px 4px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .city-btn:hover { background: #125541; border-color: var(--gold); }
+
+  /* Хиджри-календарь */
+  .cal-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-head { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding: 4px 0; }
+  .cal-day {
+    background: rgba(12, 59, 46, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 2px;
+    text-align: center;
+    font-size: 12px;
+    min-height: 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .cal-day:hover { border-color: var(--gold); background: rgba(212, 175, 55, 0.1); }
+  .cal-day.today { border-color: var(--gold); background: rgba(212, 175, 55, 0.22); font-weight: 700; }
+  .cal-day.ramadan { border-color: #22c55e; background: rgba(34, 197, 94, 0.16); }
+  .cal-day.holiday { border-color: var(--gold); background: rgba(212, 175, 55, 0.28); box-shadow: 0 0 6px rgba(212, 175, 55, 0.3); }
+  .cal-day.other-month { opacity: 0.35; }
+  .cal-hijri-num { font-size: 10px; color: var(--gold-light); font-weight: 600; }
+  .cal-badge { font-size: 9px; margin-top: 1px; }
+
+  /* Мечети рядом */
+  #mosquesMap { height: 260px; border-radius: 12px; margin: 10px 0; border: 1px solid var(--border); background: #08281e; z-index: 10; }
+  .mosque-item {
+    background: #093327;
+    border: 1px solid #175845;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all .15s ease;
+  }
+  .mosque-item:hover { border-color: var(--gold); }
+  .mosque-name { font-weight: 700; font-size: 14px; color: var(--text); }
+  .mosque-dist { font-size: 13px; color: var(--gold); font-weight: 600; white-space: nowrap; margin-left: 10px; }
+
+  /* Статистика и трекер намазов */
+  .prayer-check-btn {
+    background: #093327;
+    border: 1px solid #1a5a48;
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 2px;
+    font-size: 11px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s ease;
+    user-select: none;
+  }
+  .prayer-check-btn:hover { border-color: var(--gold); }
+  .prayer-check-btn.checked {
+    background: rgba(34, 197, 94, 0.25);
+    border-color: #22c55e;
+    color: #86efac;
+    font-weight: 700;
+  }
+  .streak-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #165341;
+  }
+  .streak-dot.active {
+    background: var(--gold);
+    box-shadow: 0 0 5px rgba(212, 175, 55, 0.6);
+  }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 24px 12px 10px;
+  }
+
+  .print-only { display: none; }
+  @media print {
+    body {
+      background: #ffffff !important;
+      color: #111827 !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    header, nav, footer, .card, .btn, button, input, select, video, canvas, main {
+      display: none !important;
+    }
+    .print-only {
+      display: block !important;
+      padding: 20px !important;
+    }
+    .print-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    .print-table th, .print-table td {
+      border: 1px solid #374151;
+      padding: 6px 8px;
+      text-align: center;
+      font-size: 11px;
+    }
+    .print-table th {
+      background: #f3f4f6;
+      color: #111827;
+      font-weight: 700;
+    }
+    .print-table tr:nth-child(even) td {
+      background: #f9fafb;
+    }
+    .print-title {
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #111827;
+    }
+    .print-sub {
+      text-align: center;
+      font-size: 12px;
+      color: #4b5563;
+      margin-bottom: 12px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex; justify-content:space-between; align-items:center; max-width:640px; margin:0 auto 4px;">
+    <div style="width:75px;"></div>
+    <h1 style="margin:0; font-size:22px;">🕌 <span data-i18n="appTitle">Намаз</span> — <span data-i18n="appSubtitle">время и Кибла</span></h1>
+    <div class="lang-switch">
+      <button class="lang-btn active" id="btnLangRu" onclick="setAppLang('ru')">RU</button>
+      <button class="lang-btn" id="btnLangTt" onclick="setAppLang('tt')">TT</button>
+      <button class="lang-btn" id="btnLangEn" onclick="setAppLang('en')">EN</button>
+    </div>
+  </div>
+  <div id="dates">
+    <span id="gregDate">Загрузка даты…</span>
+    <span id="hijriTag" class="hijri-tag">Хиджра: ...</span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="active" data-page="p-times" id="tabTimesBtn">⏰ <span data-i18n="tabTimes">Время</span></button>
+  <button data-page="p-qibla" id="tabQiblaBtn">🧭 <span data-i18n="tabQibla">Кибла</span></button>
+  <button data-page="p-learn" id="tabLearnBtn">📖 <span data-i18n="tabLearn">Намаз</span></button>
+  <button data-page="p-calendar" id="tabCalBtn">📅 <span data-i18n="tabCal">Календарь</span></button>
+  <button data-page="p-mosques" id="tabMosquesBtn">🕌 <span data-i18n="tabMosques">Мечети</span></button>
+  <button data-page="p-names" id="tabNamesBtn">☝️ <span data-i18n="tabNames">Имена</span></button>
+  <button data-page="p-settings" id="tabSettingsBtn">⚙️ <span data-i18n="tabSettings">Настройки</span></button>
+</nav>
+
+<main>
+<!-- ВРЕМЯ НАМАЗА -->
+<section id="p-times" class="page active">
+  <div class="card next-card">
+    <div class="label" data-i18n="nextPrayer">Следующий намаз</div>
+    <div class="name" id="nextName">—</div>
+    <div class="time" id="nextTime">--:--</div>
+    <div class="countdown" id="countdown">--:--:--</div>
+    <div class="sub" id="nextSub">Определение времени…</div>
+  </div>
+
+  <div class="card">
+    <div id="prayerList">
+      <div style="text-align:center; padding: 20px;" class="sub">Загрузка расписания молитв…</div>
+    </div>
+    <div class="sub" id="locInfo" style="margin-top: 10px;">📍 Определение координат…</div>
+    <button class="btn btn-green" id="btnGeo">📍 <span data-i18n="locAutoBtn">Определить автоматически (GPS)</span></button>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <button class="btn btn-ghost" id="btnExportCsvTimes" onclick="exportMonthlyCsv()" style="flex:1; font-size:12px;">📥 Экспорт CSV</button>
+      <button class="btn btn-ghost" id="btnPrintScheduleTimes" onclick="printSchedule()" style="flex:1; font-size:12px;">🖨 Печать</button>
+    </div>
+  </div>
+
+  <div class="card" id="cardPrayerStats">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <b style="font-size:15px;">📊 <span data-i18n="prayersToday">Молитвы сегодня</span></b>
+      <span id="streakBadge" style="background:rgba(212,175,55,0.2); color:var(--gold); border:1px solid rgba(212,175,55,0.4); padding:2px 8px; border-radius:12px; font-size:12px; font-weight:700;">🔥 Серия: 0 дн.</span>
+    </div>
+    <div class="sub" style="margin:4px 0 10px;">Отмечайте выполненные молитвы. Прогресс сохраняется в памяти.</div>
+    <div style="background:#082f25; border-radius:10px; height:8px; overflow:hidden; margin-bottom:12px;">
+      <div id="prayerProgressBar" style="background:var(--accent); height:100%; width:0%; transition:width .3s ease;"></div>
+    </div>
+    <div id="prayerCheckGrid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:6px;">
+      <div class="prayer-check-btn" id="chk_Fajr" onclick="togglePrayerCheck('Fajr')">Фаджр<br><span id="chkIcon_Fajr">○</span></div>
+      <div class="prayer-check-btn" id="chk_Dhuhr" onclick="togglePrayerCheck('Dhuhr')">Зухр<br><span id="chkIcon_Dhuhr">○</span></div>
+      <div class="prayer-check-btn" id="chk_Asr" onclick="togglePrayerCheck('Asr')">Аср<br><span id="chkIcon_Asr">○</span></div>
+      <div class="prayer-check-btn" id="chk_Maghrib" onclick="togglePrayerCheck('Maghrib')">Магриб<br><span id="chkIcon_Maghrib">○</span></div>
+      <div class="prayer-check-btn" id="chk_Isha" onclick="togglePrayerCheck('Isha')">Иша<br><span id="chkIcon_Isha">○</span></div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+      <span id="prayerProgressText" class="sub" style="font-size:12px;">Выполнено: 0 из 5</span>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span class="sub" style="font-size:11px;">Неделя:</span>
+        <div id="weekStreakDots" style="display:flex; gap:4px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <b>🔔 Уведомления о намазе</b>
+    <div class="sub" style="margin: 6px 0 10px;">
+      • За 10 минут — напоминание совершить омовение (вуду).<br>
+      • В начале намаза — сигнал о наступлении времени молитвы.
+    </div>
+    <button class="btn btn-gold" id="btnNotif">🔔 Включить уведомления</button>
+    <div class="row2">
+      <button class="btn btn-ghost" id="btnTest10">Тест: за 10 мин</button>
+      <button class="btn btn-ghost" id="btnTest0">Тест: начало (00:00)</button>
+    </div>
+    <div id="notifStatus" class="sub" style="margin-top:6px;">Статус: проверяется...</div>
+  </div>
+
+  <div class="card" id="cardDailyInspiration">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <b style="font-size:15px;">📖 Мудрость дня</b>
+      <div style="display:flex; gap:4px;">
+        <button class="btn btn-ghost active" id="btnInspireAyah" onclick="switchInspireMode('ayah')" style="padding:4px 10px; font-size:12px;">Аят дня</button>
+        <button class="btn btn-ghost" id="btnInspireHadith" onclick="switchInspireMode('hadith')" style="padding:4px 10px; font-size:12px;">Хадис дня</button>
+      </div>
+    </div>
+    <div id="inspireContent" style="padding:4px 0;">
+      <div class="ar" id="inspireAr" style="font-size:22px; text-align:center; margin-bottom:8px; color:var(--gold-light); direction:rtl; line-height:1.6;"></div>
+      <div class="ru" id="inspireRu" style="font-size:14px; line-height:1.6; text-align:center; margin-bottom:8px;"></div>
+      <div class="sub" id="inspireSource" style="text-align:right; font-weight:600; color:var(--gold);"></div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+      <button class="btn btn-ghost" id="btnInspirePrev" onclick="stepInspire(-1)" style="padding:4px 12px; font-size:12px;">←</button>
+      <span class="sub" id="inspireNum" style="font-size:12px;">День года: ...</span>
+      <button class="btn btn-ghost" id="btnInspireNext" onclick="stepInspire(1)" style="padding:4px 12px; font-size:12px;">→</button>
+    </div>
+  </div>
+
+  <div class="install-tip">
+    📲 <b>Установка как мобильное приложение (PWA):</b><br>
+    • <b>Android Chrome:</b> меню ⋮ → «Установить приложение» / «Добавить на главный экран»<br>
+    • <b>iPhone Safari:</b> кнопка «Поделиться» ⬆ → «На экран „Домой“»<br>
+    • <b>Компьютер:</b> иконка установки ⬇ в адресной строке браузера
+  </div>
+</section>
+
+<!-- КИБЛА -->
+<section id="p-qibla" class="page">
+  <div class="card compass-wrap">
+    <h3 style="margin:0 0 6px;">🧭 Компас Киблы (Кааба)</h3>
+    <div class="sub">Золотая стрелка указывает точное направление на Каабу. Держите устройство горизонтально.</div>
+
+    <div id="compass">
+      <div id="dial">
+        <span class="c-mark N">N</span>
+        <span class="c-mark S">S</span>
+        <span class="c-mark E">E</span>
+        <span class="c-mark W">W</span>
+      </div>
+      <div id="qiblaArrow"></div>
+      <div id="centerDot"></div>
+    </div>
+
+    <div id="qiblaStatusBox" class="qibla-status">Поворачивайте устройство к стрелке</div>
+
+    <div class="qibla-grid">
+      <div class="qibla-metric">
+        <div class="sub">Направление Киблы:</div>
+        <div class="num" id="qiblaDeg">—°</div>
+      </div>
+      <div class="qibla-metric">
+        <div class="sub">Курс устройства:</div>
+        <div class="num" id="headingVal">0°</div>
+      </div>
+      <div class="qibla-metric">
+        <div class="sub">Отклонение (дельта):</div>
+        <div class="num" id="deltaVal">—°</div>
+      </div>
+      <div class="qibla-metric">
+        <div class="sub">Дистанция до Каабы:</div>
+        <div class="num" id="qiblaDistKm">—</div>
+      </div>
+    </div>
+
+    <button class="btn btn-gold" id="btnCompass">🧭 Включить компас (датчик устройства)</button>
+
+    <div style="margin-top:14px; text-align:left;">
+      <label>Симуляция компаса вручную (0° - 360°): <span id="simVal" style="color:var(--gold); font-weight:bold;">0°</span></label>
+      <input type="range" id="simHeading" min="0" max="360" value="0">
+      <div class="sub">Если датчик ориентации недоступен на компьютере, используйте ползунок для проверки направления.</div>
+    </div>
+  </div>
+
+  <div class="card" id="cardArQibla">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <b style="font-size:15px;">📷 Дополненная реальность (AR-Кибла)</b>
+      <button class="btn btn-gold" id="btnToggleAr" style="padding:6px 14px; font-size:12px;">📷 Включить камеру</button>
+    </div>
+    <div class="sub" style="margin:4px 0 10px;">Наведите камеру смартфона перед собой, чтобы увидеть направление на Каабу в реальном мире.</div>
+    <div id="arContainer" style="display:none; position:relative; width:100%; height:300px; border-radius:12px; overflow:hidden; background:#000; border:1px solid var(--gold); margin-top:8px;">
+      <video id="arVideo" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover;"></video>
+      <div id="arOverlay" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+        <div id="arReticle" style="width:130px; height:130px; border:2px dashed rgba(212,175,55,0.7); border-radius:50%; display:flex; justify-content:center; align-items:center; position:relative;">
+          <div id="arArrow" style="width:0; height:0; border-left:14px solid transparent; border-right:14px solid transparent; border-bottom:48px solid var(--gold); transform-origin:50% 90%; transition:transform .1s linear;"></div>
+        </div>
+        <div id="arBadge" style="margin-top:14px; background:rgba(6,40,31,0.85); color:var(--text); border:1px solid var(--gold); padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700;">Поворачивайтесь к стрелке</div>
+      </div>
+    </div>
+    <div id="arFallbackNotice" class="sub" style="text-align:center; padding:10px; display:none; background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.25); border-radius:8px; margin-top:8px;">
+      📱 Камера недоступна (требуется HTTPS / мобильное устройство). Доступен стандартный компас с датчиком ориентации выше.
+    </div>
+  </div>
+</section>
+
+<!-- ОБУЧЕНИЕ И УРОКИ -->
+<section id="p-learn" class="page">
+  <div class="card">
+    <h3 style="margin:0 0 6px;">📖 Обучение намазу: все 5 молитв и вуду</h3>
+    <div class="sub">Порядок обязательных (фард) молитв, схема ракаатов, правила громкого/тихого чтения, арабские тексты и транскрипция.</div>
+
+    <div class="lesson-tabs" id="lessonTabs">
+      <button class="active" data-l="wudu">💧 Вуду</button>
+      <button data-l="fajr">🌅 Фаджр (2)</button>
+      <button data-l="dhuhr">☀️ Зухр (4)</button>
+      <button data-l="asr">🌤 Аср (4)</button>
+      <button data-l="maghrib">🌇 Магриб (3)</button>
+      <button data-l="isha">🌙 Иша (4)</button>
+      <button data-l="texts">🕋 Тексты и суры</button>
+    </div>
+
+    <div id="lessons"></div>
+  </div>
+</section>
+
+<!-- НАСТРОЙКИ -->
+<section id="p-settings" class="page">
+  <div class="card">
+    <h3 style="margin:0 0 8px;">⚙️ Местоположение и метод расчёта</h3>
+
+    <label data-i18n="lblLang">Язык интерфейса:</label>
+    <div style="display:flex; gap:6px; margin:6px 0 14px;">
+      <button class="btn btn-ghost" id="btnSetLangRu" onclick="setAppLang('ru')" style="flex:1;">Русский</button>
+      <button class="btn btn-ghost" id="btnSetLangTt" onclick="setAppLang('tt')" style="flex:1;">Татарча</button>
+      <button class="btn btn-ghost" id="btnSetLangEn" onclick="setAppLang('en')" style="flex:1;">English</button>
+    </div>
+
+    <label data-i18n="lblTheme">Тема оформления:</label>
+    <div style="display:flex; gap:6px; margin:6px 0 14px;">
+      <button class="btn btn-ghost" id="btnThemeGold" onclick="setAppTheme('gold')" style="flex:1;">Золотая</button>
+      <button class="btn btn-ghost" id="btnThemeGreen" onclick="setAppTheme('green')" style="flex:1;">Изумруд</button>
+      <button class="btn btn-ghost" id="btnThemeMono" onclick="setAppTheme('mono')" style="flex:1;">Монохром</button>
+    </div>
+
+    <label>Быстрый выбор города:</label>
+    <div class="cities-grid">
+      <button class="city-btn" onclick="setCity(45.1342, 33.60, 'Саки')">Саки</button>
+      <button class="city-btn" onclick="setCity(55.7558, 37.6173, 'Москва')">Москва</button>
+      <button class="city-btn" onclick="setCity(59.9343, 30.3351, 'СПб')">СПб</button>
+      <button class="city-btn" onclick="setCity(55.7887, 49.1221, 'Казань')">Казань</button>
+      <button class="city-btn" onclick="setCity(54.7388, 55.9721, 'Уфа')">Уфа</button>
+      <button class="city-btn" onclick="setCity(43.3178, 45.6986, 'Грозный')">Грозный</button>
+      <button class="city-btn" onclick="setCity(42.9831, 47.5046, 'Махачкала')">Махачкала</button>
+      <button class="city-btn" onclick="setCity(41.0082, 28.9784, 'Стамбул')">Стамбул</button>
+      <button class="city-btn" onclick="setCity(21.4225, 39.8262, 'Мекка')">Мекка</button>
+    </div>
+
+    <div class="row2">
+      <div>
+        <label>Широта (latitude):</label>
+        <input id="inLat" type="number" step="any" placeholder="55.7558">
+      </div>
+      <div>
+        <label>Долгота (longitude):</label>
+        <input id="inLon" type="number" step="any" placeholder="37.6173">
+      </div>
+    </div>
+
+    <label>Метод расчёта времени:</label>
+    <select id="inMethod">
+      <option value="2">2: Muslim World League (MWL) — стандарт по умолчанию</option>
+      <option value="14">14: Духовное управление мусульман РФ (ДУМ РФ)</option>
+      <option value="13">13: Diyanet İşleri Başkanlığı (Турция)</option>
+      <option value="3">3: Egyptian General Authority of Survey</option>
+      <option value="1">1: University of Islamic Sciences, Karachi</option>
+    </select>
+
+    <label>Мазхаб времени Аср:</label>
+    <select id="inSchool">
+      <option value="1">1: Ханафи (двойная тень) — стандарт РФ/СНГ</option>
+      <option value="0">0: Шафии / стандартный (одинарная тень)</option>
+    </select>
+
+    <button class="btn btn-gold" id="btnSave">💾 <span data-i18n="saveSettings">Сохранить и обновить расписание</span></button>
+    <div class="sub" style="margin-top:8px;">
+      Координаты сохраняются локально в памяти браузера. Расчёт времени выполняется через надёжный Aladhan API.
+    </div>
+  </div>
+</section>
+<!-- ХИДЖРИ-КАЛЕНДАРЬ -->
+<section id="p-calendar" class="page">
+  <div class="card">
+    <div class="cal-controls">
+      <button class="btn btn-ghost" id="btnCalPrev" style="padding:6px 12px; font-weight:bold;">←</button>
+      <div style="text-align:center;">
+        <div id="calMonthTitle" style="font-weight:700; font-size:15px; color:var(--gold);">—</div>
+        <div id="calHijriTitle" class="sub" style="font-size:12px; margin-top:2px;">—</div>
+      </div>
+      <button class="btn btn-ghost" id="btnCalNext" style="padding:6px 12px; font-weight:bold;">→</button>
+    </div>
+    <div style="text-align:center; margin-bottom:8px;">
+      <button class="btn btn-ghost" id="btnCalToday" style="padding:4px 10px; font-size:11px;">Сегодня</button>
+    </div>
+    <div class="cal-grid" id="calWeekdays">
+      <div class="cal-head">Пн</div><div class="cal-head">Вт</div><div class="cal-head">Ср</div>
+      <div class="cal-head">Чт</div><div class="cal-head">Пт</div><div class="cal-head">Сб</div><div class="cal-head">Вс</div>
+    </div>
+    <div class="cal-grid" id="calDaysGrid"></div>
+    <div style="display:flex; gap:8px; margin-top:12px;">
+      <button class="btn btn-gold" id="btnExportCsv" onclick="exportMonthlyCsv()" style="flex:1;">📥 Скачать CSV</button>
+      <button class="btn btn-ghost" id="btnPrintSchedule" onclick="printSchedule()" style="flex:1;">🖨 Печать расписания</button>
+    </div>
+  </div>
+  <div class="card" id="calDayDetails" style="text-align:center;">
+    <div class="label">Выбранный день</div>
+    <div id="calDetailGreg" style="font-size:16px; font-weight:700; margin-top:4px;">—</div>
+    <div id="calDetailHijri" style="font-size:14px; color:var(--gold-light); margin-top:2px;">—</div>
+    <div id="calDetailEvent" style="margin-top:6px; font-size:13px; color:var(--accent); font-weight:600;"></div>
+  </div>
+</section>
+<!-- МЕЧЕТИ РЯДОМ -->
+<section id="p-mosques" class="page">
+  <div class="card">
+    <div class="label">Поиск мечетей</div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+      <b style="font-size:16px;">🕌 Мечети рядом (до 25 км)</b>
+      <button class="btn btn-gold" id="btnFindMosques" style="padding:6px 14px; font-size:12px;">🔍 Найти</button>
+    </div>
+    <div class="sub" id="mosquesStatus" style="margin-top:6px;">Нажмите «Найти» для загрузки мечетей вокруг текущих координат.</div>
+    <div id="mosquesMap"></div>
+  </div>
+  <div class="card">
+    <div class="label">Список мечетей</div>
+    <div id="mosquesList" style="margin-top:8px;">
+      <div class="sub" style="text-align:center; padding:15px;">Список загрузится при поиске…</div>
+    </div>
+  </div>
+</section>
+<!-- ИМЕНА АЛЛАХА -->
+<section id="p-names" class="page">
+  <div class="card next">
+    <div class="label" id="nameDayLabel">Имя дня</div>
+    <div class="ar" id="nameAr" style="font-size:34px; text-align:center;">—</div>
+    <div class="tr" id="nameTr" style="text-align:center;">—</div>
+    <div class="ru" id="nameRu" style="text-align:center;">—</div>
+    <div class="sub" id="nameNum">—</div>
+    <div class="row2">
+      <button class="btn btn-ghost" id="btnNamePrev">←</button>
+      <button class="btn btn-ghost" id="btnNameListen">🔊</button>
+      <button class="btn btn-ghost" id="btnNameNext">→</button>
+      <button class="btn btn-ghost" id="btnNameReset" title="Начать цикл с №1">↺</button>
+    </div>
+  </div>
+  <div class="card" style="text-align:center;">
+    <b>📿 Зикр: повторение имени</b>
+    <div class="countdown" id="dhikrCount" style="font-size:36px;">0</div>
+    <div class="sub">цель — 99 раз</div>
+    <div style="background:#082f25; border-radius:10px; height:10px; overflow:hidden; margin:8px 0;">
+      <div id="dhikrBar" style="background:var(--gold); height:100%; width:0%;"></div>
+    </div>
+    <button class="btn btn-gold" id="btnDhikr">+1</button>
+    <button class="btn btn-ghost" id="btnDhikrReset">Сбросить</button>
+  </div>
+  <div class="card" id="quizCard">
+    <b>🧠 Режим заучивания</b>
+    <div class="sub" style="margin-bottom:10px;">Угадай перевод по арабскому написанию</div>
+    <div id="quizAr" style="font-size:40px; text-align:center; direction:rtl; margin:10px 0; color:var(--gold-light);">—</div>
+    <div id="quizOptions" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0;"></div>
+    <div id="quizResult" style="text-align:center; font-size:15px; min-height:22px;"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+      <div id="quizScore" style="color:var(--muted); font-size:13px;">Счёт: 0 / 0</div>
+      <button class="btn btn-ghost" id="btnQuizReset" style="padding:4px 10px; font-size:12px;">Сбросить</button>
+    </div>
+  </div>
+  <div class="card">
+    <b>Все 99 имён</b>
+    <div class="sub">Нажми, чтобы открыть в карточке дня</div>
+    <div id="namesGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px;"></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  Намаз PWA • Время: Aladhan API • Кааба: 21.4225° N, 39.8262° E • Сверяйте время с местной мечетью
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ==========================================
+// 1. НАВИГАЦИЯ ПО ВКЛАДКАМ
+// ==========================================
+document.querySelectorAll('nav.tabs button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('section.page').forEach(p => p.classList.remove('active'));
+    const targetPage = document.getElementById(btn.dataset.page);
+    if (targetPage) targetPage.classList.add('active');
+    if (btn.dataset.page === 'p-mosques' && typeof mosquesMapInstance !== 'undefined' && mosquesMapInstance) {
+      setTimeout(() => mosquesMapInstance.invalidateSize(), 150);
+    }
+  };
+});
+
+// ==========================================
+// 2. СОСТОЯНИЕ И НАСТРОЙКИ (LOCALSTORAGE)
+// ==========================================
+const DEFAULT_LOC = { lat: 45.1342, lon: 33.60 };
+
+const store = {
+  m: {},
+  get(k) { try { const v = window['localStorage'].getItem(k); if (v !== null) return v; } catch (e) {} return (k in this.m) ? this.m[k] : null; },
+  set(k, v) { try { window['localStorage'].setItem(k, v); } catch (e) {} try { this.m[k] = String(v); } catch (e2) {} }
+};
+
+const S = {
+  lat: parseFloat(store.get('lat')) || DEFAULT_LOC.lat,
+  lon: parseFloat(store.get('lon')) || DEFAULT_LOC.lon,
+  method: store.get('method') || '3',
+  school: store.get('school') || '1',
+  notif10: store.get('notif10') !== 'off',
+  notif0: store.get('notif0') !== 'off',
+};
+
+let timings = null;
+let timingsDate = null;
+let nextPrayer = null;
+
+const PRAYERS_RU = {
+  Fajr: 'Фаджр 🌅',
+  Sunrise: 'Восход ☀️',
+  Dhuhr: 'Зухр ☀️',
+  Asr: 'Аср 🌤',
+  Maghrib: 'Магриб 🌇',
+  Isha: 'Иша 🌙'
+};
+const ORDER = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
+const I18N = {
+  ru: {
+    appTitle: 'Намаз',
+    appSubtitle: 'время и Кибла',
+    tabTimes: 'Время',
+    tabQibla: 'Кибла',
+    tabLearn: 'Намаз',
+    tabCal: 'Календарь',
+    tabMosques: 'Мечети',
+    tabNames: 'Имена',
+    tabSettings: 'Настройки',
+    nextPrayer: 'Следующий намаз',
+    locAutoBtn: 'Определить автоматически (GPS)',
+    prayersToday: 'Молитвы сегодня',
+    streak: 'Серия',
+    days: 'дн.',
+    saveSettings: 'Сохранить и обновить расписание',
+    lblTheme: 'Тема оформления:',
+    lblLang: 'Язык интерфейса:',
+    remaining: 'Осталось',
+    hours: 'ч',
+    mins: 'мин',
+    secs: 'сек',
+    at: 'в',
+    badgeNext: 'следующий',
+    prayers: {
+      Fajr: 'Фаджр 🌅',
+      Sunrise: 'Восход ☀️',
+      Dhuhr: 'Зухр ☀️',
+      Asr: 'Аср 🌤',
+      Maghrib: 'Магриб 🌇',
+      Isha: 'Иша 🌙'
+    }
+  },
+  tt: {
+    appTitle: 'Намаз',
+    appSubtitle: 'вакыт һәм Кыбла',
+    tabTimes: 'Вакыт',
+    tabQibla: 'Кыбла',
+    tabLearn: 'Намаз',
+    tabCal: 'Календарь',
+    tabMosques: 'Мәчетләр',
+    tabNames: 'Исемнәр',
+    tabSettings: 'Көйләүләр',
+    nextPrayer: 'Чираттагы намаз',
+    locAutoBtn: 'Автоматик билгеләү (GPS)',
+    prayersToday: 'Бүген намазлар',
+    streak: 'Серия',
+    days: 'көн',
+    saveSettings: 'Сакларга һәм яңартырга',
+    lblTheme: 'Бизәлеш темасы:',
+    lblLang: 'Интерфейс теле:',
+    remaining: 'Калды',
+    hours: 'сәг',
+    mins: 'мин',
+    secs: 'сек',
+    at: '',
+    badgeNext: 'чираттагы',
+    prayers: {
+      Fajr: 'Иртәнге 🌅',
+      Sunrise: 'Кояш чыгу ☀️',
+      Dhuhr: 'Өйлә ☀️',
+      Asr: 'Икенде 🌤',
+      Maghrib: 'Ахшам 🌇',
+      Isha: 'Ястү 🌙'
+    }
+  },
+  en: {
+    appTitle: 'Namaz',
+    appSubtitle: 'times & Qibla',
+    tabTimes: 'Times',
+    tabQibla: 'Qibla',
+    tabLearn: 'Lessons',
+    tabCal: 'Calendar',
+    tabMosques: 'Mosques',
+    tabNames: 'Names',
+    tabSettings: 'Settings',
+    nextPrayer: 'Next Prayer',
+    locAutoBtn: 'Auto-detect location (GPS)',
+    prayersToday: 'Today\'s Prayers',
+    streak: 'Streak',
+    days: 'days',
+    saveSettings: 'Save and update schedule',
+    lblTheme: 'Theme:',
+    lblLang: 'Language:',
+    remaining: 'Remaining',
+    hours: 'h',
+    mins: 'm',
+    secs: 's',
+    at: 'at',
+    badgeNext: 'next',
+    prayers: {
+      Fajr: 'Fajr 🌅',
+      Sunrise: 'Sunrise ☀️',
+      Dhuhr: 'Dhuhr ☀️',
+      Asr: 'Asr 🌤',
+      Maghrib: 'Maghrib 🌇',
+      Isha: 'Isha 🌙'
+    }
+  }
+};
+
+let currentLang = store.get('app_lang') || 'ru';
+
+function getPrayerName(k, lang = currentLang) {
+  return (I18N[lang] && I18N[lang].prayers && I18N[lang].prayers[k]) || PRAYERS_RU[k] || k;
+}
+
+function setAppLang(lang) {
+  if (!I18N[lang]) lang = 'ru';
+  currentLang = lang;
+  store.set('app_lang', lang);
+
+  ['Ru', 'Tt', 'En'].forEach(l => {
+    const b1 = document.getElementById('btnLang' + l);
+    if (b1) b1.classList.toggle('active', l.toLowerCase() === lang);
+    const b2 = document.getElementById('btnSetLang' + l);
+    if (b2) b2.classList.toggle('active', l.toLowerCase() === lang);
+  });
+
+  const dict = I18N[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (dict[k]) el.textContent = dict[k];
+  });
+
+  if (nextPrayer) calcNext();
+  if (timings) renderPrayerList();
+  if (typeof renderPrayerStats === 'function') renderPrayerStats();
+}
+
+function fmtTime(d) {
+  return d.toTimeString().slice(0, 5);
+}
+
+function todayStr(offsetDays = 0) {
+  const d = new Date();
+  if (offsetDays !== 0) d.setDate(d.getDate() + offsetDays);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
+// ==========================================
+// 3. ЗАГРУЗКА РАСПИСАНИЯ (ALADHAN API)
+// ==========================================
+async function loadTimings() {
+  const locEl = document.getElementById('locInfo');
+  locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Метод ${S.method} • Загрузка…`;
+
+  try {
+    const url = `https://api.aladhan.com/v1/timings/${todayStr()}?latitude=${S.lat}&longitude=${S.lon}&method=${S.method}&school=${S.school}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    timings = data.data.timings;
+    timingsDate = data.data.date;
+
+    // Отображение дат
+    document.getElementById('gregDate').textContent = `${timingsDate.gregorian.date} (${timingsDate.gregorian.weekday.en})`;
+    document.getElementById('hijriTag').textContent = `Хиджра: ${timingsDate.hijri.day} ${timingsDate.hijri.month.en} ${timingsDate.hijri.year} AH`;
+
+    calcNext();
+    renderPrayerList();
+    updateQiblaInfo();
+
+    locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Метод: ${S.method} • Обновлено: ${new Date().toLocaleTimeString()}`;
+  } catch (err) {
+    console.error('Ошибка загрузки Aladhan API:', err);
+    locEl.textContent = '⚠️ Не удалось связаться с Aladhan API. Проверьте интернет.';
+  }
+}
+
+function parsePrayerDate(timeStr, dayOffset = 0) {
+  const [h, m] = timeStr.slice(0, 5).split(':').map(Number);
+  const d = new Date();
+  d.setDate(d.getDate() + dayOffset);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+function calcNext() {
+  if (!timings) return;
+  const now = new Date();
+  let found = null;
+
+  for (const k of ORDER) {
+    if (k === 'Sunrise') continue; // Восход не является молитвой
+    const d = parsePrayerDate(timings[k]);
+    if (d > now) {
+      found = { key: k, date: d };
+      break;
+    }
+  }
+
+  // Если все молитвы сегодня прошли — следующий завтрашний Фаджр
+  if (!found) {
+    const d = parsePrayerDate(timings['Fajr'], 1);
+    found = { key: 'Fajr', date: d };
+  }
+
+  nextPrayer = found;
+  const langObj = I18N[currentLang] || I18N.ru;
+  document.getElementById('nextName').textContent = getPrayerName(found.key);
+  document.getElementById('nextTime').textContent = `${langObj.at ? langObj.at + ' ' : ''}${fmtTime(found.date)}`;
+}
+
+function renderPrayerList() {
+  const box = document.getElementById('prayerList');
+  if (!timings) return;
+  box.innerHTML = '';
+  const langObj = I18N[currentLang] || I18N.ru;
+
+  for (const k of ORDER) {
+    const isNext = nextPrayer && nextPrayer.key === k;
+    const row = document.createElement('div');
+    row.className = 'prayer-row' + (isNext ? ' next-hl' : '');
+    row.innerHTML = `
+      <span>
+        ${getPrayerName(k)}
+        ${isNext ? `<span class="badge">${langObj.badgeNext}</span>` : ''}
+      </span>
+      <span class="t">${timings[k].slice(0, 5)}</span>
+    `;
+    box.appendChild(row);
+  }
+}
+
+// ==========================================
+// 4. ТАЙМЕР ОБРАТНОГО ОТСЧЁТА И УВЕДОМЛЕНИЯ
+// ==========================================
+setInterval(() => {
+  if (!nextPrayer) return;
+  const now = new Date();
+  let diff = nextPrayer.date - now;
+
+  if (diff <= 0) {
+    calcNext();
+    renderPrayerList();
+    return;
+  }
+
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+
+  const langObj = I18N[currentLang] || I18N.ru;
+  document.getElementById('countdown').textContent =
+    `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  document.getElementById('nextSub').textContent = `${langObj.remaining}: ${h} ${langObj.hours} ${m} ${langObj.mins} ${s} ${langObj.secs}`;
+
+  checkNotifications(diff);
+}, 1000);
+
+function playBeep() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime); // нота A5
+    osc.frequency.exponentialRampToValueAtTime(1174.66, ctx.currentTime + 0.3); // перелив к D6
+
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.7);
+  } catch (e) {
+    console.warn('AudioContext beep error:', e);
+  }
+}
+
+function triggerNotification(title, body) {
+  playBeep();
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(title, { body, icon: 'icon-192.png' });
+    } catch (e) {
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(reg => reg.showNotification(title, { body, icon: 'icon-192.png' }));
+      }
+    }
+  }
+}
+
+function checkNotifications(diffMs) {
+  if (!nextPrayer) return;
+  const dayKey = todayStr();
+  const k10 = `n10_${nextPrayer.key}_${dayKey}`;
+  const k0 = `n0_${nextPrayer.key}_${dayKey}`;
+
+  // 10 минут до намаза (между 10:00 и 09:40)
+  if (S.notif10 && diffMs <= 10 * 60 * 1000 && diffMs > 9 * 60 * 1000 && !store.get(k10)) {
+    store.set(k10, '1');
+    triggerNotification('Подготовка к молитве ⏳', `Осталось 10 минут до ${PRAYERS_RU[nextPrayer.key]}. Совершите омовение (вуду).`);
+  }
+
+  // 00:00 - наступление времени намаза (первые 20 секунд)
+  if (S.notif0 && diffMs <= 20000 && !store.get(k0)) {
+    store.set(k0, '1');
+    triggerNotification('Время намаза 🕌', `Наступило время молитвы: ${PRAYERS_RU[nextPrayer.key]}`);
+  }
+}
+
+document.getElementById('btnNotif').onclick = async () => {
+  if (!('Notification' in window)) {
+    alert('Ваш браузер не поддерживает уведомления');
+    return;
+  }
+  const p = await Notification.requestPermission();
+  updateNotifStatus();
+  if (p === 'granted') {
+    triggerNotification('Уведомления включены ✅', 'Мы напомним о молитве за 10 минут и в начале времени.');
+  }
+};
+
+function updateNotifStatus() {
+  const el = document.getElementById('notifStatus');
+  if (!('Notification' in window)) {
+    el.textContent = 'Статус: не поддерживается браузером';
+    return;
+  }
+  const p = Notification.permission;
+  if (p === 'granted') {
+    el.innerHTML = '<span style="color:#4ade80;">✅ Уведомления включены</span> (держите вкладку открытой или используйте как PWA)';
+  } else if (p === 'denied') {
+    el.innerHTML = '<span style="color:#ef4444;">❌ Заблокированы в настройках браузера</span>';
+  } else {
+    el.textContent = 'Статус: разрешение ещё не предоставлено';
+  }
+}
+updateNotifStatus();
+
+document.getElementById('btnTest10').onclick = () => {
+  triggerNotification('Подготовка к молитве (тест) ⏳', 'Осталось 10 минут до молитвы. Совершите вуду.');
+};
+document.getElementById('btnTest0').onclick = () => {
+  triggerNotification('Время намаза (тест) 🕌', 'Наступило время намаза.');
+};
+
+// ==========================================
+// 5. ГЕОЛОКАЦИЯ И НАСТРОЙКИ
+// ==========================================
+document.getElementById('btnGeo').onclick = () => {
+  if (!navigator.geolocation) {
+    alert('Геолокация не поддерживается вашим браузером');
+    return;
+  }
+  document.getElementById('locInfo').textContent = '📍 Определение положения через GPS…';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      S.lat = pos.coords.latitude;
+      S.lon = pos.coords.longitude;
+      store.set('lat', S.lat);
+      store.set('lon', S.lon);
+      document.getElementById('inLat').value = S.lat.toFixed(4);
+      document.getElementById('inLon').value = S.lon.toFixed(4);
+      loadTimings();
+    },
+    err => {
+      alert(`Ошибка GPS: ${err.message}. Введите координаты вручную в Настройках.`);
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+};
+
+function setCity(lat, lon, name) {
+  document.getElementById('inLat').value = lat;
+  document.getElementById('inLon').value = lon;
+  S.lat = lat;
+  S.lon = lon;
+  store.set('lat', lat);
+  store.set('lon', lon);
+  loadTimings();
+  alert(`Город установлен: ${name}`);
+}
+
+document.getElementById('inLat').value = S.lat;
+document.getElementById('inLon').value = S.lon;
+document.getElementById('inMethod').value = S.method;
+document.getElementById('inSchool').value = S.school;
+
+document.getElementById('btnSave').onclick = () => {
+  const latVal = parseFloat(document.getElementById('inLat').value);
+  const lonVal = parseFloat(document.getElementById('inLon').value);
+  if (isNaN(latVal) || isNaN(lonVal)) {
+    alert('Введите корректные числовые координаты широты и долготы');
+    return;
+  }
+  S.lat = latVal;
+  S.lon = lonVal;
+  S.method = document.getElementById('inMethod').value;
+  S.school = document.getElementById('inSchool').value;
+
+  store.set('lat', S.lat);
+  store.set('lon', S.lon);
+  store.set('method', S.method);
+  store.set('school', S.school);
+
+  loadTimings();
+  alert('Настройки сохранены и расписание обновлено!');
+};
+
+// ==========================================
+// 6. КИБЛА И КОМПАС (СФЕРИЧЕСКАЯ ТРИГОНОМЕТРИЯ)
+// ==========================================
+const KAABA = { lat: 21.422487, lon: 39.826206 };
+
+function toRad(deg) { return deg * Math.PI / 180; }
+function toDeg(rad) { return rad * 180 / Math.PI; }
+
+function calcQiblaBearing(lat, lon) {
+  const dLon = toRad(KAABA.lon - lon);
+  const lat1 = toRad(lat);
+  const lat2 = toRad(KAABA.lat);
+
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+function calcQiblaDist(lat, lon) {
+  const R = 6371; // радиус Земли в км
+  const dLat = toRad(KAABA.lat - lat);
+  const dLon = toRad(KAABA.lon - lon);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat)) * Math.cos(toRad(KAABA.lat)) * Math.sin(dLon / 2) ** 2;
+  return Math.round(2 * R * Math.asin(Math.sqrt(a)));
+}
+
+let deviceHeading = 0;
+let qiblaBearingDeg = 0;
+
+function updateQiblaInfo() {
+  qiblaBearingDeg = calcQiblaBearing(S.lat, S.lon);
+  const dist = calcQiblaDist(S.lat, S.lon);
+
+  document.getElementById('qiblaDeg').textContent = qiblaBearingDeg.toFixed(1) + '°';
+  document.getElementById('qiblaDistKm').textContent = `${dist} км`;
+
+  renderCompass();
+}
+
+function renderCompass() {
+  // Относительный угол поворота стрелки к Кибле
+  const relAngle = (qiblaBearingDeg - deviceHeading + 360) % 360;
+  // Кратчайшее отклонение
+  const minDelta = relAngle > 180 ? 360 - relAngle : relAngle;
+
+  document.getElementById('headingVal').textContent = Math.round(deviceHeading) + '°';
+  document.getElementById('deltaVal').textContent = (relAngle > 180 ? '-' : '+') + Math.round(minDelta) + '°';
+
+  // Поворот шкалы компаса относительно севера
+  document.getElementById('dial').style.transform = `rotate(${-deviceHeading}deg)`;
+  // Поворот стрелки Киблы относительно устройства
+  document.getElementById('qiblaArrow').style.transform = `translate(-50%, -100%) rotate(${relAngle}deg)`;
+
+  const statusEl = document.getElementById('qiblaStatusBox');
+  if (minDelta < 8) {
+    statusEl.className = 'qibla-status aligned';
+    statusEl.innerHTML = '✅ <b>На Кибле!</b> Вы смотрите прямо на Каабу';
+  } else {
+    statusEl.className = 'qibla-status';
+    const turnDir = relAngle > 180 ? 'влево' : 'вправо';
+    statusEl.innerHTML = `Поверните устройство <b>${turnDir} на ${Math.round(minDelta)}°</b>`;
+  }
+
+  // Обновление наложения в AR-режиме
+  updateArOverlay(relAngle, minDelta);
+}
+
+function updateArOverlay(relAngle, minDelta) {
+  const arArrow = document.getElementById('arArrow');
+  const arBadge = document.getElementById('arBadge');
+  if (!arArrow || !arBadge) return;
+  arArrow.style.transform = `rotate(${relAngle}deg)`;
+  if (minDelta < 8) {
+    arBadge.style.background = 'rgba(34,197,94,0.92)';
+    arBadge.innerHTML = '✅ <b>На Кибле!</b> Вы смотрите прямо на Каабу';
+  } else {
+    arBadge.style.background = 'rgba(6,40,31,0.85)';
+    const turnDir = relAngle > 180 ? 'влево' : 'вправо';
+    arBadge.innerHTML = `Поверните ${turnDir} на ${Math.round(minDelta)}°`;
+  }
+}
+
+let arMediaStream = null;
+
+async function toggleArCamera() {
+  const btn = document.getElementById('btnToggleAr');
+  const container = document.getElementById('arContainer');
+  const notice = document.getElementById('arFallbackNotice');
+  const video = document.getElementById('arVideo');
+
+  if (arMediaStream) {
+    arMediaStream.getTracks().forEach(t => t.stop());
+    arMediaStream = null;
+    video.srcObject = null;
+    container.style.display = 'none';
+    notice.style.display = 'none';
+    btn.textContent = '📷 Включить камеру';
+    return;
+  }
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    notice.style.display = 'block';
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false
+    });
+    arMediaStream = stream;
+    video.srcObject = stream;
+    container.style.display = 'block';
+    notice.style.display = 'none';
+    btn.textContent = '⏹ Отключить камеру';
+    renderCompass();
+  } catch(err) {
+    console.warn('AR camera access failed:', err);
+    notice.style.display = 'block';
+    container.style.display = 'none';
+    btn.textContent = '📷 Включить камеру';
+  }
+}
+
+document.getElementById('btnToggleAr').onclick = toggleArCamera;
+
+document.getElementById('simHeading').oninput = e => {
+  deviceHeading = parseFloat(e.target.value);
+  compassSmoothedDeg = deviceHeading;
+  compassLastRenderedDeg = deviceHeading;
+  compassJitterReset();
+  document.getElementById('simVal').textContent = deviceHeading + '°';
+  renderCompass();
+};
+
+// --- Компас Киблы: один активный слушатель + low-pass + deadband + подсказка калибровки ---
+var compassActiveType = null;
+var compassGotData = false;
+var compassFallbackTimer = null;
+var compassSmoothedDeg = null;
+var compassLastRenderedDeg = null;
+var compassJitterEvents = [];
+var compassCalibShownAt = 0;
+
+function compassAngDiff(a, b) {
+  return Math.abs((((a - b + 540) % 360 + 360) % 360) - 180);
+}
+
+function compassLerpAngle(prev, next, alpha) {
+  var d = ((((next - prev + 540) % 360 + 360) % 360) - 180);
+  return ((((prev + d * alpha) % 360) + 360) % 360);
+}
+
+function compassEnsureCalibHint() {
+  var box = document.getElementById('qiblaStatusBox');
+  var hint = document.getElementById('compassCalibHint');
+  if (!hint && box && box.parentNode) {
+    hint = document.createElement('div');
+    hint.id = 'compassCalibHint';
+    hint.className = 'sub';
+    hint.style.cssText = 'margin-top:8px;padding:10px;border-radius:10px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.5);font-size:13px;line-height:1.4;';
+    hint.textContent = '⚠️ Стрелка дрожит? Откалибруйте компас: опишите восьмёрку телефоном в воздухе, вдали от металла и магнитов.';
+    hint.style.display = 'none';
+    box.parentNode.insertBefore(hint, box.nextSibling);
+  }
+  return hint;
+}
+
+function compassJitterReset() {
+  compassJitterEvents = [];
+  compassCalibShownAt = 0;
+  var h = document.getElementById('compassCalibHint');
+  if (h) h.style.display = 'none';
+}
+
+function compassNoteRaw(raw) {
+  var now = Date.now();
+  var base = (compassSmoothedDeg === null) ? raw : compassSmoothedDeg;
+  var jump = compassAngDiff(raw, base);
+  if (jump > 25) compassJitterEvents.push(now);
+  compassJitterEvents = compassJitterEvents.filter(function (t) { return (now - t) < 3000; });
+  if (compassJitterEvents.length >= 5) {
+    var hint = compassEnsureCalibHint();
+    if (hint) hint.style.display = 'block';
+    compassCalibShownAt = now;
+    compassJitterEvents = [];
+  } else if (compassCalibShownAt && (now - compassCalibShownAt) > 8000) {
+    var h2 = document.getElementById('compassCalibHint');
+    if (h2) h2.style.display = 'none';
+    compassCalibShownAt = 0;
+  }
+}
+
+function compassApplyHeading(raw) {
+  raw = (((raw % 360) + 360) % 360);
+  compassNoteRaw(raw);
+  if (compassSmoothedDeg === null) compassSmoothedDeg = raw;
+  else compassSmoothedDeg = compassLerpAngle(compassSmoothedDeg, raw, 0.25);
+  if (compassLastRenderedDeg === null || compassAngDiff(compassSmoothedDeg, compassLastRenderedDeg) >= 1) {
+    compassLastRenderedDeg = compassSmoothedDeg;
+    deviceHeading = compassSmoothedDeg;
+    var sim = document.getElementById('simHeading');
+    var simV = document.getElementById('simVal');
+    if (sim && document.activeElement !== sim) {
+      try { sim.value = String(Math.round(compassSmoothedDeg)); } catch (e2) {}
+    }
+    if (simV) simV.textContent = Math.round(compassSmoothedDeg) + '°';
+    renderCompass();
+  }
+}
+
+function compassStopAll() {
+  try { window.removeEventListener('deviceorientationabsolute', onDeviceOrientation, true); } catch (e1) {}
+  try { window.removeEventListener('deviceorientationabsolute', onDeviceOrientation, false); } catch (e2) {}
+  try { window.removeEventListener('deviceorientation', onDeviceOrientation, true); } catch (e3) {}
+  try { window.removeEventListener('deviceorientation', onDeviceOrientation, false); } catch (e4) {}
+  if (compassFallbackTimer) { clearTimeout(compassFallbackTimer); compassFallbackTimer = null; }
+}
+
+function compassStart(type) {
+  compassStopAll();
+  compassGotData = false;
+  compassActiveType = type;
+  window.addEventListener(type, onDeviceOrientation, true);
+  if (type === 'deviceorientationabsolute') {
+    compassFallbackTimer = setTimeout(function () {
+      if (!compassGotData) compassStart('deviceorientation');
+    }, 1500);
+  }
+}
+
+document.getElementById('btnCompass').onclick = async () => {
+  try {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      const resp = await DeviceOrientationEvent.requestPermission();
+      if (resp !== 'granted') {
+        alert('Доступ к датчикам ориентации был отклонён');
+        return;
+      }
+    }
+    compassStart('deviceorientationabsolute');
+    alert('Компас активирован. Медленно вращайте телефон.');
+  } catch (err) {
+    console.warn('Компас недоступен:', err);
+    alert('Датчик компаса недоступен. Используйте ручной ползунок ниже.');
+  }
+};
+
+function onDeviceOrientation(e) {
+  if (!e) return;
+  let h = null;
+  if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null && !isNaN(e.webkitCompassHeading)) {
+    // iOS Safari: точный компасный курс — приоритет
+    h = e.webkitCompassHeading;
+  } else {
+    // Android: требуем абсолютный курс, когда поле absolute присутствует
+    if (('absolute' in e) && e.absolute !== undefined && e.absolute !== null && e.absolute !== true) return;
+    if (e.alpha === null || e.alpha === undefined || isNaN(e.alpha)) return;
+    // alpha растёт против часовой стрелки — инвертируем к курсу по часовой
+    h = (360 - e.alpha) % 360;
+  }
+
+  if (h !== null && !isNaN(h)) {
+    compassGotData = true;
+    compassApplyHeading(h);
+  }
+}
+
+// ==========================================
+// 7. ОБУЧЕНИЕ: ТЕКСТЫ, ПРАВИЛА, ОЗВУЧКА
+// ==========================================
+const ARABIC_TEXTS = {
+  fatiha: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۝ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ۝ الرَّحْمَٰنِ الرَّحِيمِ ۝ مَالِكِ يَوْمِ الدِّينِ ۝ إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ ۝ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ ۝ صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ',
+  fatiha_tr: 'Бисмилляхир-рахманир-рахим. Альхамду лилляхи раббиль-алямин. Ар-рахманир-рахим. Малики яумид-дин. Иййакя наъбуду ва иййакя настаъин. Ихдинас-сыраталь-мустакым. Сыратал-лязина анъамта аляйхим, гайриль-магдуби аляйхим ва ляд-даллин. Амин.',
+  fatiha_la: 'Bismillāhir-Raḥmānir-Raḥīm. Al-ḥamdu lillāhi Rabbil-‘ālamīn. Ar-Raḥmānir-Raḥīm. Māliki yawmid-dīn. Iyyāka na‘budu wa iyyāka nasta‘īn. Ihdinaṣ-ṣirāṭal-mustaqīm. Ṣirāṭallaḏīna an‘amta ‘alayhim gayril-magḍūbi ‘alayhim walad-ḍāllīn. Āmīn.',
+  fatiha_ru: 'Во имя Аллаха, Милостивого, Милосердного! Хвала Аллаху, Господу миров, Милостивому, Милосердному, Властелину Дня воздаяния! Тебе одному мы поклоняемся и Тебя одного молим о помощи. Веди нас прямым путем, путем тех, кого Ты облагодетельствовал, не тех, на кого пал гнев, и не заблудших.',
+
+  ikhlas: 'قُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ',
+  ikhlas_tr: 'Куль хуваллаху ахад. Аллахус-самад. Лям ялид ва лям юляд. Ва лям йакул-ляху куфуван ахад.',
+  ikhlas_la: 'Qul Huwallāhu Aḥad. Allāhuṣ-Ṣamad. Lam yalid wa lam yūlad. Wa lam yakun lahū kufuwan aḥad.',
+  ikhlas_ru: 'Скажи: «Он — Аллах Единый, Аллах Самодостаточный. Он не родил и не был рожден, и нет никого, равного Ему».',
+
+  tashahhud: 'التَّحِيَّاتُ لِلَّهِ وَالصَّلَوَاتُ وَالطَّيِّبَاتُ، السَّلَامُ عَلَيْكَ أَيُّهَا النَّبِيُّ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ، السَّلَامُ عَلَيْنَا وَعَلَىٰ عِبَادِ اللَّهِ الصَّالِحِينَ، أَشْهَدُ أَنْ لَا إِلَٰهَ إِلَّا اللَّهُ وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُهُ وَرَسُولُهُ',
+  tashahhud_tr: 'Ат-тахиййату лилляхи вас-салявату ват-таййибат. Ас-саляму аляйкя аййухан-набиййу ва рахматуллахи ва баракятух. Ас-саляму аляйна ва аля гыбадилляхис-салихин. Ашхаду алля иляха илляллах ва ашхаду анна Мухаммадан абдуху ва расулюх.',
+  tashahhud_la: 'At-taḥiyyātu lillāhi waṣ-ṣalawātu waṭ-ṭayyibāt. As-salāmu ‘alayka ayyuhan-Nabiyyu wa raḥmatullāhi wa barakātuh. As-salāmu ‘alaynā wa ‘alā ‘ibādillāhiṣ-ṣāliḥīn. Ashhadu allā ilāha illallāh, wa ashhadu anna Muḥammadan ‘abduhū wa rasūluh.',
+  tashahhud_ru: 'Приветствия Аллаху, молитвы и добрые дела. Мир тебе, о Пророк, милость Аллаха и Его благословения. Мир нам и праведным рабам Аллаха. Свидетельствую, что нет божества кроме Аллаха, и свидетельствую, что Мухаммад — Его раб и посланник.',
+
+  salawat: 'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ وَعَلَىٰ آلِ مُحَمَّدٍ كَمَا صَلَّيْتَ عَلَىٰ إِبْرَاهِيمَ وَعَلَىٰ آلِ إِبْرَاهِيمَ إِنَّكَ حَمِيدٌ مَجِيدٌ، اللَّهُمَّ بَارِكْ عَلَىٰ مُحَمَّدٍ وَعَلَىٰ آلِ مُحَمَّدٍ كَمَا بَارَكْتَ عَلَىٰ إِبْرَاهِيمَ وَعَلَىٰ آلِ إِبْرَاهِيمَ إِنَّكَ حَمِيدٌ مَجِيدٌ',
+  salawat_tr: 'Аллахумма салли аля Мухаммадин ва аля али Мухаммад, кяма салляйта аля Ибрахима ва аля али Ибрахим, иннакя хамидун маджид. Аллахумма барик аля Мухаммадин ва аля али Мухаммад, кяма баракта аля Ибрахима ва аля али Ибрахим, иннакя хамидун маджид.',
+  salawat_la: 'Allāhumma ṣalli ‘alā Muḥammadin wa ‘alā āli Muḥammad, kamā ṣallayta ‘alā Ibrāhīma wa ‘alā āli Ibrāhīm, innaka Ḥamīdun Majīd. Allāhumma bārik ‘alā Muḥammadin wa ‘alā āli Muḥammad, kamā bārakta ‘alā Ibrāhīma wa ‘alā āli Ibrāhīm, innaka Ḥamīdun Majīd.',
+  salawat_ru: 'О Аллах, благослови Мухаммада и семью Мухаммада, как благословил Ты Ибрахима и семью Ибрахима. Поистине, Ты — Достойный хвалы, Славный! О Аллах, ниспошли благодать на Мухаммада и семью Мухаммада, как ниспослал Ты благодать на Ибрахима и семью Ибрахима. Поистине, Ты — Достойный хвалы, Славный!',
+
+  rabbana: 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ',
+  rabbana_tr: 'Раббана атина фид-дунья хасанатан ва филь-ахырати хасанатан ва кына газабан-нар.',
+  rabbana_la: 'Rabbanā ātinā fid-dunyā ḥasanatan wa fīl-ākhirati ḥasanatan wa qinā ‘adhāban-nār.',
+  rabbana_ru: 'Господь наш! Одари нас добром в этом мире и добром в Вечной жизни и защити нас от мучений в Огне.',
+
+  wudu_dua: 'أَشْهَدُ أَنْ لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُهُ وَرَسُولُهُ، اللَّهُمَّ اجْعَلْنِي مِنَ التَّوَّابِينَ وَاجْعَلْنِي مِنَ الْمُتَطَهِّرِينَ',
+  wudu_dua_tr: 'Ашхаду алля иляха илляллаху вахдаху ля шарика лях, ва ашхаду анна Мухаммадан абдуху ва расулюх. Аллахумма-дж\'альни минат-таввабина вадж\'альни миналь-мутатагхирин.',
+  wudu_dua_la: 'Ashhadu allā ilāha illallāhu waḥdahū lā sharīka lah, wa ashhadu anna Muḥammadan ‘abduhū wa rasūluh. Allāhummāj-‘alnī minat-tawwābīna waj-‘alnī minal-mutaṭahhirīn.',
+  wudu_dua_ru: 'Свидетельствую, что нет божества кроме одного лишь Аллаха, у Которого нет сотоварищей, и свидетельствую, что Мухаммад — Его раб и посланник. О Аллах, сделай меня из кающихся и сделай меня из очищающихся.'
+};
+
+let translitScript = store.get('translit_script') || 'cyrl';
+
+function setTranslitScript(s) {
+  translitScript = s;
+  store.set('translit_script', s);
+  renderLesson('texts');
+}
+
+function speakArabic(text) {
+  try {
+    if (!('speechSynthesis' in window)) {
+      alert('Синтез речи не поддерживается в этом браузере');
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ar-SA';
+    u.rate = 0.82;
+    window.speechSynthesis.speak(u);
+  } catch (err) {
+    console.warn('Ошибка озвучки SpeechSynthesis:', err);
+  }
+}
+
+const SPEECH_TEXTS = [];
+function makeTextCard(ar, tr_cyrl, tr_la, ru) {
+  if (arguments.length === 3) {
+    ru = tr_la;
+    tr_la = tr_cyrl;
+  }
+  const tr = (translitScript === 'latn') ? (tr_la || tr_cyrl) : tr_cyrl;
+  const scriptLabel = (translitScript === 'latn') ? 'Latin' : 'Кириллица';
+  const idx = SPEECH_TEXTS.push(ar) - 1;
+  return `
+    <div class="ar">${ar}</div>
+    <div class="tr">🗣 <b>Транскрипция (${scriptLabel}):</b> ${tr}</div>
+    <div class="ru">📖 <b>Перевод:</b> ${ru}</div>
+    <button class="speak-btn" data-speech="${idx}">
+      🔊 Прослушать на арабском (ar-SA)
+    </button>
+  `;
+}
+
+function generateRakatSchema(prayerTitle, totalRakats, loudBadgeHtml, prayerNotes) {
+  return `
+    <div class="step">
+      <h4>${prayerTitle} — ${totalRakats} ракаата фард</h4>
+      ${loudBadgeHtml}
+      <div class="ru">${prayerNotes}</div>
+    </div>
+
+    <div class="step">
+      <h4>Пошаговая схема совершения ракаатов</h4>
+      <div class="ru" style="line-height:1.7;">
+        <b>1️⃣ Намерение (Ният) и Вступительный такбир:</b><br>
+        Повернитесь лицом к Кибле. Сформулируйте искреннее намерение в сердце совершить фард намаза ${prayerTitle}.
+        Поднимите руки к ушам со словами <i>«Аллаху Акбар»</i> и сложите их на груди/животе (правая поверх левой).<br><br>
+
+        <b>2️⃣ Кыям (Стояние):</b><br>
+        Прочтите дуа сана «Субханакя...», затем <b>суру Аль-Фатиха</b> и дополнительную суру (например, <b>Аль-Ихлас</b>).<br>
+        • В 1-м и 2-м ракаатах читаются Фатиха + сура.<br>
+        • В 3-м и 4-м ракаатах фарда читается <u>только Фатиха</u> (про себя).<br><br>
+
+        <b>3️⃣ Руку (Поясной поклон):</b><br>
+        Со словами <i>«Аллаху Акбар»</i> совершите поясной поклон (спина параллельна полу, ладони на коленях).
+        3 раза произнесите: <i>«Субхана раббияль-Азым»</i>.<br><br>
+
+        <b>4️⃣ Выпрямление (Кавма):</b><br>
+        Выпрямитесь со словами: <i>«Самиъаллаху лиман хамидах»</i>. Встав прямо, скажите: <i>«Раббана ва лякаль-хамд»</i>.<br><br>
+
+        <b>5️⃣ Суджуд (Земной поклон):</b><br>
+        Со словами <i>«Аллаху Акбар»</i> опуститесь в земной поклон (лбом, носом, ладонями, коленями и пальцами ног касаясь пола).
+        3 раза произнесите: <i>«Субхана раббияль-Аъля»</i>.<br><br>
+
+        <b>6️⃣ Сидение между суджудами (Джальса):</b><br>
+        Сядьте со словами <i>«Аллаху Акбар»</i>, произнесите: <i>«Раббигфирли»</i> (Господь, прости меня), затем снова совершите второй суджуд с трижды <i>«Субхана раббияль-Аъля»</i>.<br><br>
+
+        <b>7️⃣ Завершение и сидения (Ташаххуд):</b><br>
+        ${totalRakats === 2 
+          ? 'После 2-го ракаата оставайтесь сидя: прочтите <b>Ташаххуд («Ат-тахиййат»)</b>, затем <b>Салават</b> и дуа. Завершите намаз Таслимом («Ас-саляму аляйкум ва рахматуллах» повернув голову направо, затем налево).'
+          : totalRakats === 3
+          ? 'После 2-го ракаата сядьте на первый Ташаххуд. Прочтите «Ат-тахиййат», затем встаньте на 3-й ракаат (читается только Фатиха про себя). После 3-го ракаата сядьте на финальный Ташаххуд + Салават + Таслим.'
+          : 'После 2-го ракаата сядьте на первый Ташаххуд («Ат-тахиййат»), затем встаньте на 3-й и 4-й ракааты (в них только Фатиха про себя). В конце 4-го ракаата сядьте: прочтите Ташаххуд, Салават, дуа и отдайте Таслим.'}
+      </div>
+    </div>
+  `;
+}
+
+const LESSONS_DATA = {
+  wudu: `
+    <div class="step">
+      <h4>1. Намерение (Ният) и «Бисмиллях»</h4>
+      <div class="ru">Намерение очиститься ради Аллаха. Скажите: <i>«Бисмилляхир-Рахманир-Рахим»</i>.</div>
+    </div>
+    <div class="step">
+      <h4>2. Мытьё кистей рук (3 раза)</h4>
+      <div class="ru">Тщательно вымойте кисти рук до запястий трижды, промывая между пальцами.</div>
+    </div>
+    <div class="step">
+      <h4>3. Полоскание рта и носа (по 3 раза)</h4>
+      <div class="ru">Наберите правой рукой воду в рот и прополощите (3 раза). Затем вдохните воду носом и высморкайтесь левой рукой (3 раза).</div>
+    </div>
+    <div class="step">
+      <h4>4. Умывание лица (3 раза)</h4>
+      <div class="ru">Вымойте всё лицо трижды: от линии роста волос на лбу до подбородка, и от мочки одного уха до другого.</div>
+    </div>
+    <div class="step">
+      <h4>5. Мытьё рук до локтей (3 раза)</h4>
+      <div class="ru">Вымойте правую руку от кончиков пальцев до локтя включительно трижды. Затем точно так же левую руку трижды.</div>
+    </div>
+    <div class="step">
+      <h4>6. Масх (протирание) головы и ушей (1 раз)</h4>
+      <div class="ru">Влажными ладонями проведите по всей голове от лба к затылку и обратно один раз. Указательными пальцами протрите уши внутри, а большими — снаружи.</div>
+    </div>
+    <div class="step">
+      <h4>7. Мытьё ног до щиколоток (3 раза)</h4>
+      <div class="ru">Тщательно вымойте правую ногу до щиколоток трижды, промывая между пальцами. Затем левую ногу трижды.</div>
+    </div>
+    <div class="step">
+      <h4>Дуа после совершения вуду</h4>
+      ${makeTextCard(ARABIC_TEXTS.wudu_dua, ARABIC_TEXTS.wudu_dua_tr, ARABIC_TEXTS.wudu_dua_ru)}
+    </div>
+  `,
+
+  fajr: generateRakatSchema(
+    '🌅 Фаджр (Утренний)',
+    2,
+    '<span class="loud-badge loud-aloud">📢 ВСЛУХ (джахр) в обоих ракаатах</span>',
+    '<b>Время:</b> от рассвета до восхода солнца.<br><b>Структура:</b> 2 сунна (желательно) + <b>2 фард (обязательно)</b>.<br>Чтение суры Аль-Фатиха и дополнительной суры в обоих ракаатах совершается <b>вслух</b>.'
+  ),
+
+  dhuhr: generateRakatSchema(
+    '☀️ Зухр (Полуденный)',
+    4,
+    '<span class="loud-badge loud-silent">🤫 ТИХО (сирр) во всех 4 ракаатах</span>',
+    '<b>Время:</b> после зенита солнца до начала времени Асра.<br><b>Структура:</b> 4 сунна + <b>4 фард</b> + 2 сунна.<br>Чтение Корана во всех 4 ракаатах фарда совершается <b>тихо (про себя)</b>.'
+  ),
+
+  asr: generateRakatSchema(
+    '🌤 Аср (Послеполуденный)',
+    4,
+    '<span class="loud-badge loud-silent">🤫 ТИХО (сирр) во всех 4 ракаатах</span>',
+    '<b>Время:</b> вторая половина дня до захода солнца.<br><b>Структура:</b> 4 сунна + <b>4 фард</b>.<br>Чтение Корана во всех 4 ракаатах фарда совершается <b>тихо (про себя)</b>.'
+  ),
+
+  maghrib: generateRakatSchema(
+    '🌇 Магриб (Вечерний)',
+    3,
+    '<span class="loud-badge loud-aloud">📢 1-й и 2-й ракааты ВСЛУХ</span> <span class="loud-badge loud-silent">🤫 3-й ракаат ТИХО</span>',
+    '<b>Время:</b> сразу после захода солнца до наступления темноты.<br><b>Структура:</b> <b>3 фард</b> + 2 сунна.<br>В первых двух ракаатах Коран читается <b>вслух</b>, в третьем ракаате — только Аль-Фатиха <b>тихо (про себя)</b>.'
+  ),
+
+  isha: generateRakatSchema(
+    '🌙 Иша (Ночной)',
+    4,
+    '<span class="loud-badge loud-aloud">📢 1-й и 2-й ракааты ВСЛУХ</span> <span class="loud-badge loud-silent">🤫 3-й и 4-й ракааты ТИХО</span>',
+    '<b>Время:</b> от исчезновения вечерней зари до рассвета (Фаджра).<br><b>Структура:</b> 4 сунна + <b>4 фард</b> + 2 сунна + 3 витр.<br>В первых двух ракаатах фарда Коран читается <b>вслух</b>, в 3-м и 4-м — только Аль-Фатиха <b>тихо (про себя)</b>.'
+  ),
+
+  texts: ''
+};
+
+function getTextsLessonHtml() {
+  const isLat = (translitScript === 'latn');
+  return `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; background:#082f25; padding:8px 12px; border-radius:10px; border:1px solid var(--border);">
+      <span style="font-size:13px; font-weight:600;">Алфавит транскрипции:</span>
+      <div style="display:flex; gap:6px;">
+        <button class="btn btn-ghost ${!isLat ? 'active' : ''}" id="btnScriptCyrl" onclick="setTranslitScript('cyrl')" style="padding:4px 10px; font-size:12px;">Кириллица</button>
+        <button class="btn btn-ghost ${isLat ? 'active' : ''}" id="btnScriptLatn" onclick="setTranslitScript('latn')" style="padding:4px 10px; font-size:12px;">Latin</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <h4>1. Сура «Аль-Фатиха» (Открывающая)</h4>
+      <div class="sub">Обязательно читается стоя в каждом ракаате каждого намаза.</div>
+      ${makeTextCard(ARABIC_TEXTS.fatiha, ARABIC_TEXTS.fatiha_tr, ARABIC_TEXTS.fatiha_la, ARABIC_TEXTS.fatiha_ru)}
+    </div>
+
+    <div class="step">
+      <h4>2. Сура «Аль-Ихлас» (Искренность)</h4>
+      <div class="sub">Короткая сура, читаемая после Аль-Фатихи в 1-м и 2-м ракаатах.</div>
+      ${makeTextCard(ARABIC_TEXTS.ikhlas, ARABIC_TEXTS.ikhlas_tr, ARABIC_TEXTS.ikhlas_la, ARABIC_TEXTS.ikhlas_ru)}
+    </div>
+
+    <div class="step">
+      <h4>3. Ташаххуд («Ат-тахиййат»)</h4>
+      <div class="sub">Читается сидя после 2-го ракаата и в финальном сидении перед окончанием молитвы.</div>
+      ${makeTextCard(ARABIC_TEXTS.tashahhud, ARABIC_TEXTS.tashahhud_tr, ARABIC_TEXTS.tashahhud_la, ARABIC_TEXTS.tashahhud_ru)}
+    </div>
+
+    <div class="step">
+      <h4>4. Салават Пророку ﷺ</h4>
+      <div class="sub">Читается в финальном сидении после Ташаххуда перед словами приветствия (Таслим).</div>
+      ${makeTextCard(ARABIC_TEXTS.salawat, ARABIC_TEXTS.salawat_tr, ARABIC_TEXTS.salawat_la, ARABIC_TEXTS.salawat_ru)}
+    </div>
+
+    <div class="step">
+      <h4>5. Дуа «Раббана атина»</h4>
+      <div class="sub">Кораническая молитва (2:201) в финальном сидении перед Таслимом и после молитвы.</div>
+      ${makeTextCard(ARABIC_TEXTS.rabbana, ARABIC_TEXTS.rabbana_tr, ARABIC_TEXTS.rabbana_la, ARABIC_TEXTS.rabbana_ru)}
+    </div>
+  `;
+}
+
+let activeLessonTab = 'wudu';
+
+function renderLesson(tabKey) {
+  if (tabKey) activeLessonTab = tabKey;
+  const container = document.getElementById('lessons');
+  container.innerHTML = (activeLessonTab === 'texts') ? getTextsLessonHtml() : (LESSONS_DATA[activeLessonTab] || '');
+  container.querySelectorAll('[data-speech]').forEach(b => {
+    b.onclick = () => speakArabic(SPEECH_TEXTS[+b.dataset.speech]);
+  });
+}
+
+document.querySelectorAll('#lessonTabs button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#lessonTabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderLesson(btn.dataset.l);
+  };
+});
+renderLesson('wudu');
+
+// ==========================================
+// 8. 99 ИМЁН АЛЛАХА — ИМЯ ДНЯ + ЗИКР
+// ==========================================
+const ALLAH_NAMES = [
+["الله","Аллах","Бог — Единственный, достойный поклонения"],
+["الرحمن","Ар-Рахман","Милостивый ко всем творениям"],
+["الرحيم","Ар-Рахим","Милосердный к верующим"],
+["الملك","Аль-Малик","Властелин всего сущего"],
+["القدوس","Аль-Куддус","Святой, Пречистый от недостатков"],
+["السلام","Ас-Салям","Дарующий мир и благополучие"],
+["المؤمن","Аль-Мумин","Дарующий безопасность и веру"],
+["المهيمن","Аль-Мухаймин","Хранитель и Наблюдающий за всем"],
+["العزيز","Аль-Азиз","Могущественный, Непобедимый"],
+["الجبار","Аль-Джаббар","Подчиняющий всё Своей воле"],
+["المتكبر","Аль-Мутакаббир","Превознесённый над недостатками"],
+["الخالق","Аль-Халик","Творец всего"],
+["البارئ","Аль-Бари","Создатель из небытия"],
+["المصور","Аль-Мусаввир","Дарующий облик творениям"],
+["الغفار","Аль-Гаффар","Всепрощающий"],
+["القهار","Аль-Каххар","Всеподчиняющий Своему могуществу"],
+["الوهاب","Аль-Ваххаб","Дарующий безмерно"],
+["الرزاق","Ар-Раззак","Наделяющий уделом"],
+["الفتاح","Аль-Фаттах","Открывающий милость и победу"],
+["العليم","Аль-Алим","Всезнающий"],
+["القابض","Аль-Кабид","Удерживающий удел"],
+["الباسط","Аль-Басит","Простирающий удел"],
+["الخافض","Аль-Хафид","Унижающий высокомерных"],
+["الرافع","Ар-Рафи","Возвышающий достойных"],
+["المعز","Аль-Муизз","Дарующий могущество"],
+["المذل","Аль-Музилль","Принижающий ослушников"],
+["السميع","Ас-Сами","Всеслышащий"],
+["البصير","Аль-Басир","Всевидящий"],
+["الحكم","Аль-Хакам","Справедливый Судья"],
+["العدل","Аль-Адль","Абсолютно Справедливый"],
+["اللطيف","Аль-Латиф","Добрый и Проницательный"],
+["الخبير","Аль-Хабир","Всесведущий о сокровенном"],
+["الحليم","Аль-Халим","Снисходительный, не спешащий с наказанием"],
+["العظيم","Аль-Азым","Великий"],
+["الغفور","Аль-Гафур","Много прощающий"],
+["الشكور","Аш-Шакур","Воздающий благодарностью за малое"],
+["العلي","Аль-Алий","Всевышний"],
+["الكبير","Аль-Кабир","Величайший"],
+["الحفيظ","Аль-Хафиз","Хранящий всё"],
+["المقيت","Аль-Мукит","Дарующий пропитание, Всевластный"],
+["الحسيب","Аль-Хасиб","Достаточный, Требующий отчёта"],
+["الجليل","Аль-Джалиль","Величественный"],
+["الكريم","Аль-Карим","Щедрый"],
+["الرقيب","Ар-Ракиб","Наблюдающий за всем"],
+["المجيب","Аль-Муджиб","Отвечающий на мольбы"],
+["الواسع","Аль-Васи","Всеобъемлющий"],
+["الحكيم","Аль-Хаким","Мудрый"],
+["الودود","Аль-Вадуд","Любящий Своих рабов"],
+["المجيد","Аль-Маджид","Славный"],
+["الباعث","Аль-Баис","Воскрешающий мёртвых"],
+["الشهيد","Аш-Шахид","Свидетель всего"],
+["الحق","Аль-Хакк","Истинный, Вечная истина"],
+["الوكيل","Аль-Вакиль","Попечитель, на Кого полагаются"],
+["القوي","Аль-Кавий","Сильный"],
+["المتين","Аль-Матин","Незыблемый, Прочный"],
+["الولي","Аль-Валий","Покровитель верующих"],
+["الحميد","Аль-Хамид","Достохвальный"],
+["المحصي","Аль-Мухси","Исчисляющий всё"],
+["المبدئ","Аль-Мубди","Начинающий творение"],
+["المعيد","Аль-Муид","Возвращающий к жизни"],
+["المحيي","Аль-Мухйи","Оживляющий"],
+["المميت","Аль-Мумит","Умерщвляющий"],
+["الحي","Аль-Хайй","Вечно Живой"],
+["القيوم","Аль-Каййум","Сущий, Держатель всего"],
+["الواجد","Аль-Ваджид","Находящий, ни в чём не нуждающийся"],
+["الماجد","Аль-Маджид","Благородный"],
+["الواحد","Аль-Вахид","Единственный"],
+["الصمد","Ас-Самад","Самодостаточный, к Кому обращаются"],
+["القادر","Аль-Кадир","Всемогущий"],
+["المقتدر","Аль-Муктадир","Могущественный во всём"],
+["المقدم","Аль-Мукаддим","Выдвигающий вперёд, кого пожелает"],
+["المؤخر","Аль-Муаххир","Отодвигающий, кого пожелает"],
+["الأول","Аль-Авваль","Первый — до Него ничего не было"],
+["الآخر","Аль-Ахир","Последний — после Него ничего не будет"],
+["الظاهر","Аз-Захир","Явный, Очевидный"],
+["الباطن","Аль-Батин","Скрытый от взоров"],
+["الوالي","Аль-Вали","Правитель всего"],
+["المتعالي","Аль-Мутаали","Превознесённый над всем"],
+["البر","Аль-Барр","Благодетельный"],
+["التواب","Ат-Тавваб","Принимающий покаяние"],
+["المنتقم","Аль-Мунтаким","Воздающий непокорным"],
+["العفو","Аль-Афувв","Изглаживающий грехи"],
+["الرؤوف","Ар-Рауф","Сострадательный"],
+["مالك الملك","Малик-уль-Мульк","Владыка всякого владычества"],
+["ذو الجلال والإكرام","Зу-ль-Джаляли валь-Икрам","Обладатель величия и почёта"],
+["المقسط","Аль-Муксит","Воздающий по справедливости"],
+["الجامع","Аль-Джами","Собирающий (людей в Судный день)"],
+["الغني","Аль-Ганий","Богатый, ни в чём не нуждающийся"],
+["المغني","Аль-Мугни","Обогащающий, кого пожелает"],
+["المانع","Аль-Мани","Удерживающий зло и вред"],
+["الضار","Ад-Дарр","Вредящий по Своей мудрости"],
+["النافع","Ан-Нафи","Приносящий пользу"],
+["النور","Ан-Нур","Свет небес и земли"],
+["الهادي","Аль-Хади","Ведущий прямым путём"],
+["البديع","Аль-Бади","Бесподобный Творец"],
+["الباقي","Аль-Баки","Вечный, Пребывающий"],
+["الوارث","Аль-Варис","Наследующий всё сущее"],
+["الرشيد","Ар-Рашид","Направляющий к правильному"],
+["الصبور","Ас-Сабур","Терпеливый к ослушникам"]
+];
+
+function namesStart() {
+  let s = store.get('names_start');
+  if (!s) {
+    const d = new Date();
+    s = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    store.set('names_start', s);
+  }
+  return s;
+}
+function dayIdx() {
+  const [y, m, dd] = namesStart().split('-').map(Number);
+  const t0 = new Date(y, m - 1, dd);
+  const t1 = new Date(); t1.setHours(0, 0, 0, 0);
+  return (((Math.floor((t1 - t0) / 864e5)) % ALLAH_NAMES.length) + ALLAH_NAMES.length) % ALLAH_NAMES.length;
+}
+let nameIdx = dayIdx();
+
+function renderName() {
+  const [ar, tr, ru] = ALLAH_NAMES[nameIdx];
+  document.getElementById('nameAr').textContent = ar;
+  document.getElementById('nameTr').textContent = tr;
+  document.getElementById('nameRu').textContent = ru;
+  document.getElementById('nameNum').textContent = `№ ${nameIdx + 1} из 99`;
+  document.getElementById('nameDayLabel').textContent = (nameIdx === dayIdx()) ? 'Имя сегодняшнего дня' : 'Выбранное имя';
+}
+document.getElementById('btnNamePrev').onclick = () => { nameIdx = (nameIdx + ALLAH_NAMES.length - 1) % ALLAH_NAMES.length; renderName(); };
+document.getElementById('btnNameNext').onclick = () => { nameIdx = (nameIdx + 1) % ALLAH_NAMES.length; renderName(); };
+document.getElementById('btnNameListen').onclick = () => speakArabic(ALLAH_NAMES[nameIdx][0]);
+document.getElementById('btnNameReset').onclick = () => {
+  const d = new Date();
+  store.set('names_start', `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+  nameIdx = dayIdx(); renderName();
+};
+renderName();
+
+(function buildNamesGrid() {
+  const g = document.getElementById('namesGrid');
+  ALLAH_NAMES.forEach((nm, i) => {
+    const b = document.createElement('button');
+    b.className = 'btn btn-ghost';
+    b.style.cssText = 'padding:8px 4px; font-size:13px; margin:0;';
+    b.innerHTML = `<span style="font-size:16px;">${nm[0]}</span><br><small>${i + 1}. ${nm[1]}</small>`;
+    b.onclick = () => {
+      nameIdx = i; renderName();
+      document.getElementById('p-names').scrollIntoView({ behavior: 'smooth' });
+    };
+    g.appendChild(b);
+  });
+})();
+
+function dhikrKey() {
+  const d = new Date();
+  return `dhikr_${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+function renderDhikr() {
+  const c = parseInt(store.get(dhikrKey()) || '0', 10);
+  document.getElementById('dhikrCount').textContent = c;
+  document.getElementById('dhikrBar').style.width = Math.min(100, c / 99 * 100) + '%';
+}
+document.getElementById('btnDhikr').onclick = () => {
+  const k = dhikrKey();
+  let c = parseInt(store.get(k) || '0', 10) + 1;
+  store.set(k, String(c));
+  renderDhikr();
+  if (c === 99 && navigator.vibrate) navigator.vibrate(200);
+};
+document.getElementById('btnDhikrReset').onclick = () => { store.set(dhikrKey(), '0'); renderDhikr(); };
+renderDhikr();
+
+// ==========================================
+// 8b. РЕЖИМ ЗАУЧИВАНИЯ (КВИЗ)
+// ==========================================
+let quizIdx = 0;
+let quizAnswered = false;
+
+function quizScore() {
+  try { return JSON.parse(store.get('asma_score') || '{"c":0,"t":0}'); } catch { return {c:0,t:0}; }
+}
+function quizScoreSave(s) { store.set('asma_score', JSON.stringify(s)); }
+function renderQuizScore() {
+  const s = quizScore();
+  document.getElementById('quizScore').textContent = `Счёт: ${s.c} / ${s.t}`;
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startQuiz(idx) {
+  quizIdx = idx;
+  quizAnswered = false;
+  const [ar, tr, ru] = ALLAH_NAMES[idx];
+  document.getElementById('quizAr').textContent = ar;
+  document.getElementById('quizResult').textContent = '';
+
+  // 3 неправильных варианта из остальных имён
+  const others = ALLAH_NAMES.map((n, i) => i).filter(i => i !== idx);
+  const picked = shuffle(others).slice(0, 3).map(i => ALLAH_NAMES[i][2]);
+  const options = shuffle([ru, ...picked]);
+
+  const container = document.getElementById('quizOptions');
+  container.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-ghost';
+    btn.style.cssText = 'padding:10px 6px; font-size:13px; text-align:center; line-height:1.3;';
+    btn.textContent = opt;
+    btn.onclick = () => {
+      if (quizAnswered) return;
+      quizAnswered = true;
+      const s = quizScore();
+      s.t++;
+      const correct = (opt === ru);
+      if (correct) { s.c++; btn.style.background = '#166534'; btn.style.color = '#fff'; }
+      else { btn.style.background = '#7f1d1d'; btn.style.color = '#fff'; }
+      quizScoreSave(s);
+      renderQuizScore();
+      document.getElementById('quizResult').innerHTML = correct
+        ? `✅ Верно! <b>${tr}</b>`
+        : `❌ Нет. <b>${tr}</b> — ${ru}`;
+      // Следующий вопрос через 1.5 сек
+      setTimeout(() => startQuiz((quizIdx + 1) % ALLAH_NAMES.length), 1500);
+    };
+    container.appendChild(btn);
+  });
+  renderQuizScore();
+}
+
+startQuiz(dayIdx());
+
+document.getElementById('btnQuizReset').onclick = () => {
+  quizScoreSave({c:0,t:0});
+  renderQuizScore();
+  startQuiz(dayIdx());
+};
+
+// ==========================================
+// 8c. ХИДЖРИ-КАЛЕНДАРЬ НА МЕСЯЦ
+// ==========================================
+const HIJRI_MONTHS_RU = ['', 'Мухаррам', 'Сафар', 'Раби аль-авваль', 'Раби ас-сани', 'Джумада аль-уля', 'Джумада аль-ахира', 'Раджаб', 'Шаабан', 'Рамадан', 'Шавваль', 'Зуль-каада', 'Зуль-хиджа'];
+const GREG_MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+
+function getHijriDate(date) {
+  try {
+    const fmt = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', { day: 'numeric', month: 'numeric', year: 'numeric' });
+    const parts = fmt.formatToParts(date);
+    let hd = 1, hm = 1, hy = 1448;
+    for (const p of parts) {
+      if (p.type === 'day') hd = parseInt(p.value, 10);
+      if (p.type === 'month') hm = parseInt(p.value, 10);
+      if (p.type === 'year') hy = parseInt(p.value, 10);
+    }
+    return { day: hd, month: hm, year: hy };
+  } catch(e) {
+    return { day: 1, month: 1, year: 1448 };
+  }
+}
+
+function getIslamicEvent(hd, hm) {
+  if (hm === 9) {
+    if (hd === 27) return 'Ляйлятуль-кадр (Ночь Могущества) ⭐';
+    return 'Священный месяц Рамадан (Пост) 🌙';
+  }
+  if (hm === 10 && hd === 1) return 'Ураза-байрам (Ид аль-Фитр) 🎉';
+  if (hm === 12) {
+    if (hd === 9) return 'День Арафа 🕋';
+    if (hd >= 10 && hd <= 13) return 'Курбан-байрам (Ид аль-Адха) 🐑';
+  }
+  if (hm === 1 && hd === 1) return 'Мусульманский Новый Год 🌙';
+  if (hm === 1 && hd === 10) return 'День Ашура 🤲';
+  if (hm === 3 && hd === 12) return 'Мавлид ан-Наби (Рождение Пророка ﷺ) 🌸';
+  if (hm === 7 && hd === 27) return 'Исра и Мирадж 🌌';
+  if (hm === 8 && hd === 15) return 'Ночь Бараат 🕊️';
+  return null;
+}
+
+function renderHijriCalendar(year, month) {
+  calYear = year;
+  calMonth = month;
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const totalDays = lastDay.getDate();
+
+  const hFirst = getHijriDate(firstDay);
+  const hLast = getHijriDate(lastDay);
+
+  const monthTitle = `${GREG_MONTHS_RU[month]} ${year}`;
+  const hijriTitle = (hFirst.month === hLast.month)
+    ? `${HIJRI_MONTHS_RU[hFirst.month]} ${hFirst.year} г.х.`
+    : `${HIJRI_MONTHS_RU[hFirst.month]} / ${HIJRI_MONTHS_RU[hLast.month]} ${hLast.year} г.х.`;
+
+  document.getElementById('calMonthTitle').textContent = monthTitle;
+  document.getElementById('calHijriTitle').textContent = hijriTitle;
+
+  const grid = document.getElementById('calDaysGrid');
+  grid.innerHTML = '';
+
+  let startDayOfWeek = (firstDay.getDay() + 6) % 7;
+
+  const prevMonthLastDay = new Date(year, month, 0).getDate();
+  for (let i = startDayOfWeek - 1; i >= 0; i--) {
+    const d = prevMonthLastDay - i;
+    const dateObj = new Date(year, month - 1, d);
+    const h = getHijriDate(dateObj);
+    const el = document.createElement('div');
+    el.className = 'cal-day other-month';
+    el.innerHTML = `<div>${d}</div><div class="cal-hijri-num">${h.day}</div>`;
+    grid.appendChild(el);
+  }
+
+  const today = new Date();
+  const isCurrentMonth = (today.getFullYear() === year && today.getMonth() === month);
+
+  for (let day = 1; day <= totalDays; day++) {
+    const dateObj = new Date(year, month, day);
+    const h = getHijriDate(dateObj);
+    const ev = getIslamicEvent(h.day, h.month);
+
+    const el = document.createElement('div');
+    let cls = 'cal-day';
+    if (isCurrentMonth && today.getDate() === day) cls += ' today';
+    if (h.month === 9) cls += ' ramadan';
+    if (ev && (ev.includes('байрам') || ev.includes('Ляйлятуль-кадр') || ev.includes('Арафа'))) cls += ' holiday';
+    el.className = cls;
+
+    let badge = '';
+    if (h.month === 9 && h.day === 27) badge = '<span class="cal-badge">⭐</span>';
+    else if (h.month === 9) badge = '<span class="cal-badge">🌙</span>';
+    else if (ev && ev.includes('Ураза-байрам')) badge = '<span class="cal-badge">🎉</span>';
+    else if (ev && ev.includes('Курбан-байрам')) badge = '<span class="cal-badge">🐑</span>';
+
+    el.innerHTML = `<div>${day}</div><div class="cal-hijri-num">${h.day}</div>${badge}`;
+    el.onclick = () => {
+      document.getElementById('calDetailGreg').textContent = `${day} ${GREG_MONTHS_RU[month]} ${year}`;
+      document.getElementById('calDetailHijri').textContent = `${h.day} ${HIJRI_MONTHS_RU[h.month]} ${h.year} г.х.`;
+      const evEl = document.getElementById('calDetailEvent');
+      evEl.textContent = ev ? `✨ ${ev}` : (h.month === 9 ? '🌙 День поста Рамадана' : 'Обычный день');
+    };
+    grid.appendChild(el);
+  }
+
+  const selectDay = isCurrentMonth ? today.getDate() : 1;
+  const initDate = new Date(year, month, selectDay);
+  const initH = getHijriDate(initDate);
+  const initEv = getIslamicEvent(initH.day, initH.month);
+  document.getElementById('calDetailGreg').textContent = `${selectDay} ${GREG_MONTHS_RU[month]} ${year}`;
+  document.getElementById('calDetailHijri').textContent = `${initH.day} ${HIJRI_MONTHS_RU[initH.month]} ${initH.year} г.х.`;
+  document.getElementById('calDetailEvent').textContent = initEv ? `✨ ${initEv}` : (initH.month === 9 ? '🌙 День поста Рамадана' : 'Обычный день');
+}
+
+document.getElementById('btnCalPrev').onclick = () => {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderHijriCalendar(calYear, calMonth);
+};
+document.getElementById('btnCalNext').onclick = () => {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderHijriCalendar(calYear, calMonth);
+};
+document.getElementById('btnCalToday').onclick = () => {
+  const n = new Date();
+  renderHijriCalendar(n.getFullYear(), n.getMonth());
+};
+
+renderHijriCalendar(calYear, calMonth);
+
+// ==========================================
+// 8d. МЕЧЕТИ РЯДОМ (OVERPASS API + LEAFLET + FALLBACK)
+// ==========================================
+let mosquesMapInstance = null;
+let mosquesLayerGroup = null;
+
+const FALLBACK_MOSQUES = [
+  { name: 'Сакская Соборная мечеть (Янъы Джами)', lat: 45.1328, lon: 33.6015, addr: 'г. Саки, ул. Симферопольская' },
+  { name: 'Мечеть пос. Новофёдоровка', lat: 45.0921, lon: 33.5780, addr: 'пгт Новофёдоровка' },
+  { name: 'Мечеть с. Орехово', lat: 45.1432, lon: 33.6280, addr: 'с. Орехово, Сакский район' },
+  { name: 'Мечеть с. Михайловка', lat: 45.1210, lon: 33.6450, addr: 'с. Михайловка, Сакский район' },
+  { name: 'Мечеть с. Лесновка', lat: 45.1485, lon: 33.5620, addr: 'с. Лесновка, Сакский район' },
+  { name: 'Мечеть Хан-Джами (Джума-Джами)', lat: 45.1958, lon: 33.3775, addr: 'г. Евпатория, ул. Революции' },
+  { name: 'Московская Соборная мечеть', lat: 55.7791, lon: 37.6269, addr: 'г. Москва, Выползов пер., 7' },
+  { name: 'Историческая мечеть', lat: 55.7410, lon: 37.6339, addr: 'г. Москва, Большая Татарская ул., 28' },
+  { name: 'Мемориальная мечеть', lat: 55.7314, lon: 37.5050, addr: 'г. Москва, Поклонная гора' },
+  { name: 'Мечеть «Ярдәм»', lat: 55.8596, lon: 37.6018, addr: 'г. Москва, ул. Хачатуряна, 8' }
+];
+
+function calcHaversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function initMosquesMap(centerLat, centerLon) {
+  if (typeof L === 'undefined') return;
+  const mapEl = document.getElementById('mosquesMap');
+  if (!mapEl) return;
+  if (!mosquesMapInstance) {
+    try {
+      mosquesMapInstance = L.map('mosquesMap').setView([centerLat, centerLon], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap'
+      }).addTo(mosquesMapInstance);
+      mosquesLayerGroup = L.layerGroup().addTo(mosquesMapInstance);
+    } catch(e) {
+      console.warn('Leaflet init error:', e);
+    }
+  } else {
+    try {
+      mosquesMapInstance.setView([centerLat, centerLon], 12);
+      mosquesMapInstance.invalidateSize();
+    } catch(e) {}
+  }
+}
+
+async function searchNearbyMosques() {
+  const statusEl = document.getElementById('mosquesStatus');
+  const listEl = document.getElementById('mosquesList');
+  statusEl.textContent = '🔍 Поиск мечетей через Overpass API (25 км)…';
+
+  const userLat = S.lat;
+  const userLon = S.lon;
+  initMosquesMap(userLat, userLon);
+
+  let mosques = [];
+  try {
+    const q = `[out:json][timeout:12];(node["amenity"="place_of_worship"]["religion"="muslim"](around:25000,${userLat},${userLon});way["amenity"="place_of_worship"]["religion"="muslim"](around:25000,${userLat},${userLon}););out center 25;`;
+    const res = await fetch('https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(q));
+    if (!res.ok) throw new Error('Overpass status ' + res.status);
+    const data = await res.json();
+    if (data && data.elements && data.elements.length > 0) {
+      mosques = data.elements.map(el => {
+        const mLat = el.lat || (el.center && el.center.lat);
+        const mLon = el.lon || (el.center && el.center.lon);
+        const name = (el.tags && (el.tags.name || el.tags['name:ru'] || el.tags['name:en'])) || 'Мечеть';
+        const addr = (el.tags && (el.tags['addr:street'] || el.tags['addr:city'])) || '';
+        return { name, lat: mLat, lon: mLon, addr };
+      }).filter(m => m.lat && m.lon);
+    }
+  } catch(e) {
+    console.warn('Overpass fetch failed, using fallback:', e);
+  }
+
+  // Fallback if 0 found or offline
+  if (mosques.length === 0) {
+    statusEl.innerHTML = '⚠️ Показаны известные ориентиры мечетей (офлайн/заглушка):';
+    mosques = FALLBACK_MOSQUES;
+  } else {
+    statusEl.textContent = `✅ Найдено мечетей рядом: ${mosques.length}`;
+  }
+
+  // Calculate distance & sort
+  mosques.forEach(m => {
+    m.dist = calcHaversineKm(userLat, userLon, m.lat, m.lon);
+  });
+  mosques.sort((a, b) => a.dist - b.dist);
+
+  // Update map markers
+  if (mosquesLayerGroup && typeof L !== 'undefined') {
+    mosquesLayerGroup.clearLayers();
+    try {
+      L.circleMarker([userLat, userLon], { radius: 8, color: '#d4af37', fillColor: '#22c55e', fillOpacity: 0.9 })
+        .addTo(mosquesLayerGroup)
+        .bindPopup('<b>Вы здесь</b>');
+
+      mosques.slice(0, 15).forEach(m => {
+        L.marker([m.lat, m.lon])
+          .addTo(mosquesLayerGroup)
+          .bindPopup(`<b>${m.name}</b><br>${m.dist.toFixed(1)} км<br><a href="https://maps.google.com/?q=${m.lat},${m.lon}" target="_blank" rel="noopener">Маршрут</a>`);
+      });
+    } catch(e) {}
+  }
+
+  // Render list
+  listEl.innerHTML = '';
+  mosques.slice(0, 15).forEach(m => {
+    const item = document.createElement('div');
+    item.className = 'mosque-item';
+    const mapUrl = `https://maps.google.com/?q=${m.lat},${m.lon}`;
+    item.innerHTML = `
+      <div>
+        <div class="mosque-name">🕌 ${m.name}</div>
+        <div class="sub" style="margin-top:2px;">${m.addr ? m.addr + ' • ' : ''}<a href="${mapUrl}" target="_blank" rel="noopener" style="color:var(--gold); text-decoration:none;">Построить маршрут ↗</a></div>
+      </div>
+      <div class="mosque-dist">${m.dist.toFixed(1)} км</div>
+    `;
+    listEl.appendChild(item);
+  });
+}
+
+document.getElementById('btnFindMosques').onclick = searchNearbyMosques;
+
+// ==========================================
+// 8e. СТАТИСТИКА И ТРЕКЕР НАМАЗОВ (STREAK)
+// ==========================================
+const TRACKER_PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
+function getTodayTrackerKey(offsetDays = 0) {
+  const d = new Date();
+  if (offsetDays !== 0) d.setDate(d.getDate() + offsetDays);
+  return `pt_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function loadTodayPrayers() {
+  try {
+    const raw = store.get(getTodayTrackerKey(0));
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) {
+    return {};
+  }
+}
+
+function saveTodayPrayers(data) {
+  store.set(getTodayTrackerKey(0), JSON.stringify(data));
+}
+
+function togglePrayerCheck(key) {
+  const data = loadTodayPrayers();
+  data[key] = !data[key];
+  saveTodayPrayers(data);
+  renderPrayerStats();
+}
+
+function renderPrayerStats() {
+  const data = loadTodayPrayers();
+  let completed = 0;
+
+  TRACKER_PRAYERS.forEach(k => {
+    const btn = document.getElementById(`chk_${k}`);
+    const icon = document.getElementById(`chkIcon_${k}`);
+    if (data[k]) {
+      completed++;
+      if (btn) btn.classList.add('checked');
+      if (icon) icon.textContent = '✓';
+    } else {
+      if (btn) btn.classList.remove('checked');
+      if (icon) icon.textContent = '○';
+    }
+  });
+
+  const bar = document.getElementById('prayerProgressBar');
+  if (bar) bar.style.width = `${(completed / 5) * 100}%`;
+
+  const txt = document.getElementById('prayerProgressText');
+  if (txt) txt.textContent = `Выполнено: ${completed} из 5`;
+
+  let streak = 0;
+  let streakBroken = false;
+  const dotsContainer = document.getElementById('weekStreakDots');
+  if (dotsContainer) dotsContainer.innerHTML = '';
+
+  for (let i = 0; i < 7; i++) {
+    const dayKey = getTodayTrackerKey(-i);
+    let dayCount = 0;
+    try {
+      const raw = store.get(dayKey);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        TRACKER_PRAYERS.forEach(k => { if (obj[k]) dayCount++; });
+      }
+    } catch(e) {}
+
+    const isDone = (dayCount >= 3);
+    if (!streakBroken) {
+      if (isDone || (i === 0 && dayCount > 0)) {
+        streak++;
+      } else if (i > 0) {
+        streakBroken = true;
+      }
+    }
+
+    if (dotsContainer) {
+      const dot = document.createElement('div');
+      dot.className = isDone ? 'streak-dot active' : 'streak-dot';
+      dot.title = `День -${i}: ${dayCount}/5`;
+      dotsContainer.appendChild(dot);
+    }
+  }
+
+  const badge = document.getElementById('streakBadge');
+  const sLang = I18N[currentLang] || I18N.ru;
+  if (badge) badge.textContent = `🔥 ${sLang.streak}: ${streak} ${sLang.days}`;
+}
+
+renderPrayerStats();
+
+// ==========================================
+// 8f. АЯТ ДНЯ И ХАДИС ДНЯ (ПО 30, РОТАЦИЯ ПО ДНЮ ГОДА)
+// ==========================================
+const DAILY_AYAHS = [
+  { ar: 'إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا', ru: 'Поистине, молитва предписана верующим в определенное время.', src: 'Сура Ан-Ниса, 4:103' },
+  { ar: 'وَأَقِمِ الصَّلَاةَ لِذِكْرِي', ru: 'И совершай молитву, чтобы помнить обо Мне.', src: 'Сура Та Ха, 20:14' },
+  { ar: 'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي وَلَا تَكْفُرُونِ', ru: 'Поминайте Меня, и Я буду помнить о вас; благодарите Меня и не будьте неблагодарны.', src: 'Сура Аль-Бакара, 2:152' },
+  { ar: 'وَاسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ', ru: 'Обратитесь за помощью к терпению и молитве.', src: 'Сура Аль-Бакара, 2:45' },
+  { ar: 'إِنَّ مَعَ الْعُسْرِ يُسْرًا', ru: 'Поистине, за каждой тягостью наступает облегчение.', src: 'Сура Аш-Шарх, 94:6' },
+  { ar: 'وَمَن يَتَوَكَّلْ عَلَى اللَّهِ فَهُوَ حَسْبُهُ', ru: 'Тому, кто уповает на Аллаха, достаточно Его.', src: 'Сура Ат-Таляк, 65:3' },
+  { ar: 'وَقُل رَّبِّ زِدْنِي عِلْمًا', ru: 'И говори: «Господи! Приумножь мои знания».', src: 'Сура Та Ха, 20:114' },
+  { ar: 'إِنَّ اللَّهَ مَعَ الصَّابِرِينَ', ru: 'Поистине, Аллах — с терпеливыми.', src: 'Сура Аль-Бакара, 2:153' },
+  { ar: 'ادْعُونِي أَسْتَجِبْ لَكُمْ', ru: 'Взывайте ко Мне, и Я отвечу вам.', src: 'Сура Гафир, 40:60' },
+  { ar: 'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ', ru: 'Разве не поминанием Аллаха утешаются сердца?', src: 'Сура Ар-Раад, 13:28' },
+  { ar: 'وَإِذَا سَأَلَكَ عِبَادِي عَنِّي فَإِنِّي قَرِيبٌ', ru: 'А если Мои рабы спросят тебя обо Мне, то ведь Я близок.', src: 'Сура Аль-Бакара, 2:186' },
+  { ar: 'وَرَحْمَتِي وَسِعَتْ كُلَّ شَيْءٍ', ru: 'Моя милость объемлет всякую вещь.', src: 'Сура Аль-Аграф, 7:156' },
+  { ar: 'قُلْ يَا عِبَادِيَ الَّذِينَ أَسْرَفُوا عَلَىٰ أَنفُسِهِمْ لَا تَقْنَطُوا مِن رَّحْمَةِ اللَّهِ', ru: 'Скажи: «О рабы Мои, которые преступили против самих себя! Не отчаивайтесь в милости Аллаха».', src: 'Сура Аз-Зумар, 39:53' },
+  { ar: 'وَقُولُوا لِلنَّاسِ حُسْنًا', ru: 'Говорите людям благое.', src: 'Сура Аль-Бакара, 2:83' },
+  { ar: 'هَلْ جَزَاءُ الْإِحْسَانِ إِلَّا الْإِحْسَانُ', ru: 'Воздают ли за добро чем-либо, кроме добра?', src: 'Сура Ар-Рахман, 55:60' },
+  { ar: 'لَئِن شَكَرْتُمْ لَأَزِيدَنَّكُمْ', ru: 'Если вы будете благодарны, то Я непременно умножу вам благо.', src: 'Сура Ибрахим, 14:7' },
+  { ar: 'وَتَوَكَّلْ عَلَى الْحَيِّ الَّذِي لَا يَمُوتُ', ru: 'И уповай на Живого, Который не умирает.', src: 'Сура Аль-Фуркан, 25:58' },
+  { ar: 'إِنَّ اللَّهَ يُحِبُّ الْمُحْسِنِينَ', ru: 'Поистине, Аллах любит творящих добро.', src: 'Сура Аль-Бакара, 2:195' },
+  { ar: 'وَأَحْسِنُوا إِنَّ اللَّهَ يُحِبُّ الْمُحْسِنِينَ', ru: 'И творите добро, ведь Аллах любит благодетелей.', src: 'Сура Аль-Бакара, 2:195' },
+  { ar: 'فَسَبِّحْ بِحَمْدِ رَبِّكَ وَاسْتَغْفِرْهُ', ru: 'Восславь же хвалой Господа своего и проси у Него прощения.', src: 'Сура Ан-Наср, 110:3' },
+  { ar: 'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ', ru: 'Достаточно нам Аллаха, и прекрасный Он Покровитель!', src: 'Сура Аль-Имран, 3:173' },
+  { ar: 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا', ru: 'Господь наш! Не уклоняй наши сердца после того, как наставил нас.', src: 'Сура Аль-Имран, 3:8' },
+  { ar: 'إِنَّمَا الْمُؤْمِنُونَ إِخْوَةٌ', ru: 'Поистине, верующие — братья.', src: 'Сура Аль-Худжурат, 49:10' },
+  { ar: 'وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ', ru: 'И нет мне успеха, кроме как от Аллаха.', src: 'Сура Худ, 11:88' },
+  { ar: 'وَسَارِعُوا إِلَىٰ مَغْفِرَةٍ مِّن رَّبِّكُمْ', ru: 'И спешите к прощению от вашего Господа.', src: 'Сура Аль-Имран, 3:133' },
+  { ar: 'وَتَعَاوَنُوا عَلَى الْبِرِّ وَالتَّقْوَىٰ', ru: 'Помогайте друг другу в благочестии и богобоязненности.', src: 'Сура Аль-Маида, 5:2' },
+  { ar: 'إِنَّ اللَّهَ غَفُورٌ رَّحِيمٌ', ru: 'Поистине, Аллах — Прощающий, Милосердный.', src: 'Сура Аль-Бакара, 2:173' },
+  { ar: 'وَالصُّبْحِ إِذَا تَنَفَّسَ', ru: 'И клянусь утром, когда оно начинает дышать!', src: 'Сура Ат-Таквир, 81:18' },
+  { ar: 'وَمَا خَلَقْتُ الْجِنَّ وَالْإِنسَ إِلَّا لِيَعْبُدُونِ', ru: 'Я сотворил джиннов и людей только для того, чтобы они поклонялись Мне.', src: 'Сура Аз-Зарият, 51:56' },
+  { ar: 'سَلَامٌ هِيَ حَتَّىٰ مَطْلَعِ الْفَجْرِ', ru: 'Она — мир и благополучие вплоть до наступления зари!', src: 'Сура Аль-Кадр, 97:5' }
+];
+
+const DAILY_HADITHS = [
+  { ar: 'إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ', ru: 'Поистине, дела оцениваются по намерениям.', src: 'Сахих аль-Бухари, 1' },
+  { ar: 'أَحَبُّ الأَعْمَالِ إِلَى اللَّهِ أَدْوَمُهَا وَإِنْ قَلَّ', ru: 'Самые любимые дела перед Аллахом — постоянные, даже если они малы.', src: 'Сахих аль-Бухари, 6464' },
+  { ar: 'الطَّهُورُ شَطْرُ الإِيمَانِ', ru: 'Чистота — половина веры.', src: 'Сахих Муслим, 223' },
+  { ar: 'الصَّلَاةُ نُورٌ', ru: 'Молитва — это свет.', src: 'Сахих Муслим, 223' },
+  { ar: 'مَنْ كَانَ يُؤْمِنُ بِاللَّهِ وَالْيَوْمِ الآخِرِ فَلْيَقُلْ خَيْرًا أَوْ لِيَصْمُتْ', ru: 'Кто верует в Аллаха и в Судный день, пусть говорит благое или молчит.', src: 'Сахих аль-Бухари, 6018' },
+  { ar: 'خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ', ru: 'Лучший из вас тот, кто изучает Коран и обучает ему других.', src: 'Сахих аль-Бухари, 5027' },
+  { ar: 'لاَ يُؤْمِنُ أَحَدُكُمْ حَتَّى يُحِبَّ لأَخِيهِ مَا يُحِبُّ لِنَفْسِهِ', ru: 'Не уверует никто из вас истинно, пока не пожелает брату того же, чего желает себе.', src: 'Сахих аль-Бухари, 13' },
+  { ar: 'تَبَسُّمُكَ فِي وَجْهِ أَخِيكَ لَكَ صَدَقَةٌ', ru: 'Твоя улыбка брату — это милостыня (садака).', src: 'Джами ат-Тирмизи, 1956' },
+  { ar: 'الْكَلِمَةُ الطَّيِّبَةُ صَدَقَةٌ', ru: 'Доброе слово — это милостыня.', src: 'Сахих аль-Бухари, 2989' },
+  { ar: 'مَنْ لاَ يَرْحَمُ لاَ يُرْحَمُ', ru: 'Кто не проявляет милосердия, к тому не будет проявлено милосердие.', src: 'Сахих аль-Бухари, 5997' },
+  { ar: 'الْمُسْلِمُ مَنْ سَلِمَ الْمُسْلِمُونَ مِنْ لِسَانِهِ وَيَدِهِ', ru: 'Истинный мусульманин — тот, от чьего языка и рук защищены другие.', src: 'Сахих аль-Бухари, 10' },
+  { ar: 'يَسِّرُوا وَلاَ تُعَسِّرُوا، وَبَشِّرُوا وَلاَ تُنَفِّرُوا', ru: 'Облегчайте и не усложняйте; радуйте добрыми вестями и не отталкивайте.', src: 'Сахих аль-Бухари, 69' },
+  { ar: 'مَنْ سَلَكَ طَرِيقًا يَلْتَمِسُ فِيهِ عِلْمًا سَهَّلَ اللَّهُ لَهُ طَرِيقًا إِلَى الْجَنَّةِ', ru: 'Кто вступил на путь поиска знаний, тому Аллах облегчит путь в Рай.', src: 'Сахих Муслим, 2699' },
+  { ar: 'الدُّعَاءُ هُوَ الْعِبَادَةُ', ru: 'Мольба (дуа) — это суть поклонения.', src: 'Сунан Абу Дауд, 1479' },
+  { ar: 'أَقْرَبُ مَا يَكُونُ الْعَبْدُ مِنْ رَبِّهِ وَهُوَ سَاجِدٌ', ru: 'Ближе всего раб к своему Господу находится во время земного поклона (суджуда).', src: 'Сахих Муслим, 482' },
+  { ar: 'خِيَارُكُمْ خِيَارُكُمْ لِنِسَائِهِمْ', ru: 'Лучшие из вас — лучшие по отношению к своим семьям.', src: 'Джами ат-Тирмизи, 1162' },
+  { ar: 'لاَ تَغْضَبْ', ru: 'Не гневайся.', src: 'Сахих аль-Бухари, 6116' },
+  { ar: 'الْحَيَاءُ شُعْبَةٌ مِنَ الإِيمَانِ', ru: 'Скромность — ветвь веры.', src: 'Сахих Муслим, 35' },
+  { ar: 'اتَّقِ اللَّهَ حَيْثُمَا كُنْتَ', ru: 'Бойся Аллаха, где бы ты ни был.', src: 'Джами ат-Тирмизи, 1987' },
+  { ar: 'وَأَتْبِعِ السَّيِّئَةَ الْحَسَنَةَ تَمْحُهَا', ru: 'И вслед за плохим деянием соверши благое — оно сотрет его.', src: 'Джами ат-Тирмизи, 1987' },
+  { ar: 'وَخَالِقِ النَّاسَ بِخُلُقٍ حَسَنٍ', ru: 'И относись к людям с наилучшим нравом.', src: 'Джами ат-Тирмизи, 1987' },
+  { ar: 'كُلُّ مَعْرُوفٍ صَدَقَةٌ', ru: 'Всякое доброе дело — это садака (милостыня).', src: 'Сахих аль-Бухари, 6021' },
+  { ar: 'الصَّبْرُ ضِيَاءٌ', ru: 'Терпение — это сияние.', src: 'Сахих Муслим, 223' },
+  { ar: 'مَنْ دَلَّ عَلَى خَيْرٍ فَلَهُ مِثْلُ أَجْرِ فَاعِلِهِ', ru: 'Указавшему на благое полагается такая же награда, как и совершившему его.', src: 'Сахих Муслим, 1893' },
+  { ar: 'عَجَبًا لأَمْرِ الْمُؤْمِنِ إِنَّ أَمْرَهُ كُلَّهُ خَيْرٌ', ru: 'Удивительно положение верующего: любое его дело обращается во благо.', src: 'Сахих Муслим, 2999' },
+  { ar: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ الْهُدَى وَالتُّقَى وَالْعَفَافَ وَالْغِنَى', ru: 'О Аллах, поистине, я прошу у Тебя верного пути, богобоязненности, целомудрия и достатка.', src: 'Сахих Муслим, 2721' },
+  { ar: 'مَنْ صَلَّى عَلَيَّ صَلاَةً صَلَّى اللَّهُ عَلَيْهِ بِهَا عَشْرًا', ru: 'Кто призовет на меня благословение один раз, того Аллах благословит десятикратно.', src: 'Сахих Муслим, 384' },
+  { ar: 'رِضَا الرَّبِّ فِي رِضَا الْوَالِدِ', ru: 'Довольство Господа — в довольстве родителей.', src: 'Джами ат-Тирмизи, 1899' },
+  { ar: 'الْجَنَّةُ تَحْتَ أَقْدَامِ الأُمَّهَاتِ', ru: 'Рай находится под ногами матерей.', src: 'Сунан ан-Насаи, 3104' },
+  { ar: 'أَفْشُوا السَّلاَمَ بَيْنَكُمْ', ru: 'Распространяйте мир (салям) между собой.', src: 'Сахих Муслим, 54' }
+];
+
+let inspireMode = 'ayah';
+let inspireOffset = 0;
+
+function getDayOfYear(date = new Date()) {
+  const start = new Date(date.getFullYear(), 0, 0);
+  const diff = date - start;
+  const oneDay = 1000 * 60 * 60 * 24;
+  return Math.floor(diff / oneDay);
+}
+
+function renderDailyInspiration() {
+  const dayOfYear = getDayOfYear();
+  const idx = ((dayOfYear + inspireOffset) % 30 + 30) % 30;
+  const item = (inspireMode === 'ayah') ? DAILY_AYAHS[idx] : DAILY_HADITHS[idx];
+
+  const arEl = document.getElementById('inspireAr');
+  const ruEl = document.getElementById('inspireRu');
+  const srcEl = document.getElementById('inspireSource');
+  const numEl = document.getElementById('inspireNum');
+
+  if (arEl) arEl.textContent = item.ar;
+  if (ruEl) ruEl.textContent = item.ru;
+  if (srcEl) srcEl.textContent = item.src;
+  if (numEl) numEl.textContent = `${inspireMode === 'ayah' ? 'Аят' : 'Хадис'} ${idx + 1} из 30 (день ${dayOfYear})`;
+
+  const btnA = document.getElementById('btnInspireAyah');
+  const btnH = document.getElementById('btnInspireHadith');
+  if (btnA) btnA.className = 'btn btn-ghost ' + (inspireMode === 'ayah' ? 'active' : '');
+  if (btnH) btnH.className = 'btn btn-ghost ' + (inspireMode === 'hadith' ? 'active' : '');
+}
+
+function switchInspireMode(mode) {
+  inspireMode = mode;
+  renderDailyInspiration();
+}
+
+function stepInspire(d) {
+  inspireOffset += d;
+  renderDailyInspiration();
+}
+
+renderDailyInspiration();
+
+// ==========================================
+// 8g. ТЕМЫ ОФОРМЛЕНИЯ (GOLD / GREEN / MONO)
+// ==========================================
+function setAppTheme(theme) {
+  document.body.classList.remove('theme-green', 'theme-mono');
+  if (theme === 'green') document.body.classList.add('theme-green');
+  if (theme === 'mono') document.body.classList.add('theme-mono');
+  store.set('app_theme', theme);
+  ['Gold', 'Green', 'Mono'].forEach(t => {
+    const b = document.getElementById('btnTheme' + t);
+    if (b) b.classList.toggle('active', t.toLowerCase() === theme);
+  });
+}
+const savedAppTheme = store.get('app_theme') || 'gold';
+setAppTheme(savedAppTheme);
+setAppLang(currentLang);
+
+// ==========================================
+// 8h. ОФЛАЙН-РАСЧЁТ, CSV ЭКСПОРТ И ПЕЧАТЬ РАСПИСАНИЯ
+// ==========================================
+function calcOfflinePrayerTimes(lat, lon, date, method = 3, school = 1) {
+  const pi = Math.PI, dr = pi / 180.0;
+  let yr = date.getFullYear(), mo = date.getMonth() + 1, dy = date.getDate();
+  if (mo <= 2) { yr -= 1; mo += 12; }
+  const A = Math.floor(yr / 100), B = 2 - A + Math.floor(A / 4);
+  const jd = Math.floor(365.25 * (yr + 4716)) + Math.floor(30.6001 * (mo + 1)) + dy + B - 1524.5;
+  const D = jd - 2451545.0;
+  let g = (357.529 + 0.98560028 * D) % 360; if (g < 0) g += 360;
+  let q = (280.459 + 0.98564736 * D) % 360; if (q < 0) q += 360;
+  let L = (q + 1.915 * Math.sin(g * dr) + 0.020 * Math.sin(2 * g * dr)) % 360; if (L < 0) L += 360;
+  const e = 23.439 - 0.00000036 * D;
+  const dec = Math.asin(Math.sin(e * dr) * Math.sin(L * dr)) / dr;
+  let RA = Math.atan2(Math.cos(e * dr) * Math.sin(L * dr), Math.cos(L * dr)) / dr;
+  RA = (RA % 360 + 360) % 360;
+  let EqT = (q - RA) / 15.0;
+  while (EqT > 12) EqT -= 24; while (EqT < -12) EqT += 24;
+
+  const tz = -date.getTimezoneOffset() / 60.0;
+  const noon = 12 + tz - (lon / 15.0) - EqT;
+
+  const sunAngleTime = (angle, dir) => {
+    const phi = lat * dr, delta = dec * dr;
+    const cosH = (-Math.sin(angle * dr) - Math.sin(phi) * Math.sin(delta)) / (Math.cos(phi) * Math.cos(delta));
+    if (cosH > 1 || cosH < -1) return null;
+    const H = Math.acos(cosH) / dr / 15.0;
+    return dir ? (noon - H) : (noon + H);
+  };
+
+  const asrTime = (factor) => {
+    const phi = lat * dr, delta = dec * dr;
+    const acot = factor + Math.tan(Math.abs(phi - delta));
+    const alt = Math.atan(1.0 / acot) / dr;
+    return sunAngleTime(alt, false);
+  };
+
+  const toHM = (decHours) => {
+    if (decHours == null) return '--:--';
+    let dh = (decHours % 24 + 24) % 24;
+    const h = Math.floor(dh);
+    const m = Math.round((dh - h) * 60);
+    const rh = (m === 60) ? (h + 1) % 24 : h;
+    const rm = (m === 60) ? 0 : m;
+    return `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`;
+  };
+
+  const fajrDeg = 19.5, ishaDeg = 17.5;
+  const asrFactor = (school === 1 || school === '1') ? 2.0 : 1.0;
+
+  return {
+    Fajr: toHM(sunAngleTime(fajrDeg, true)),
+    Sunrise: toHM(sunAngleTime(0.833, true)),
+    Dhuhr: toHM(noon),
+    Asr: toHM(asrTime(asrFactor)),
+    Maghrib: toHM(sunAngleTime(0.833, false)),
+    Isha: toHM(sunAngleTime(ishaDeg, false))
+  };
+}
+
+async function getMonthScheduleData(year, month) {
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  let apiDays = null;
+  try {
+    const url = `https://api.aladhan.com/v1/calendar/${year}/${month + 1}?latitude=${S.lat}&longitude=${S.lon}&method=${S.method}&school=${S.school}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.data) apiDays = data.data;
+    }
+  } catch (e) {
+    console.warn('Aladhan calendar API offline, using local math fallback:', e);
+  }
+
+  const daysList = [];
+  for (let day = 1; day <= lastDay; day++) {
+    const dateObj = new Date(year, month, day);
+    const h = getHijriDate(dateObj);
+    let t = null;
+    if (apiDays && apiDays[day - 1] && apiDays[day - 1].timings) {
+      const at = apiDays[day - 1].timings;
+      t = {
+        Fajr: at.Fajr.slice(0, 5),
+        Sunrise: at.Sunrise.slice(0, 5),
+        Dhuhr: at.Dhuhr.slice(0, 5),
+        Asr: at.Asr.slice(0, 5),
+        Maghrib: at.Maghrib.slice(0, 5),
+        Isha: at.Isha.slice(0, 5)
+      };
+    } else {
+      t = calcOfflinePrayerTimes(S.lat, S.lon, dateObj, S.method, S.school);
+    }
+    daysList.push({
+      day,
+      dateObj,
+      dateStr: `${String(day).padStart(2, '0')}.${String(month + 1).padStart(2, '0')}.${year}`,
+      weekday: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][dateObj.getDay()],
+      hijriStr: `${h.day} ${HIJRI_MONTHS_RU[h.month]} ${h.year} г.х.`,
+      timings: t
+    });
+  }
+  return daysList;
+}
+
+async function exportMonthlyCsv() {
+  const y = (typeof calYear !== 'undefined') ? calYear : new Date().getFullYear();
+  const m = (typeof calMonth !== 'undefined') ? calMonth : new Date().getMonth();
+  const schedule = await getMonthScheduleData(y, m);
+
+  let csv = '\uFEFF';
+  csv += 'Дата;День;Хиджри;Фаджр;Восход;Зухр;Аср;Магриб;Иша\r\n';
+  schedule.forEach(row => {
+    csv += `${row.dateStr};${row.weekday};${row.hijriStr};${row.timings.Fajr};${row.timings.Sunrise};${row.timings.Dhuhr};${row.timings.Asr};${row.timings.Maghrib};${row.timings.Isha}\r\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `namaz_timetable_${String(m + 1).padStart(2, '0')}_${y}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function printSchedule() {
+  const y = (typeof calYear !== 'undefined') ? calYear : new Date().getFullYear();
+  const m = (typeof calMonth !== 'undefined') ? calMonth : new Date().getMonth();
+  const schedule = await getMonthScheduleData(y, m);
+
+  const container = document.getElementById('printScheduleContainer');
+  if (!container) return;
+
+  const monthName = GREG_MONTHS_RU[m];
+  let html = `
+    <div class="print-title">🕌 Расписание намаза — ${monthName} ${y}</div>
+    <div class="print-sub">📍 Координаты: ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Метод: ${S.method} • Школа: Ханафи (1)</div>
+    <table class="print-table">
+      <thead>
+        <tr>
+          <th>Дата</th>
+          <th>День</th>
+          <th>Хиджри</th>
+          <th>Фаджр</th>
+          <th>Восход</th>
+          <th>Зухр</th>
+          <th>Аср</th>
+          <th>Магриб</th>
+          <th>Иша</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  schedule.forEach(r => {
+    html += `
+      <tr>
+        <td><b>${r.dateStr}</b></td>
+        <td>${r.weekday}</td>
+        <td>${r.hijriStr}</td>
+        <td><b>${r.timings.Fajr}</b></td>
+        <td>${r.timings.Sunrise}</td>
+        <td><b>${r.timings.Dhuhr}</b></td>
+        <td><b>${r.timings.Asr}</b></td>
+        <td><b>${r.timings.Maghrib}</b></td>
+        <td><b>${r.timings.Isha}</b></td>
+      </tr>
+    `;
+  });
+  html += `</tbody></table>`;
+  container.innerHTML = html;
+  window.print();
+}
+
+// ==========================================
+// 9. SERVICE WORKER И СТАРТ
+// ==========================================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(reg => console.log('SW зарегистрирован:', reg.scope))
+    .catch(err => console.warn('Ошибка SW:', err));
+}
+
+// Загрузка расписания при запуске
+loadTimings();
+
+// Попытка фонового уточнения по GPS, если геопозиция ещё не сохранялась
+if (!store.get('lat') && navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      S.lat = pos.coords.latitude;
+      S.lon = pos.coords.longitude;
+      store.set('lat', S.lat);
+      store.set('lon', S.lon);
+      document.getElementById('inLat').value = S.lat.toFixed(4);
+      document.getElementById('inLon').value = S.lon.toFixed(4);
+      loadTimings();
+    },
+    () => {},
+    { timeout: 7000 }
+  );
+}
+</script>
+
+<div id="printScheduleContainer" class="print-only"></div>
+
+</body>
+</html>
