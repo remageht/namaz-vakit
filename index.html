@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Намаз — время, Кибла, обучение</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#06281f">
@@ -115,12 +115,35 @@
     box-shadow: 0 1px 4px rgba(212,175,55,0.4);
   }
 
+  #taskbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: calc(38px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) 12px 0;
+    background: rgba(4, 26, 20, 0.96);
+    border-bottom: 1px solid #1a5a48;
+    font-size: 13px;
+    box-sizing: border-box;
+  }
+  #taskbar .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--gold); flex: none;
+  }
+  #taskbar #tbText {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
+  }
+  body { padding-top: calc(38px + env(safe-area-inset-top, 0px)); }
   nav.tabs {
     display: flex;
     gap: 6px;
     padding: 10px 12px;
     position: sticky;
-    top: 0;
+    top: calc(38px + env(safe-area-inset-top, 0px));
     z-index: 100;
     background: rgba(4, 23, 17, 0.94);
     backdrop-filter: blur(10px);
@@ -650,6 +673,7 @@
 </style>
 </head>
 <body>
+<div id="taskbar"><span class="dot"></span><span id="tbText">…</span></div>
 
 <header>
   <div style="display:flex; justify-content:space-between; align-items:center; max-width:640px; margin:0 auto 4px;">
@@ -1320,6 +1344,8 @@ setInterval(() => {
   document.getElementById('countdown').textContent =
     `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   document.getElementById('nextSub').textContent = `${langObj.remaining}: ${h} ${langObj.hours} ${m} ${langObj.mins} ${s} ${langObj.secs}`;
+  const tbEl = document.getElementById('tbText');
+  if (tbEl && nextPrayer) tbEl.textContent = `${PRAYERS_RU[nextPrayer.key]} ${nextPrayer.date.toTimeString().slice(0, 5)} · −${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
   checkNotifications(diff);
 }, 1000);
