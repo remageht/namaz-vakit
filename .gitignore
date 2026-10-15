@@ -12,3 +12,9 @@ android/build/
 android/app/build/
 android/local.properties
 android/build.log
+desktop/node_modules/
+desktop/app/
+desktop/dist/
+desktop/build/
+desktop/install.log
+desktop/smoke.log

@@ -1,0 +1,77 @@
+name: Desktop builds
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.6.0)'
+        required: true
+        default: '1.6.0'
+  push:
+    tags:
+      - 'desktop-v*'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+          - os: macos-latest
+          - os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci --no-audit --no-fund
+
+      - run: npm run dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            desktop/dist/*.exe
+            desktop/dist/*.dmg
+            desktop/dist/*.zip
+            desktop/dist/*.AppImage
+            desktop/dist/*.deb
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF_NAME#desktop-v}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          TAG="desktop-v$VERSION"
+          gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1 || \
+            gh release create "$TAG" --repo "${{ github.repository }}" \
+              --title "Namaz Desktop v$VERSION" \
+              --notes "Десктоп-приложение «Намаз» (Windows / macOS / Linux): время намаза офлайн, Кибла, каза-трекер, уроки, 99 имён, трей и автозапуск. macOS: для обхода Gatekeeper — правый клик → «Открыть». Linux: chmod +x Namaz-*.AppImage."
+          gh release upload "$TAG" artifacts/* --repo "${{ github.repository }}" --clobber

@@ -1,0 +1,57 @@
+{
+  "name": "namaz-desktop",
+  "productName": "Namaz",
+  "version": "1.6.0",
+  "description": "Namaz — время намаза, Кибла, каза и уроки. Windows / macOS / Linux.",
+  "main": "main.js",
+  "author": "remageht",
+  "license": "MIT",
+  "scripts": {
+    "sync": "node sync-assets.js",
+    "start": "node sync-assets.js && electron .",
+    "dist": "node sync-assets.js && electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.remageht.namazvakit",
+    "productName": "Namaz",
+    "files": [
+      "main.js",
+      "app/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "artifactName": "Namaz-${version}-${os}-${arch}.${ext}",
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "mac": {
+      "category": "public.app-category.lifestyle",
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] },
+        { "target": "zip", "arch": ["x64", "arm64"] }
+      ],
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "category": "Utility",
+      "target": ["AppImage", "deb"],
+      "icon": "build/icon.png",
+      "maintainer": "remageht"
+    }
+  }
+}
