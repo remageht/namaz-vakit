@@ -39,6 +39,61 @@ function Update-Lang {
 Update-Lang
 # Саки, Egypt-метод (сверен с islam.global), Ханафи
 $AppUrl = "https://remageht.github.io/namaz-vakit/"
+
+function Get-NamazAppExe {
+  # 1) ярлык на рабочем столе от установщика
+  try {
+    $desk = [Environment]::GetFolderPath("Desktop")
+    foreach ($nm in @("Намаз.lnk", "Namaz.lnk")) {
+      $lnk = Join-Path $desk $nm
+      if (Test-Path -LiteralPath $lnk) {
+        $ws = New-Object -ComObject WScript.Shell
+        $tp = $ws.CreateShortcut($lnk).TargetPath
+        if ($tp -and (Test-Path -LiteralPath $tp)) { return $tp }
+      }
+    }
+  } catch {}
+  # 2) записи установщика в реестре
+  foreach ($root in @("HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall", "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall", "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall")) {
+    try {
+      $hit = $null
+      Get-ChildItem $root -ErrorAction SilentlyContinue | ForEach-Object {
+        $p = Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue
+        if ($p -and $p.DisplayName -match "Namaz" -and $p.InstallLocation) {
+          $exe = Join-Path $p.InstallLocation "Namaz.exe"
+          if (Test-Path -LiteralPath $exe) { $hit = $exe }
+        }
+      }
+      if ($hit) { return $hit }
+    } catch {}
+  }
+  # 3) типовые папки установки
+  foreach ($c in @(
+      (Join-Path $env:LOCALAPPDATA "Programs\Namaz\Namaz.exe"),
+      (Join-Path $env:LOCALAPPDATA "Programs\namaz-desktop\Namaz.exe"),
+      (Join-Path $env:ProgramFiles "Namaz\Namaz.exe"))) {
+    if (Test-Path -LiteralPath $c) { return $c }
+  }
+  return $null
+}
+
+function Open-NamazApp {
+  $exe = Get-NamazAppExe
+  if ($exe) { Start-Process -FilePath $exe; return }
+  # dev-режим: Electron из папки desktop
+  $devDir = Join-Path $ScriptDir "desktop"
+  $dev = Join-Path $devDir "node_modules\electron\dist\electron.exe"
+  if (Test-Path -LiteralPath $dev) {
+    if (-not (Test-Path -LiteralPath (Join-Path $devDir "app\index.html"))) {
+      try { Start-Process -FilePath "node" -ArgumentList "sync-assets.js" -WorkingDirectory $devDir -Wait -WindowStyle Hidden } catch {}
+    }
+    if (Test-Path -LiteralPath (Join-Path $devDir "app\index.html")) {
+      Start-Process -FilePath $dev -ArgumentList @("`"$devDir`"") -WorkingDirectory $devDir
+      return
+    }
+  }
+  Start-Process $AppUrl
+}
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $LogFile = Join-Path $ScriptDir "widget.log"
 $CacheFile = Join-Path $env:TEMP "namaz_timings.json"
@@ -168,7 +223,7 @@ $ni.Icon = $icon; $ni.Visible = $true
 $ctx = New-Object System.Windows.Forms.ApplicationContext
 
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
-$open = $menu.Items.Add("Открыть приложение"); $open.Add_Click({ Start-Process $AppUrl })
+$open = $menu.Items.Add("Открыть приложение"); $open.Add_Click({ Open-NamazApp })
 $ref = $menu.Items.Add("Обновить время"); $ref.Add_Click({ $script:timings = Get-Timings })
 $script:userHidden = $false
 $tMenu = $menu.Items.Add("Тема оформления")
@@ -182,7 +237,7 @@ $lEn = $lMenu.DropDownItems.Add("English (EN)"); $lEn.Add_Click({ $script:Lang =
 $tog = $menu.Items.Add("Скрыть панель"); $tog.Add_Click({ $script:userHidden = -not $script:userHidden; $tog.Text = if ($script:userHidden) { "Показать панель" } else { "Скрыть панель" } })
 $exit = $menu.Items.Add("Выход"); $exit.Add_Click({ $ni.Visible = $false; $sched.Close(); $panel.Close(); $ctx.ExitThread() })
 $ni.ContextMenuStrip = $menu
-$ni.Add_DoubleClick({ Start-Process $AppUrl })
+$ni.Add_DoubleClick({ Open-NamazApp })
 
 # Мини-панель в стиле виджета погоды: иконка + две строки, слева внизу рядом с погодой
 function New-AppFont($size, $bold) {
@@ -224,7 +279,7 @@ $wa = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
 $panel.Location = New-Object System.Drawing.Point(($wa.Left + 140), $wa.Bottom)
 $lblMain.Text = "Загрузка..."
 $panel.Show()
-$openApp = { $sched.Hide(); Start-Process $AppUrl }
+$openApp = { $sched.Hide(); Open-NamazApp }
 
 # Всплывающая панель дня в стиле Awqat: шапка, статусы молитв, аят
 $HijriMonths = @("Мухаррам","Сафар","Раби I","Раби II","Джумада I","Джумада II","Раджаб","Шаабан","Рамадан","Шавваль","Зуль-каада","Зуль-хиджа")
