@@ -4,7 +4,8 @@
   "version": "1.6.0",
   "description": "Namaz — время намаза, Кибла, каза и уроки. Windows / macOS / Linux.",
   "main": "main.js",
-  "author": "remageht",
+  "author": "remageht <remageht@users.noreply.github.com>",
+  "homepage": "https://github.com/remageht/namaz-vakit",
   "license": "MIT",
   "scripts": {
     "sync": "node sync-assets.js",
@@ -51,7 +52,7 @@
       "category": "Utility",
       "target": ["AppImage", "deb"],
       "icon": "build/icon.png",
-      "maintainer": "remageht"
+      "maintainer": "remageht <remageht@users.noreply.github.com>"
     }
   }
 }
