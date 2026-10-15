@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  svg { display: block; width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10503D"/>
+      <stop offset="0.55" stop-color="#0A3327"/>
+      <stop offset="1" stop-color="#052019"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F4DC7E"/>
+      <stop offset="0.5" stop-color="#D4AF37"/>
+      <stop offset="1" stop-color="#B8912A"/>
+    </linearGradient>
+    <mask id="crescent">
+      <rect width="512" height="512" fill="black"/>
+      <circle cx="256" cy="182" r="100" fill="white"/>
+      <circle cx="302" cy="148" r="88" fill="black"/>
+    </mask>
+    <radialGradient id="glow" cx="0.35" cy="0.2" r="0.9">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="256" cy="256" r="236" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="236" fill="url(#glow)"/>
+  <circle cx="256" cy="256" r="234" fill="none" stroke="#D4AF37" stroke-opacity="0.4" stroke-width="3"/>
+
+  <rect width="512" height="512" fill="url(#gold)" mask="url(#crescent)"/>
+
+  <path d="M 348 96 L 354 112 L 370 118 L 354 124 L 348 140 L 342 124 L 326 118 L 342 112 Z"
+        fill="url(#gold)" opacity="0.95"/>
+  <circle cx="310" cy="76" r="5" fill="url(#gold)" opacity="0.8"/>
+
+  <path d="M 122 384 H 390" stroke="url(#gold)" stroke-width="15" stroke-linecap="round"/>
+  <path d="M 196 384 Q 196 330 256 324 Q 316 330 316 384 Z" fill="url(#gold)"/>
+  <rect x="252" y="300" width="8" height="26" rx="4" fill="url(#gold)"/>
+  <circle cx="256" cy="295" r="6.5" fill="url(#gold)"/>
+</svg>
+</body>
+</html>
