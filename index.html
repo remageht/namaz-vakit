@@ -698,6 +698,7 @@
   <button data-page="p-calendar" id="tabCalBtn">📅 <span data-i18n="tabCal">Календарь</span></button>
   <button data-page="p-mosques" id="tabMosquesBtn">🕌 <span data-i18n="tabMosques">Мечети</span></button>
   <button data-page="p-names" id="tabNamesBtn">☝️ <span data-i18n="tabNames">Имена</span></button>
+  <button data-page="p-qada" id="tabQadaBtn">🤲 <span data-i18n="tabQada">Каза</span></button>
   <button data-page="p-settings" id="tabSettingsBtn">⚙️ <span data-i18n="tabSettings">Настройки</span></button>
 </nav>
 
@@ -1034,6 +1035,45 @@
     <div id="namesGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px;"></div>
   </div>
 </section>
+
+<!-- КАЗА: ТРЕКЕР И КАЛЬКУЛЯТОР -->
+<section id="p-qada" class="page">
+  <div class="card">
+    <b>🤲 Возмещение пропущенных намазов (каза)</b>
+    <div class="sub" style="margin:6px 0 10px;">Отмечайте возмещённые намазы — счётчик покажет, сколько осталось.</div>
+    <div id="qadaList"></div>
+    <div class="sub" id="qadaTotal" style="margin-top:10px; font-weight:700; color:var(--gold);">—</div>
+  </div>
+
+  <div class="card">
+    <b>🧮 Калькулятор каза</b>
+    <div class="sub" style="margin:6px 0 10px;">Посчитайте долг за период, когда намазы не совершались.</div>
+    <div class="row2">
+      <div>
+        <label>С даты (начало периода):</label>
+        <input type="date" id="qadaFrom">
+      </div>
+      <div>
+        <label>По дату (начало регулярного совершения):</label>
+        <input type="date" id="qadaTo">
+      </div>
+    </div>
+    <div id="qadaPicks" style="display:flex; flex-wrap:wrap; gap:10px; margin:10px 0;"></div>
+    <button class="btn btn-gold" id="btnQadaCalc">Рассчитать</button>
+    <div id="qadaCalcResult" class="sub" style="margin:8px 0; line-height:1.7;"></div>
+    <button class="btn" id="btnQadaAdd" disabled style="margin-top:8px;">➕ Добавить к счётчику</button>
+  </div>
+
+  <div class="card">
+    <b>💡 Как возмещать</b>
+    <div class="sub" style="line-height:1.7;">
+      • Каза совершается так же, как обычный намаз, в любое дозволенное время.<br>
+      • Удобный порядок: возмещать вместе с обязательными — один пропущенный после каждого совершённого.<br>
+      • Желательно идти по дням подряд: Фаджр → Зухр → Аср → Магриб → Иша.
+    </div>
+  </div>
+</section>
+
 </main>
 
 <footer>
@@ -1102,6 +1142,7 @@ const I18N = {
     tabCal: 'Календарь',
     tabMosques: 'Мечети',
     tabNames: 'Имена',
+    tabQada: 'Каза',
     tabSettings: 'Настройки',
     nextPrayer: 'Следующий намаз',
     locAutoBtn: 'Определить автоматически (GPS)',
@@ -1135,6 +1176,7 @@ const I18N = {
     tabCal: 'Календарь',
     tabMosques: 'Мәчетләр',
     tabNames: 'Исемнәр',
+    tabQada: 'Каза',
     tabSettings: 'Көйләүләр',
     nextPrayer: 'Чираттагы намаз',
     locAutoBtn: 'Автоматик билгеләү (GPS)',
@@ -1168,6 +1210,7 @@ const I18N = {
     tabCal: 'Calendar',
     tabMosques: 'Mosques',
     tabNames: 'Names',
+    tabQada: 'Qada',
     tabSettings: 'Settings',
     nextPrayer: 'Next Prayer',
     locAutoBtn: 'Auto-detect location (GPS)',
@@ -1446,6 +1489,14 @@ document.getElementById('btnTest0').onclick = () => {
 // ==========================================
 // 5. ГЕОЛОКАЦИЯ И НАСТРОЙКИ
 // ==========================================
+function syncNativeLocation() {
+  try {
+    if (window.NamazHost && window.NamazHost.setLocation) {
+      window.NamazHost.setLocation(S.lat, S.lon);
+    }
+  } catch (e) {}
+}
+
 document.getElementById('btnGeo').onclick = () => {
   if (!navigator.geolocation) {
     alert('Геолокация не поддерживается вашим браузером');
@@ -1460,6 +1511,7 @@ document.getElementById('btnGeo').onclick = () => {
       store.set('lon', S.lon);
       document.getElementById('inLat').value = S.lat.toFixed(4);
       document.getElementById('inLon').value = S.lon.toFixed(4);
+      syncNativeLocation();
       loadTimings();
     },
     err => {
@@ -1476,6 +1528,7 @@ function setCity(lat, lon, name) {
   S.lon = lon;
   store.set('lat', lat);
   store.set('lon', lon);
+  syncNativeLocation();
   loadTimings();
   alert(`Город установлен: ${name}`);
 }
@@ -1502,6 +1555,7 @@ document.getElementById('btnSave').onclick = () => {
   store.set('method', S.method);
   store.set('school', S.school);
 
+  syncNativeLocation();
   loadTimings();
   alert('Настройки сохранены и расписание обновлено!');
 };
@@ -2953,6 +3007,7 @@ if ('serviceWorker' in navigator) {
 
 // Загрузка расписания при запуске
 loadTimings();
+syncNativeLocation();
 
 // Попытка фонового уточнения по GPS, если геопозиция ещё не сохранялась
 if (!store.get('lat') && navigator.geolocation) {
@@ -2964,12 +3019,104 @@ if (!store.get('lat') && navigator.geolocation) {
       store.set('lon', S.lon);
       document.getElementById('inLat').value = S.lat.toFixed(4);
       document.getElementById('inLon').value = S.lon.toFixed(4);
+      syncNativeLocation();
       loadTimings();
     },
     () => {},
     { timeout: 7000 }
   );
 }
+
+// ==========================================
+// 11. КАЗА: ТРЕКЕР И КАЛЬКУЛЯТОР
+// ==========================================
+const QADA_PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+let qadaCalcTotals = null;
+
+function qadaGet(k) {
+  return Math.max(0, parseInt(store.get('qada_' + k) || '0', 10) || 0);
+}
+
+function qadaSet(k, v) {
+  store.set('qada_' + k, Math.max(0, v));
+  renderQada();
+}
+
+function qadaStep(k, d) {
+  qadaSet(k, qadaGet(k) + d);
+}
+
+function renderQada() {
+  const box = document.getElementById('qadaList');
+  if (!box) return;
+  box.innerHTML = '';
+  let total = 0;
+  QADA_PRAYERS.forEach(k => {
+    const n = qadaGet(k);
+    total += n;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #0d3b30;';
+    row.innerHTML = `<span style="flex:1; font-size:14px;">${PRAYERS_RU[k]}</span>
+      <b style="min-width:56px; text-align:right; color:${n > 0 ? 'var(--gold)' : 'var(--muted)'}; font-size:15px;">${n}</b>
+      <button class="btn btn-ghost" style="padding:2px 12px;" onclick="qadaStep('${k}',-1)">−1</button>
+      <button class="btn btn-ghost" style="padding:2px 12px;" onclick="qadaStep('${k}',1)">+1</button>`;
+    box.appendChild(row);
+  });
+  const txt = document.getElementById('qadaTotal');
+  if (txt) {
+    txt.textContent = total > 0
+      ? `Осталось возместить: ${total}`
+      : 'Долгов нет — альхамдулиллях!';
+  }
+}
+
+function renderQadaPicks() {
+  const box = document.getElementById('qadaPicks');
+  if (!box) return;
+  box.innerHTML = QADA_PRAYERS.map(k =>
+    `<label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+      <input type="checkbox" id="qp_${k}" checked> ${PRAYERS_RU[k]}
+    </label>`).join('');
+}
+
+const btnQadaCalc = document.getElementById('btnQadaCalc');
+if (btnQadaCalc) {
+  const toInput = document.getElementById('qadaTo');
+  if (toInput) toInput.value = new Date().toISOString().slice(0, 10);
+  renderQadaPicks();
+  renderQada();
+
+  btnQadaCalc.onclick = () => {
+    const fromV = document.getElementById('qadaFrom').value;
+    const toV = document.getElementById('qadaTo').value;
+    const res = document.getElementById('qadaCalcResult');
+    if (!fromV || !toV) { alert('Укажите обе даты'); return; }
+    const from = new Date(fromV + 'T00:00:00');
+    const to = new Date(toV + 'T00:00:00');
+    if (to < from) { alert('Дата окончания раньше даты начала'); return; }
+    const days = Math.floor((to - from) / 86400000) + 1;
+    const picked = QADA_PRAYERS.filter(k => {
+      const cb = document.getElementById('qp_' + k);
+      return cb && cb.checked;
+    });
+    if (!picked.length) { alert('Выберите хотя бы один намаз'); return; }
+    qadaCalcTotals = { days, picked };
+    res.innerHTML = `Дней: <b>${days}</b><br>` +
+      picked.map(k => `${PRAYERS_RU[k]}: <b>${days}</b>`).join('<br>') +
+      `<br>Всего пропущено: <b>${days * picked.length}</b>`;
+    document.getElementById('btnQadaAdd').disabled = false;
+  };
+
+  document.getElementById('btnQadaAdd').onclick = () => {
+    if (!qadaCalcTotals) return;
+    const { days, picked } = qadaCalcTotals;
+    picked.forEach(k => qadaSet(k, qadaGet(k) + days));
+    qadaCalcTotals = null;
+    document.getElementById('btnQadaAdd').disabled = true;
+    document.getElementById('qadaCalcResult').textContent = '✔ Добавлено к счётчику';
+  };
+}
+
 </script>
 
 <div id="printScheduleContainer" class="print-only"></div>

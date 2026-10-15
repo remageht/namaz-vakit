@@ -1,6 +1,7 @@
 package com.remageht.namazvakit
 
 import android.app.Activity
+import android.content.Context
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.webkit.GeolocationPermissions
@@ -69,6 +70,24 @@ class TtsBridge(activity: Activity) {
     }
 }
 
+/** JS bridge: keeps native widgets in sync with the PWA location. */
+class HostBridge(private val activity: Activity) {
+    @JavascriptInterface
+    fun setLocation(lat: Double, lon: Double) {
+        try {
+            if (lat.isNaN() || lon.isNaN()) return
+            if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return
+            activity.getSharedPreferences("loc", Context.MODE_PRIVATE).edit()
+                .putFloat("lat", lat.toFloat())
+                .putFloat("lon", lon.toFloat())
+                .apply()
+            WidgetCommon.schedule(activity)
+            WidgetCommon.updateAll(activity)
+        } catch (_: Exception) {
+        }
+    }
+}
+
 /** Fullscreen WebView entry: online PWA with offline asset fallback. */
 class MainActivity : Activity() {
     private var webView: WebView? = null
@@ -110,6 +129,7 @@ class MainActivity : Activity() {
         if (bridge != null) {
             wv.addJavascriptInterface(bridge, "NamazTts")
         }
+        wv.addJavascriptInterface(HostBridge(this), "NamazHost")
 
         wv.webChromeClient = object : WebChromeClient() {
             override fun onGeolocationPermissionsShowPrompt(

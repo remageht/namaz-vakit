@@ -17,8 +17,17 @@ import java.util.Calendar
 object WidgetCommon {
     const val ACTION_TICK = "com.remageht.namazvakit.TICK"
     const val APP_URL = "https://remageht.github.io/namaz-vakit/"
-    const val LAT = 45.1342
-    const val LON = 33.60
+    private const val DEF_LAT = 45.1342
+    private const val DEF_LON = 33.60
+
+    /** Coordinates synced from the app (GPS/city pick); Saki defaults otherwise. */
+    fun latOf(context: Context): Double =
+        context.getSharedPreferences("loc", Context.MODE_PRIVATE)
+            .getFloat("lat", DEF_LAT.toFloat()).toDouble()
+
+    fun lonOf(context: Context): Double =
+        context.getSharedPreferences("loc", Context.MODE_PRIVATE)
+            .getFloat("lon", DEF_LON.toFloat()).toDouble()
 
     private val PRAYERS = listOf("Fajr", "Dhuhr", "Asr", "Maghrib", "Isha")
     private val LABELS = listOf("Фаджр 🌅", "Зухр ☀️", "Аср 🌤", "Магриб 🌇", "Иша 🌙")
@@ -67,7 +76,9 @@ object WidgetCommon {
         val mgr = AppWidgetManager.getInstance(context)
         val pi = openIntent(context)
         val now = Calendar.getInstance()
-        val n = PrayTimes.next(LAT, LON, now)
+        val lat = latOf(context)
+        val lon = lonOf(context)
+        val n = PrayTimes.next(lat, lon, now)
         val totalMin = (n.inMs / 60000).toInt()
         val cd = String.format("%02d:%02d", totalMin / 60, totalMin % 60)
 
@@ -86,7 +97,7 @@ object WidgetCommon {
             val v = RemoteViews(context.packageName, R.layout.widget_2x2)
             v.setOnClickPendingIntent(R.id.widget2_root, pi)
             v.setTextViewText(R.id.widget2_header, "🕌 ${n.name} · −$cd")
-            val t = PrayTimes.calculate(LAT, LON, now)
+            val t = PrayTimes.calculate(lat, lon, now)
             val times = listOf(t.fajr, t.dhuhr, t.asr, t.maghrib, t.isha)
             val nameIds = intArrayOf(
                 R.id.w2_name_1, R.id.w2_name_2, R.id.w2_name_3,
@@ -124,7 +135,7 @@ object WidgetCommon {
         try {
             val day = now.get(Calendar.DAY_OF_YEAR) * 1000 + now.get(Calendar.YEAR)
             val prefs = context.getSharedPreferences("adhan", Context.MODE_PRIVATE)
-            val times = PrayTimes.calculate(LAT, LON, now)
+            val times = PrayTimes.calculate(latOf(context), lonOf(context), now)
             val list = listOf(
                 "Fajr" to times.fajr, "Dhuhr" to times.dhuhr, "Asr" to times.asr,
                 "Maghrib" to times.maghrib, "Isha" to times.isha
