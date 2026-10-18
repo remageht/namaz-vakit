@@ -763,6 +763,9 @@
       <button class="btn btn-ghost" id="btnTest0">Тест: начало (00:00)</button>
     </div>
     <div id="notifStatus" class="sub" style="margin-top:6px;">Статус: проверяется...</div>
+    <div id="panelRow" style="display:none; margin-top:10px;">
+      <button class="btn btn-ghost" id="btnPanel">📌 …</button>
+    </div>
   </div>
 
   <div class="card" id="cardDailyInspiration">
@@ -1159,6 +1162,8 @@ const I18N = {
     secs: 'сек',
     at: 'в',
     badgeNext: 'следующий',
+    panelOn: 'Плашка в шторке: ВКЛ',
+    panelOff: 'Плашка в шторке: выключена',
     prayers: {
       Fajr: 'Фаджр 🌅',
       Sunrise: 'Восход ☀️',
@@ -1193,6 +1198,8 @@ const I18N = {
     secs: 'сек',
     at: '',
     badgeNext: 'чираттагы',
+    panelOn: 'Шторда плашка: кабынган',
+    panelOff: 'Шторда плашка: сүнгән',
     prayers: {
       Fajr: 'Иртәнге 🌅',
       Sunrise: 'Кояш чыгу ☀️',
@@ -1227,6 +1234,8 @@ const I18N = {
     secs: 's',
     at: 'at',
     badgeNext: 'next',
+    panelOn: 'Panel in shade: ON',
+    panelOff: 'Panel in shade: OFF',
     prayers: {
       Fajr: 'Fajr 🌅',
       Sunrise: 'Sunrise ☀️',
@@ -1265,6 +1274,7 @@ function setAppLang(lang) {
   if (nextPrayer) calcNext();
   if (timings) renderPrayerList();
   if (typeof renderPrayerStats === 'function') renderPrayerStats();
+  if (typeof renderPanelBtn === 'function') renderPanelBtn();
 }
 
 function fmtTime(d) {
@@ -1479,6 +1489,29 @@ function updateNotifStatus() {
   }
 }
 updateNotifStatus();
+
+// Плашка намаза в шторке уведомлений (только в нативном Android-приложении)
+function renderPanelBtn() {
+  const btn = document.getElementById('btnPanel');
+  if (!btn) return;
+  let on = false;
+  try { on = !!window.NamazHost.getPanel(); } catch (e) {}
+  const dict = I18N[currentLang] || I18N.ru;
+  btn.textContent = '📌 ' + (on ? dict.panelOn : dict.panelOff);
+}
+(function initPanelRow() {
+  if (!window.NamazHost || !window.NamazHost.getPanel) return;
+  const row = document.getElementById('panelRow');
+  if (row) row.style.display = '';
+  const btn = document.getElementById('btnPanel');
+  if (btn) btn.onclick = () => {
+    let on = false;
+    try { on = !!window.NamazHost.getPanel(); } catch (e) {}
+    try { window.NamazHost.setPanel(!on); } catch (e) {}
+    renderPanelBtn();
+  };
+  renderPanelBtn();
+})();
 
 document.getElementById('btnTest10').onclick = () => {
   triggerNotification('Подготовка к молитве (тест) ⏳', 'Осталось 10 минут до молитвы. Совершите вуду.');

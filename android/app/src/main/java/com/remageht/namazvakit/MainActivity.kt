@@ -2,6 +2,7 @@ package com.remageht.namazvakit
 
 import android.app.Activity
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.webkit.GeolocationPermissions
@@ -83,8 +84,26 @@ class HostBridge(private val activity: Activity) {
                 .apply()
             WidgetCommon.schedule(activity)
             WidgetCommon.updateAll(activity)
+            PanelService.refresh(activity)
         } catch (_: Exception) {
         }
+    }
+
+    /** Включение/выключение плашки из настроек PWA. */
+    @JavascriptInterface
+    fun setPanel(on: Boolean) {
+        try {
+            if (on) PanelService.enable(activity) else PanelService.hide(activity)
+        } catch (_: Exception) {
+        }
+    }
+
+    /** Текущее состояние плашки для переключателя в PWA. */
+    @JavascriptInterface
+    fun getPanel(): Boolean = try {
+        PanelService.isOn(activity)
+    } catch (_: Exception) {
+        false
     }
 }
 
@@ -194,6 +213,24 @@ class MainActivity : Activity() {
         setContentView(wv)
         // Standalone app: bundled copy is primary, never redirect to web.
         wv.loadUrl(OFFLINE_URL)
+
+        // Плашка намаза в шторке уведомлений: включена по умолчанию.
+        if (PanelService.isOn(this) && Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 7)
+        }
+        PanelService.refresh(this)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 7) PanelService.refresh(this)
     }
 
     @Suppress("DEPRECATION")

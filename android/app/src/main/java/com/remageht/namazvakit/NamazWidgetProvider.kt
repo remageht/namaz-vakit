@@ -28,6 +28,7 @@ class NamazWidgetProvider : AppWidgetProvider() {
             Intent.ACTION_BOOT_COMPLETED -> {
                 WidgetCommon.schedule(context)
                 WidgetCommon.updateAll(context)
+                PanelService.refresh(context)
             }
         }
     }
