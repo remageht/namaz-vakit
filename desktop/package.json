@@ -1,7 +1,7 @@
 {
   "name": "namaz-desktop",
   "productName": "Namaz",
-  "version": "1.6.0",
+  "version": "1.8.0",
   "description": "Namaz — время намаза, Кибла, каза и уроки. Windows / macOS / Linux.",
   "main": "main.js",
   "author": "remageht <remageht@users.noreply.github.com>",

@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Намаз — время, Кибла, обучение</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#06281f">
@@ -138,31 +138,52 @@
     font-variant-numeric: tabular-nums;
   }
   body { padding-top: calc(38px + env(safe-area-inset-top, 0px)); }
+
+  /* Доступность: видимый фокус для клавиатурной навигации (WCAG 2.1) */
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--gold) !important;
+  }
+
   nav.tabs {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 6px;
-    padding: 10px 12px;
+    padding: 8px 12px;
     position: sticky;
     top: calc(38px + env(safe-area-inset-top, 0px));
     z-index: 100;
     background: rgba(4, 23, 17, 0.94);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid #14493b;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
     max-width: 640px;
     margin: 0 auto;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
+  nav.tabs::-webkit-scrollbar { display: none; }
   nav.tabs button {
     flex: 1;
-    border: 1px solid #1a5a48;
-    background: #093327;
+    min-width: 0;
+    min-height: 42px;
+    border: 1px solid var(--border);
+    background: rgba(9, 51, 39, 0.7);
     color: var(--text);
     border-radius: 12px;
-    padding: 10px 4px;
+    padding: 8px 2px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: all .2s ease;
+    transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    user-select: none;
+  }
+  nav.tabs button:hover {
+    border-color: var(--gold);
+    background: rgba(12, 65, 50, 0.85);
   }
   nav.tabs button.active {
     background: var(--gold);
@@ -170,6 +191,99 @@
     font-weight: 800;
     border-color: var(--gold);
     box-shadow: 0 2px 10px rgba(212,175,55,0.3);
+  }
+
+  /* Хаб сервисов ("Ещё") */
+  .more-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .more-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    user-select: none;
+  }
+  .more-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+  }
+  .more-card:active {
+    transform: scale(0.98);
+  }
+  .more-icon {
+    font-size: 32px;
+    margin-bottom: 6px;
+  }
+  .more-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .more-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.35;
+  }
+  .subpage-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  /* Быстрый выбор города (чипы) */
+  .city-chip {
+    background: rgba(9, 51, 39, 0.7);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .city-chip:hover {
+    border-color: var(--gold);
+    color: var(--gold-light);
+  }
+
+  /* Плавающие Toast-уведомления */
+  .app-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(30px);
+    background: rgba(8, 44, 34, 0.96);
+    border: 1px solid var(--gold);
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 12px rgba(212, 175, 55, 0.25);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 9999;
+    text-align: center;
+    max-width: 90vw;
+  }
+  .app-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
 
   main {
@@ -298,8 +412,23 @@
   }
   .btn-ghost {
     background: transparent;
-    border: 1px solid #2a7a64;
+    border: 1px solid var(--border);
     color: var(--text);
+  }
+  .btn-ghost:hover {
+    border-color: var(--gold);
+  }
+  .btn-ghost.active {
+    background: var(--gold) !important;
+    color: #06281f !important;
+    border-color: var(--gold) !important;
+    font-weight: 700;
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: grayscale(1);
+    transform: none !important;
   }
   .row2 { display: flex; gap: 8px; }
   .row2 > * { flex: 1; }
@@ -586,16 +715,18 @@
 
   /* Статистика и трекер намазов */
   .prayer-check-btn {
-    background: #093327;
-    border: 1px solid #1a5a48;
+    font-family: inherit;
+    background: rgba(9, 51, 39, 0.7);
+    border: 1px solid var(--border);
     color: var(--text);
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 8px 2px;
     font-size: 11px;
     text-align: center;
     cursor: pointer;
     transition: all .2s ease;
     user-select: none;
+    width: 100%;
   }
   .prayer-check-btn:hover { border-color: var(--gold); }
   .prayer-check-btn.checked {
@@ -692,16 +823,21 @@
   </div>
 </header>
 
-<nav class="tabs">
-  <button class="active" data-page="p-times" id="tabTimesBtn">⏰ <span data-i18n="tabTimes">Время</span></button>
-  <button data-page="p-qibla" id="tabQiblaBtn">🧭 <span data-i18n="tabQibla">Кибла</span></button>
-  <button data-page="p-learn" id="tabLearnBtn">📖 <span data-i18n="tabLearn">Намаз</span></button>
-  <button data-page="p-calendar" id="tabCalBtn">📅 <span data-i18n="tabCal">Календарь</span></button>
-  <button data-page="p-mosques" id="tabMosquesBtn">🕌 <span data-i18n="tabMosques">Мечети</span></button>
-  <button data-page="p-names" id="tabNamesBtn">☝️ <span data-i18n="tabNames">Имена</span></button>
-  <button data-page="p-qada" id="tabQadaBtn">🤲 <span data-i18n="tabQada">Каза</span></button>
-  <button data-page="p-settings" id="tabSettingsBtn">⚙️ <span data-i18n="tabSettings">Настройки</span></button>
+<nav class="tabs" role="tablist" aria-label="Разделы приложения">
+  <button class="active" data-page="p-times" id="tabTimesBtn" role="tab" aria-selected="true">⏰ <span data-i18n="tabTimes">Время</span></button>
+  <button data-page="p-qibla" id="tabQiblaBtn" role="tab" aria-selected="false">🧭 <span data-i18n="tabQibla">Кибла</span></button>
+  <button data-page="p-learn" id="tabLearnBtn" role="tab" aria-selected="false">📖 <span data-i18n="tabLearn">Намаз</span></button>
+  <button data-page="p-calendar" id="tabCalBtn" role="tab" aria-selected="false">📅 <span data-i18n="tabCal">Календарь</span></button>
+  <button data-page="p-more" id="tabMoreBtn" role="tab" aria-selected="false">✨ <span data-i18n="tabMore">Ещё</span></button>
 </nav>
+
+<!-- Прокси-кнопки для обратной совместимости -->
+<div style="display:none;" aria-hidden="true">
+  <button data-page="p-mosques" id="tabMosquesBtn"></button>
+  <button data-page="p-names" id="tabNamesBtn"></button>
+  <button data-page="p-qada" id="tabQadaBtn"></button>
+  <button data-page="p-settings" id="tabSettingsBtn"></button>
+</div>
 
 <main>
 <!-- ВРЕМЯ НАМАЗА -->
@@ -718,11 +854,13 @@
     <div id="prayerList">
       <div style="text-align:center; padding: 20px;" class="sub">Загрузка расписания молитв…</div>
     </div>
-    <div class="sub" id="locInfo" style="margin-top: 10px;">📍 Определение координат…</div>
-    <button class="btn btn-green" id="btnGeo">📍 <span data-i18n="locAutoBtn">Определить автоматически (GPS)</span></button>
-    <div style="display:flex; gap:8px; margin-top:8px;">
-      <button class="btn btn-ghost" id="btnExportCsvTimes" onclick="exportMonthlyCsv()" style="flex:1; font-size:12px;">📥 Экспорт CSV</button>
-      <button class="btn btn-ghost" id="btnPrintScheduleTimes" onclick="printSchedule()" style="flex:1; font-size:12px;">🖨 Печать</button>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.06);">
+      <div class="sub" id="locInfo" style="font-size:12px; margin:0;">📍 Определение координат…</div>
+      <button class="btn btn-ghost" id="btnGeo" style="padding:4px 10px; font-size:11px; font-weight:700; border-radius:8px;">📍 GPS</button>
+    </div>
+    <div style="display:none;" aria-hidden="true">
+      <button id="btnExportCsvTimes" onclick="exportMonthlyCsv()"></button>
+      <button id="btnPrintScheduleTimes" onclick="printSchedule()"></button>
     </div>
   </div>
 
@@ -736,11 +874,11 @@
       <div id="prayerProgressBar" style="background:var(--accent); height:100%; width:0%; transition:width .3s ease;"></div>
     </div>
     <div id="prayerCheckGrid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:6px;">
-      <div class="prayer-check-btn" id="chk_Fajr" onclick="togglePrayerCheck('Fajr')">Фаджр<br><span id="chkIcon_Fajr">○</span></div>
-      <div class="prayer-check-btn" id="chk_Dhuhr" onclick="togglePrayerCheck('Dhuhr')">Зухр<br><span id="chkIcon_Dhuhr">○</span></div>
-      <div class="prayer-check-btn" id="chk_Asr" onclick="togglePrayerCheck('Asr')">Аср<br><span id="chkIcon_Asr">○</span></div>
-      <div class="prayer-check-btn" id="chk_Maghrib" onclick="togglePrayerCheck('Maghrib')">Магриб<br><span id="chkIcon_Maghrib">○</span></div>
-      <div class="prayer-check-btn" id="chk_Isha" onclick="togglePrayerCheck('Isha')">Иша<br><span id="chkIcon_Isha">○</span></div>
+      <button type="button" class="prayer-check-btn" id="chk_Fajr" onclick="togglePrayerCheck('Fajr')" aria-label="Фаджр">Фаджр<br><span id="chkIcon_Fajr">○</span></button>
+      <button type="button" class="prayer-check-btn" id="chk_Dhuhr" onclick="togglePrayerCheck('Dhuhr')" aria-label="Зухр">Зухр<br><span id="chkIcon_Dhuhr">○</span></button>
+      <button type="button" class="prayer-check-btn" id="chk_Asr" onclick="togglePrayerCheck('Asr')" aria-label="Аср">Аср<br><span id="chkIcon_Asr">○</span></button>
+      <button type="button" class="prayer-check-btn" id="chk_Maghrib" onclick="togglePrayerCheck('Maghrib')" aria-label="Магриб">Магриб<br><span id="chkIcon_Maghrib">○</span></button>
+      <button type="button" class="prayer-check-btn" id="chk_Isha" onclick="togglePrayerCheck('Isha')" aria-label="Иша">Иша<br><span id="chkIcon_Isha">○</span></button>
     </div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
       <span id="prayerProgressText" class="sub" style="font-size:12px;">Выполнено: 0 из 5</span>
@@ -886,6 +1024,12 @@
 
 <!-- НАСТРОЙКИ -->
 <section id="p-settings" class="page">
+  <div class="subpage-nav">
+    <button class="btn btn-ghost" onclick="openPage('p-more')" style="padding:4px 12px; font-size:13px; font-weight:600;">
+      ← <span data-i18n="backToMore">Все разделы</span>
+    </button>
+  </div>
+
   <div class="card">
     <h3 style="margin:0 0 8px;">⚙️ Местоположение и метод расчёта</h3>
 
@@ -903,17 +1047,33 @@
       <button class="btn btn-ghost" id="btnThemeMono" onclick="setAppTheme('mono')" style="flex:1;">Монохром</button>
     </div>
 
-    <label>Быстрый выбор города:</label>
-    <div class="cities-grid">
-      <button class="city-btn" onclick="setCity(45.1342, 33.60, 'Саки')">Саки</button>
-      <button class="city-btn" onclick="setCity(55.7558, 37.6173, 'Москва')">Москва</button>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <label style="margin:0;" data-i18n="lblCity">Выбор города:</label>
+      <select id="selectQuickCity" onchange="onSelectCityChange(this.value)" style="width:auto; margin:0; padding:4px 8px; font-size:12px;">
+        <option value="">— Все города —</option>
+        <option value="45.1342,33.60,Саки">Саки (Крым)</option>
+        <option value="55.7558,37.6173,Москва">Москва</option>
+        <option value="59.9343,30.3351,СПб">Санкт-Петербург</option>
+        <option value="55.7887,49.1221,Казань">Казань</option>
+        <option value="54.7388,55.9721,Уфа">Уфа</option>
+        <option value="43.3178,45.6986,Грозный">Грозный</option>
+        <option value="42.9831,47.5046,Махачкала">Махачкала</option>
+        <option value="41.0082,28.9784,Стамбул">Стамбул</option>
+        <option value="21.4225,39.8262,Мекка">Мекка</option>
+      </select>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
+      <button type="button" class="city-chip city-btn" onclick="setCity(45.1342, 33.60, 'Саки')">Саки</button>
+      <button type="button" class="city-chip city-btn" onclick="setCity(55.7558, 37.6173, 'Москва')">Москва</button>
+      <button type="button" class="city-chip city-btn" onclick="setCity(55.7887, 49.1221, 'Казань')">Казань</button>
+      <button type="button" class="city-chip city-btn" onclick="setCity(21.4225, 39.8262, 'Мекка')">Мекка</button>
+    </div>
+    <div style="display:none;" aria-hidden="true">
       <button class="city-btn" onclick="setCity(59.9343, 30.3351, 'СПб')">СПб</button>
-      <button class="city-btn" onclick="setCity(55.7887, 49.1221, 'Казань')">Казань</button>
       <button class="city-btn" onclick="setCity(54.7388, 55.9721, 'Уфа')">Уфа</button>
       <button class="city-btn" onclick="setCity(43.3178, 45.6986, 'Грозный')">Грозный</button>
       <button class="city-btn" onclick="setCity(42.9831, 47.5046, 'Махачкала')">Махачкала</button>
       <button class="city-btn" onclick="setCity(41.0082, 28.9784, 'Стамбул')">Стамбул</button>
-      <button class="city-btn" onclick="setCity(21.4225, 39.8262, 'Мекка')">Мекка</button>
     </div>
 
     <div class="row2">
@@ -979,8 +1139,53 @@
     <div id="calDetailEvent" style="margin-top:6px; font-size:13px; color:var(--accent); font-weight:600;"></div>
   </div>
 </section>
+
+<!-- ХАБ СЕРВИСОВ (ЕЩЁ) -->
+<section id="p-more" class="page">
+  <div class="card">
+    <div class="label" data-i18n="moreTitle">Дополнительные разделы</div>
+    <div class="sub" style="margin:4px 0 12px;" data-i18n="moreSub">Полезные исламские инструменты и настройки приложения</div>
+    <div class="more-grid">
+      <div class="more-card" onclick="openPage('p-mosques')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPage('p-mosques')">
+        <div class="more-icon">🕌</div>
+        <div class="more-title" data-i18n="tabMosques">Мечети</div>
+        <div class="more-desc">Поиск ближайших мечетей на карте OSM с дистанцией</div>
+      </div>
+      <div class="more-card" onclick="openPage('p-names')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPage('p-names')">
+        <div class="more-icon">☝️</div>
+        <div class="more-title" data-i18n="tabNames">99 Имён</div>
+        <div class="more-desc">Имя дня, счётчик зикра и тренажёр заучивания</div>
+      </div>
+      <div class="more-card" onclick="openPage('p-qada')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPage('p-qada')">
+        <div class="more-icon">🤲</div>
+        <div class="more-title" data-i18n="tabQada">Каза</div>
+        <div class="more-desc">Учёт и калькулятор пропущенных молитв</div>
+      </div>
+      <div class="more-card" onclick="openPage('p-settings')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPage('p-settings')">
+        <div class="more-icon">⚙️</div>
+        <div class="more-title" data-i18n="tabSettings">Настройки</div>
+        <div class="more-desc">Город, мазхаб, метод расчёта, тема и язык</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px;">
+    <b>📥 <span data-i18n="dataExportTitle">Данные и расписание</span></b>
+    <div class="sub" style="margin:6px 0 12px;">Выгрузка расписания молитв на текущий месяц</div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-gold" onclick="exportMonthlyCsv()" style="flex:1;">📥 Скачать CSV</button>
+      <button class="btn btn-ghost" onclick="printSchedule()" style="flex:1;">🖨 Печать</button>
+    </div>
+  </div>
+</section>
+
 <!-- МЕЧЕТИ РЯДОМ -->
 <section id="p-mosques" class="page">
+  <div class="subpage-nav">
+    <button class="btn btn-ghost" onclick="openPage('p-more')" style="padding:4px 12px; font-size:13px; font-weight:600;">
+      ← <span data-i18n="backToMore">Все разделы</span>
+    </button>
+  </div>
   <div class="card">
     <div class="label">Поиск мечетей</div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
@@ -997,8 +1202,14 @@
     </div>
   </div>
 </section>
+
 <!-- ИМЕНА АЛЛАХА -->
 <section id="p-names" class="page">
+  <div class="subpage-nav">
+    <button class="btn btn-ghost" onclick="openPage('p-more')" style="padding:4px 12px; font-size:13px; font-weight:600;">
+      ← <span data-i18n="backToMore">Все разделы</span>
+    </button>
+  </div>
   <div class="card next">
     <div class="label" id="nameDayLabel">Имя дня</div>
     <div class="ar" id="nameAr" style="font-size:34px; text-align:center;">—</div>
@@ -1006,10 +1217,10 @@
     <div class="ru" id="nameRu" style="text-align:center;">—</div>
     <div class="sub" id="nameNum">—</div>
     <div class="row2">
-      <button class="btn btn-ghost" id="btnNamePrev">←</button>
-      <button class="btn btn-ghost" id="btnNameListen">🔊</button>
-      <button class="btn btn-ghost" id="btnNameNext">→</button>
-      <button class="btn btn-ghost" id="btnNameReset" title="Начать цикл с №1">↺</button>
+      <button class="btn btn-ghost" id="btnNamePrev" aria-label="Предыдущее имя">←</button>
+      <button class="btn btn-ghost" id="btnNameListen" aria-label="Прослушать произношение">🔊</button>
+      <button class="btn btn-ghost" id="btnNameNext" aria-label="Следующее имя">→</button>
+      <button class="btn btn-ghost" id="btnNameReset" title="Начать цикл с №1" aria-label="Сбросить цикл на №1">↺</button>
     </div>
   </div>
   <div class="card" style="text-align:center;">
@@ -1042,6 +1253,11 @@
 
 <!-- КАЗА: ТРЕКЕР И КАЛЬКУЛЯТОР -->
 <section id="p-qada" class="page">
+  <div class="subpage-nav">
+    <button class="btn btn-ghost" onclick="openPage('p-more')" style="padding:4px 12px; font-size:13px; font-weight:600;">
+      ← <span data-i18n="backToMore">Все разделы</span>
+    </button>
+  </div>
   <div class="card">
     <b>🤲 Возмещение пропущенных намазов (каза)</b>
     <div class="sub" style="margin:6px 0 10px;">Отмечайте возмещённые намазы — счётчик покажет, сколько осталось.</div>
@@ -1054,18 +1270,18 @@
     <div class="sub" style="margin:6px 0 10px;">Посчитайте долг за период, когда намазы не совершались.</div>
     <div class="row2">
       <div>
-        <label>С даты (начало периода):</label>
+        <label for="qadaFrom">С даты (начало периода):</label>
         <input type="date" id="qadaFrom">
       </div>
       <div>
-        <label>По дату (начало регулярного совершения):</label>
+        <label for="qadaTo">По дату (начало регулярного совершения):</label>
         <input type="date" id="qadaTo">
       </div>
     </div>
     <div id="qadaPicks" style="display:flex; flex-wrap:wrap; gap:10px; margin:10px 0;"></div>
     <button class="btn btn-gold" id="btnQadaCalc">Рассчитать</button>
     <div id="qadaCalcResult" class="sub" style="margin:8px 0; line-height:1.7;"></div>
-    <button class="btn" id="btnQadaAdd" disabled style="margin-top:8px;">➕ Добавить к счётчику</button>
+    <button class="btn btn-gold" id="btnQadaAdd" disabled style="margin-top:8px;">➕ Добавить к счётчику</button>
   </div>
 
   <div class="card">
@@ -1087,20 +1303,76 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ==========================================
-// 1. НАВИГАЦИЯ ПО ВКЛАДКАМ
+// 1. НАВИГАЦИЯ ПО РАЗДЕЛАМ (С МЯГКИМ ПЕРЕКЛЮЧЕНИЕМ)
 // ==========================================
-document.querySelectorAll('nav.tabs button').forEach(btn => {
+function openPage(pageId) {
+  if (pageId !== 'p-qibla') {
+    if (typeof stopArCamera === 'function') stopArCamera();
+    if (typeof compassStopAll === 'function') compassStopAll();
+  }
+
+  // Обновление состояния вкладок навигации
+  document.querySelectorAll('nav.tabs button').forEach(b => {
+    const isTarget = (b.dataset.page === pageId) || 
+      (b.dataset.page === 'p-more' && ['p-mosques', 'p-names', 'p-qada', 'p-settings', 'p-more'].includes(pageId));
+    b.classList.toggle('active', isTarget);
+    b.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+  });
+
+  // Переключение активного экрана
+  document.querySelectorAll('section.page').forEach(p => p.classList.remove('active'));
+  const targetPage = document.getElementById(pageId);
+  if (targetPage) {
+    targetPage.classList.add('active');
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch(e) {}
+  }
+
+  // Обновление карты при входе в раздел мечетей
+  if (pageId === 'p-mosques' && typeof mosquesMapInstance !== 'undefined' && mosquesMapInstance) {
+    setTimeout(() => mosquesMapInstance.invalidateSize(), 150);
+  }
+}
+
+document.querySelectorAll('button[data-page]').forEach(btn => {
   btn.onclick = () => {
-    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('section.page').forEach(p => p.classList.remove('active'));
-    const targetPage = document.getElementById(btn.dataset.page);
-    if (targetPage) targetPage.classList.add('active');
-    if (btn.dataset.page === 'p-mosques' && typeof mosquesMapInstance !== 'undefined' && mosquesMapInstance) {
-      setTimeout(() => mosquesMapInstance.invalidateSize(), 150);
-    }
+    if (btn.dataset.page) openPage(btn.dataset.page);
   };
 });
+
+// Toast уведомления вместо блокирующих alert
+let toastTimer = null;
+function showToast(msg, type = 'info') {
+  let el = document.getElementById('appToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'appToast';
+    el.className = 'app-toast';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  if (type === 'error') {
+    el.style.borderColor = '#ef4444';
+    el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5), 0 0 12px rgba(239,68,68,0.3)';
+  } else {
+    el.style.borderColor = 'var(--gold)';
+    el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5), 0 0 12px rgba(212,175,55,0.25)';
+  }
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.classList.remove('show');
+  }, 2800);
+}
+
+function onSelectCityChange(val) {
+  if (!val) return;
+  const parts = val.split(',');
+  if (parts.length >= 3) {
+    setCity(parseFloat(parts[0]), parseFloat(parts[1]), parts[2]);
+  }
+}
 
 // ==========================================
 // 2. СОСТОЯНИЕ И НАСТРОЙКИ (LOCALSTORAGE)
@@ -1144,10 +1416,16 @@ const I18N = {
     tabQibla: 'Кибла',
     tabLearn: 'Намаз',
     tabCal: 'Календарь',
+    tabMore: 'Ещё',
     tabMosques: 'Мечети',
     tabNames: 'Имена',
     tabQada: 'Каза',
     tabSettings: 'Настройки',
+    moreTitle: 'Дополнительные разделы',
+    moreSub: 'Полезные исламские инструменты и настройки приложения',
+    backToMore: 'Все разделы',
+    lblCity: 'Выбор города:',
+    dataExportTitle: 'Данные и расписание',
     nextPrayer: 'Следующий намаз',
     locAutoBtn: 'Определить автоматически (GPS)',
     prayersToday: 'Молитвы сегодня',
@@ -1180,10 +1458,16 @@ const I18N = {
     tabQibla: 'Кыбла',
     tabLearn: 'Намаз',
     tabCal: 'Календарь',
+    tabMore: 'Тагын',
     tabMosques: 'Мәчетләр',
     tabNames: 'Исемнәр',
     tabQada: 'Каза',
     tabSettings: 'Көйләүләр',
+    moreTitle: 'Өстәмә бүлекләр',
+    moreSub: 'Файдалы ислам кораллары һәм көйләүләр',
+    backToMore: 'Барлык бүлекләр',
+    lblCity: 'Шәһәр сайлау:',
+    dataExportTitle: 'Мәгълүмат һәм вакытлар',
     nextPrayer: 'Чираттагы намаз',
     locAutoBtn: 'Автоматик билгеләү (GPS)',
     prayersToday: 'Бүген намазлар',
@@ -1216,10 +1500,16 @@ const I18N = {
     tabQibla: 'Qibla',
     tabLearn: 'Lessons',
     tabCal: 'Calendar',
+    tabMore: 'More',
     tabMosques: 'Mosques',
     tabNames: 'Names',
     tabQada: 'Qada',
     tabSettings: 'Settings',
+    moreTitle: 'More Services',
+    moreSub: 'Islamic tools and application settings',
+    backToMore: 'All Sections',
+    lblCity: 'Select city:',
+    dataExportTitle: 'Data & Schedule',
     nextPrayer: 'Next Prayer',
     locAutoBtn: 'Auto-detect location (GPS)',
     prayersToday: 'Today\'s Prayers',
@@ -1275,6 +1565,7 @@ function setAppLang(lang) {
   if (timings) renderPrayerList();
   if (typeof renderPrayerStats === 'function') renderPrayerStats();
   if (typeof renderPanelBtn === 'function') renderPanelBtn();
+  if (typeof renderHijriCalendar === 'function') renderHijriCalendar(calYear, calMonth);
 }
 
 function fmtTime(d) {
@@ -1291,7 +1582,7 @@ function todayStr(offsetDays = 0) {
 }
 
 // ==========================================
-// 3. ЗАГРУЗКА РАСПИСАНИЯ (ALADHAN API)
+// 3. ЗАГРУЗКА РАСПИСАНИЯ (ALADHAN API + ОФЛАЙН-ФОЛЛБЭК)
 // ==========================================
 async function loadTimings() {
   const locEl = document.getElementById('locInfo');
@@ -1316,8 +1607,31 @@ async function loadTimings() {
 
     locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Метод: ${S.method} • Обновлено: ${new Date().toLocaleTimeString()}`;
   } catch (err) {
-    console.error('Ошибка загрузки Aladhan API:', err);
-    locEl.textContent = '⚠️ Не удалось связаться с Aladhan API. Проверьте интернет.';
+    console.warn('Ошибка загрузки Aladhan API, переключение на офлайн-расчёт:', err);
+    locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Автономный расчёт`;
+    try {
+      if (typeof calcOfflinePrayerTimes === 'function') {
+        const off = calcOfflinePrayerTimes(S.lat, S.lon, new Date(), parseInt(S.method, 10), parseInt(S.school, 10));
+        timings = {
+          Fajr: off.Fajr,
+          Sunrise: off.Sunrise,
+          Dhuhr: off.Dhuhr,
+          Asr: off.Asr,
+          Maghrib: off.Maghrib,
+          Isha: off.Isha
+        };
+        const now = new Date();
+        const hDate = (typeof getHijriDate === 'function') ? getHijriDate(now) : { day: 1, month: 1, year: 1448 };
+        document.getElementById('gregDate').textContent = `${todayStr()} (Офлайн)`;
+        document.getElementById('hijriTag').textContent = `Хиджра: ${hDate.day}.${hDate.month}.${hDate.year} AH`;
+        calcNext();
+        renderPrayerList();
+        updateQiblaInfo();
+      }
+    } catch(e2) {
+      console.error('Ошибка офлайн расчёта:', e2);
+      locEl.textContent = '⚠️ Не удалось связаться с Aladhan API. Проверьте интернет.';
+    }
   }
 }
 
@@ -1463,7 +1777,7 @@ function checkNotifications(diffMs) {
 
 document.getElementById('btnNotif').onclick = async () => {
   if (!('Notification' in window)) {
-    alert('Ваш браузер не поддерживает уведомления');
+    showToast('Ваш браузер не поддерживает уведомления', 'error');
     return;
   }
   const p = await Notification.requestPermission();
@@ -1533,7 +1847,7 @@ function syncNativeLocation() {
 
 document.getElementById('btnGeo').onclick = () => {
   if (!navigator.geolocation) {
-    alert('Геолокация не поддерживается вашим браузером');
+    showToast('Геолокация не поддерживается вашим браузером', 'error');
     return;
   }
   document.getElementById('locInfo').textContent = '📍 Определение положения через GPS…';
@@ -1547,9 +1861,10 @@ document.getElementById('btnGeo').onclick = () => {
       document.getElementById('inLon').value = S.lon.toFixed(4);
       syncNativeLocation();
       loadTimings();
+      showToast('📍 Координаты получены по GPS');
     },
     err => {
-      alert(`Ошибка GPS: ${err.message}. Введите координаты вручную в Настройках.`);
+      showToast(`Ошибка GPS: ${err.message}. Введите вручную в Настройках.`, 'error');
     },
     { enableHighAccuracy: true, timeout: 10000 }
   );
@@ -1564,7 +1879,7 @@ function setCity(lat, lon, name) {
   store.set('lon', lon);
   syncNativeLocation();
   loadTimings();
-  alert(`Город установлен: ${name}`);
+  showToast(`Город установлен: ${name}`);
 }
 
 document.getElementById('inLat').value = S.lat;
@@ -1576,7 +1891,7 @@ document.getElementById('btnSave').onclick = () => {
   const latVal = parseFloat(document.getElementById('inLat').value);
   const lonVal = parseFloat(document.getElementById('inLon').value);
   if (isNaN(latVal) || isNaN(lonVal)) {
-    alert('Введите корректные числовые координаты широты и долготы');
+    showToast('Введите корректные числовые координаты широты и долготы', 'error');
     return;
   }
   S.lat = latVal;
@@ -1591,7 +1906,7 @@ document.getElementById('btnSave').onclick = () => {
 
   syncNativeLocation();
   loadTimings();
-  alert('Настройки сохранены и расписание обновлено!');
+  showToast('Настройки сохранены и расписание обновлено!');
 };
 
 // ==========================================
@@ -1831,15 +2146,15 @@ document.getElementById('btnCompass').onclick = async () => {
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
       const resp = await DeviceOrientationEvent.requestPermission();
       if (resp !== 'granted') {
-        alert('Доступ к датчикам ориентации был отклонён');
+        showToast('Доступ к датчикам ориентации был отклонён', 'error');
         return;
       }
     }
     compassStart('deviceorientationabsolute');
-    alert('Компас активирован. Медленно вращайте телефон.');
+    showToast('Компас активирован. Медленно вращайте телефон.');
   } catch (err) {
     console.warn('Компас недоступен:', err);
-    alert('Датчик компаса недоступен. Используйте ручной ползунок ниже.');
+    showToast('Датчик компаса недоступен. Используйте ручной ползунок ниже.');
   }
 };
 
@@ -1909,7 +2224,7 @@ function setTranslitScript(s) {
 function speakArabic(text) {
   try {
     if (!('speechSynthesis' in window)) {
-      alert('Синтез речи не поддерживается в этом браузере');
+      showToast('Синтез речи не поддерживается в этом браузере', 'error');
       return;
     }
     window.speechSynthesis.cancel();
@@ -2018,7 +2333,7 @@ const LESSONS_DATA = {
     </div>
     <div class="step">
       <h4>Дуа после совершения вуду</h4>
-      ${makeTextCard(ARABIC_TEXTS.wudu_dua, ARABIC_TEXTS.wudu_dua_tr, ARABIC_TEXTS.wudu_dua_ru)}
+      ${makeTextCard(ARABIC_TEXTS.wudu_dua, ARABIC_TEXTS.wudu_dua_tr, ARABIC_TEXTS.wudu_dua_la, ARABIC_TEXTS.wudu_dua_ru)}
     </div>
   `,
 
@@ -2107,6 +2422,7 @@ let activeLessonTab = 'wudu';
 
 function renderLesson(tabKey) {
   if (tabKey) activeLessonTab = tabKey;
+  SPEECH_TEXTS.length = 0;
   const container = document.getElementById('lessons');
   container.innerHTML = (activeLessonTab === 'texts') ? getTextsLessonHtml() : (LESSONS_DATA[activeLessonTab] || '');
   container.querySelectorAll('[data-speech]').forEach(b => {
@@ -2372,8 +2688,26 @@ document.getElementById('btnQuizReset').onclick = () => {
 // ==========================================
 // 8c. ХИДЖРИ-КАЛЕНДАРЬ НА МЕСЯЦ
 // ==========================================
-const HIJRI_MONTHS_RU = ['', 'Мухаррам', 'Сафар', 'Раби аль-авваль', 'Раби ас-сани', 'Джумада аль-уля', 'Джумада аль-ахира', 'Раджаб', 'Шаабан', 'Рамадан', 'Шавваль', 'Зуль-каада', 'Зуль-хиджа'];
-const GREG_MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+const CAL_LOCALES = {
+  ru: {
+    weekdays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+    gregMonths: ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'],
+    hijriMonths: ['', 'Мухаррам', 'Сафар', 'Раби аль-авваль', 'Раби ас-сани', 'Джумада аль-уля', 'Джумада аль-ахира', 'Раджаб', 'Шаабан', 'Рамадан', 'Шавваль', 'Зуль-каада', 'Зуль-хиджа'],
+    yearSuffix: 'г.х.'
+  },
+  tt: {
+    weekdays: ['Дш', 'Сш', 'Чш', 'Пҗ', 'Җм', 'Шб', 'Як'],
+    gregMonths: ['Гыйнвар', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'],
+    hijriMonths: ['', 'Мөхәррәм', 'Сәфәр', 'Рабигыль-әүвәл', 'Рабигыль-ахыр', 'Җөмәдел-әүвәл', 'Җөмәдел-ахыр', 'Рәҗәб', 'Шәгъбан', 'Рамазан', 'Шәүвәл', 'Зөлкәгъдә', 'Зөлхиҗҗә'],
+    yearSuffix: 'һ.ел'
+  },
+  en: {
+    weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    gregMonths: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    hijriMonths: ['', 'Muharram', 'Safar', 'Rabi al-Awwal', 'Rabi al-Thani', 'Jumada al-Ula', 'Jumada al-Akhirah', 'Rajab', 'Sha\'ban', 'Ramadan', 'Shawwal', 'Dhu al-Qi\'dah', 'Dhu al-Hijjah'],
+    yearSuffix: 'AH'
+  }
+};
 
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
@@ -2422,13 +2756,19 @@ function renderHijriCalendar(year, month) {
   const hFirst = getHijriDate(firstDay);
   const hLast = getHijriDate(lastDay);
 
-  const monthTitle = `${GREG_MONTHS_RU[month]} ${year}`;
+  const loc = CAL_LOCALES[currentLang] || CAL_LOCALES.ru;
+  const monthTitle = `${loc.gregMonths[month]} ${year}`;
   const hijriTitle = (hFirst.month === hLast.month)
-    ? `${HIJRI_MONTHS_RU[hFirst.month]} ${hFirst.year} г.х.`
-    : `${HIJRI_MONTHS_RU[hFirst.month]} / ${HIJRI_MONTHS_RU[hLast.month]} ${hLast.year} г.х.`;
+    ? `${loc.hijriMonths[hFirst.month]} ${hFirst.year} ${loc.yearSuffix}`
+    : `${loc.hijriMonths[hFirst.month]} / ${loc.hijriMonths[hLast.month]} ${hLast.year} ${loc.yearSuffix}`;
 
   document.getElementById('calMonthTitle').textContent = monthTitle;
   document.getElementById('calHijriTitle').textContent = hijriTitle;
+
+  const wkGrid = document.getElementById('calWeekdays');
+  if (wkGrid) {
+    wkGrid.innerHTML = loc.weekdays.map(w => `<div class="cal-head">${w}</div>`).join('');
+  }
 
   const grid = document.getElementById('calDaysGrid');
   grid.innerHTML = '';
@@ -2687,12 +3027,9 @@ function renderPrayerStats() {
   if (txt) txt.textContent = `Выполнено: ${completed} из 5`;
 
   let streak = 0;
-  let streakBroken = false;
-  const dotsContainer = document.getElementById('weekStreakDots');
-  if (dotsContainer) dotsContainer.innerHTML = '';
-
-  for (let i = 0; i < 7; i++) {
-    const dayKey = getTodayTrackerKey(-i);
+  let d = 0;
+  while (d < 365) {
+    const dayKey = getTodayTrackerKey(-d);
     let dayCount = 0;
     try {
       const raw = store.get(dayKey);
@@ -2701,20 +3038,31 @@ function renderPrayerStats() {
         TRACKER_PRAYERS.forEach(k => { if (obj[k]) dayCount++; });
       }
     } catch(e) {}
-
-    const isDone = (dayCount >= 3);
-    if (!streakBroken) {
-      if (isDone || (i === 0 && dayCount > 0)) {
-        streak++;
-      } else if (i > 0) {
-        streakBroken = true;
-      }
+    if (dayCount >= 3 || (d === 0 && dayCount > 0)) {
+      streak++;
+      d++;
+    } else {
+      break;
     }
+  }
 
-    if (dotsContainer) {
+  const dotsContainer = document.getElementById('weekStreakDots');
+  if (dotsContainer) {
+    dotsContainer.innerHTML = '';
+    for (let i = 6; i >= 0; i--) {
+      const dayKey = getTodayTrackerKey(-i);
+      let dayCount = 0;
+      try {
+        const raw = store.get(dayKey);
+        if (raw) {
+          const obj = JSON.parse(raw);
+          TRACKER_PRAYERS.forEach(k => { if (obj[k]) dayCount++; });
+        }
+      } catch(e) {}
+      const isDone = (dayCount >= 3);
       const dot = document.createElement('div');
       dot.className = isDone ? 'streak-dot active' : 'streak-dot';
-      dot.title = `День -${i}: ${dayCount}/5`;
+      dot.title = (i === 0) ? `Сегодня: ${dayCount}/5` : `${i} дн. назад: ${dayCount}/5`;
       dotsContainer.appendChild(dot);
     }
   }
@@ -3124,19 +3472,19 @@ if (btnQadaCalc) {
     const fromV = document.getElementById('qadaFrom').value;
     const toV = document.getElementById('qadaTo').value;
     const res = document.getElementById('qadaCalcResult');
-    if (!fromV || !toV) { alert('Укажите обе даты'); return; }
+    if (!fromV || !toV) { showToast('Укажите обе даты', 'error'); return; }
     const from = new Date(fromV + 'T00:00:00');
     const to = new Date(toV + 'T00:00:00');
-    if (to < from) { alert('Дата окончания раньше даты начала'); return; }
+    if (to < from) { showToast('Дата окончания раньше даты начала', 'error'); return; }
     const days = Math.floor((to - from) / 86400000) + 1;
     const picked = QADA_PRAYERS.filter(k => {
       const cb = document.getElementById('qp_' + k);
       return cb && cb.checked;
     });
-    if (!picked.length) { alert('Выберите хотя бы один намаз'); return; }
+    if (!picked.length) { showToast('Выберите хотя бы один намаз', 'error'); return; }
     qadaCalcTotals = { days, picked };
     res.innerHTML = `Дней: <b>${days}</b><br>` +
-      picked.map(k => `${PRAYERS_RU[k]}: <b>${days}</b>`).join('<br>') +
+      picked.map(k => `${getPrayerName(k)}: <b>${days}</b>`).join('<br>') +
       `<br>Всего пропущено: <b>${days * picked.length}</b>`;
     document.getElementById('btnQadaAdd').disabled = false;
   };
@@ -3148,12 +3496,20 @@ if (btnQadaCalc) {
     qadaCalcTotals = null;
     document.getElementById('btnQadaAdd').disabled = true;
     document.getElementById('qadaCalcResult').textContent = '✔ Добавлено к счётчику';
+    showToast('✔ Добавлено к счётчику каза');
   };
 }
 
+window.addEventListener('beforeprint', () => {
+  const container = document.getElementById('printScheduleContainer');
+  if (container && !container.innerHTML.trim() && typeof printSchedule === 'function') {
+    printSchedule();
+  }
+});
 </script>
 
 <div id="printScheduleContainer" class="print-only"></div>
+<div id="appToast" class="app-toast" role="status" aria-live="polite"></div>
 
 </body>
 </html>
