@@ -3308,7 +3308,7 @@ function calcOfflinePrayerTimes(lat, lon, date, method = 3, school = 1) {
     const phi = lat * dr, delta = dec * dr;
     const acot = factor + Math.tan(Math.abs(phi - delta));
     const alt = Math.atan(1.0 / acot) / dr;
-    return sunAngleTime(alt, false);
+    return sunAngleTime(-alt, false);
   };
 
   const toHM = (decHours) => {
