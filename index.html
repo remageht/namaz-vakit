@@ -1428,6 +1428,10 @@ const I18N = {
     dataExportTitle: 'Данные и расписание',
     nextPrayer: 'Следующий намаз',
     locAutoBtn: 'Определить автоматически (GPS)',
+    gpsDetecting: '📍 Определение положения через GPS…',
+    gpsSuccess: '📍 Координаты получены по GPS',
+    gpsError: 'Не удалось определить положение по GPS. Введите координаты вручную в Настройках.',
+    gpsNotSupported: 'Геолокация не поддерживается вашим браузером',
     prayersToday: 'Молитвы сегодня',
     streak: 'Серия',
     days: 'дн.',
@@ -1470,6 +1474,10 @@ const I18N = {
     dataExportTitle: 'Мәгълүмат һәм вакытлар',
     nextPrayer: 'Чираттагы намаз',
     locAutoBtn: 'Автоматик билгеләү (GPS)',
+    gpsDetecting: '📍 GPS аша урнашуны билгеләү…',
+    gpsSuccess: '📍 Координатлар GPS аша алынды',
+    gpsError: 'GPS аша урнашуны билгеләп булмады. Көйләүләрдә кулдан керетегез.',
+    gpsNotSupported: 'Сезнең браузер геолокацияне тәэмин итми',
     prayersToday: 'Бүген намазлар',
     streak: 'Серия',
     days: 'көн',
@@ -1512,6 +1520,10 @@ const I18N = {
     dataExportTitle: 'Data & Schedule',
     nextPrayer: 'Next Prayer',
     locAutoBtn: 'Auto-detect location (GPS)',
+    gpsDetecting: '📍 Detecting location via GPS…',
+    gpsSuccess: '📍 Location received via GPS',
+    gpsError: 'Unable to determine GPS location. Please enter coordinates manually in Settings.',
+    gpsNotSupported: 'Geolocation is not supported by your browser',
     prayersToday: 'Today\'s Prayers',
     streak: 'Streak',
     days: 'days',
@@ -1565,7 +1577,13 @@ function setAppLang(lang) {
   if (timings) renderPrayerList();
   if (typeof renderPrayerStats === 'function') renderPrayerStats();
   if (typeof renderPanelBtn === 'function') renderPanelBtn();
-  if (typeof renderHijriCalendar === 'function') renderHijriCalendar(calYear, calMonth);
+  if (typeof renderHijriCalendar === 'function') {
+    try {
+      renderHijriCalendar(calYear, calMonth);
+    } catch (e) {
+      console.error('Ошибка календаря:', e);
+    }
+  }
 }
 
 function fmtTime(d) {
@@ -1586,11 +1604,48 @@ function todayStr(offsetDays = 0) {
 // ==========================================
 async function loadTimings() {
   const locEl = document.getElementById('locInfo');
-  locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Метод ${S.method} • Загрузка…`;
+  if (locEl) locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Метод ${S.method} • Загрузка…`;
+
+  // Показываем дату и Хиджру сразу локально, не дожидаясь ответа сети
+  const now = new Date();
+  const dStr = todayStr();
+  const hDate = (typeof getHijriDate === 'function') ? getHijriDate(now) : { day: 1, month: 1, year: 1448 };
+  const loc = (typeof CAL_LOCALES !== 'undefined' && (CAL_LOCALES[currentLang] || CAL_LOCALES.ru)) || null;
+  const hMonth = (loc && loc.hijriMonths && loc.hijriMonths[hDate.month]) ? loc.hijriMonths[hDate.month] : hDate.month;
+  const hSuffix = (loc && loc.yearSuffix) ? loc.yearSuffix : 'AH';
+
+  const gregEl = document.getElementById('gregDate');
+  const hijriEl = document.getElementById('hijriTag');
+  if (gregEl && (!gregEl.textContent || gregEl.textContent.includes('Загрузка'))) {
+    gregEl.textContent = dStr;
+  }
+  if (hijriEl && (!hijriEl.textContent || hijriEl.textContent.includes('...'))) {
+    hijriEl.textContent = `Хиджра: ${hDate.day} ${hMonth} ${hDate.year} ${hSuffix}`;
+  }
+
+  // Мгновенный расчёт расписания через офлайн-модуль, если данные ещё не загружены
+  if (!timings && typeof calcOfflinePrayerTimes === 'function') {
+    const off = calcOfflinePrayerTimes(S.lat, S.lon, now, parseInt(S.method, 10), parseInt(S.school, 10));
+    timings = {
+      Fajr: off.Fajr,
+      Sunrise: off.Sunrise,
+      Dhuhr: off.Dhuhr,
+      Asr: off.Asr,
+      Maghrib: off.Maghrib,
+      Isha: off.Isha
+    };
+    calcNext();
+    renderPrayerList();
+    updateQiblaInfo();
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
 
   try {
     const url = `https://api.aladhan.com/v1/timings/${todayStr()}?latitude=${S.lat}&longitude=${S.lon}&method=${S.method}&school=${S.school}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
@@ -1598,17 +1653,18 @@ async function loadTimings() {
     timingsDate = data.data.date;
 
     // Отображение дат
-    document.getElementById('gregDate').textContent = `${timingsDate.gregorian.date} (${timingsDate.gregorian.weekday.en})`;
-    document.getElementById('hijriTag').textContent = `Хиджра: ${timingsDate.hijri.day} ${timingsDate.hijri.month.en} ${timingsDate.hijri.year} AH`;
+    if (gregEl) document.getElementById('gregDate').textContent = `${timingsDate.gregorian.date} (${timingsDate.gregorian.weekday.en})`;
+    if (hijriEl) document.getElementById('hijriTag').textContent = `Хиджра: ${timingsDate.hijri.day} ${timingsDate.hijri.month.en} ${timingsDate.hijri.year} AH`;
 
     calcNext();
     renderPrayerList();
     updateQiblaInfo();
 
-    locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Метод: ${S.method} • Обновлено: ${new Date().toLocaleTimeString()}`;
+    if (locEl) locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Метод: ${S.method} • Обновлено: ${new Date().toLocaleTimeString()}`;
   } catch (err) {
+    clearTimeout(timeoutId);
     console.warn('Ошибка загрузки Aladhan API, переключение на офлайн-расчёт:', err);
-    locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Автономный расчёт`;
+    if (locEl) locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Автономный расчёт`;
     try {
       if (typeof calcOfflinePrayerTimes === 'function') {
         const off = calcOfflinePrayerTimes(S.lat, S.lon, new Date(), parseInt(S.method, 10), parseInt(S.school, 10));
@@ -1620,17 +1676,16 @@ async function loadTimings() {
           Maghrib: off.Maghrib,
           Isha: off.Isha
         };
-        const now = new Date();
-        const hDate = (typeof getHijriDate === 'function') ? getHijriDate(now) : { day: 1, month: 1, year: 1448 };
-        document.getElementById('gregDate').textContent = `${todayStr()} (Офлайн)`;
-        document.getElementById('hijriTag').textContent = `Хиджра: ${hDate.day}.${hDate.month}.${hDate.year} AH`;
+        const hDateOff = (typeof getHijriDate === 'function') ? getHijriDate(new Date()) : { day: 1, month: 1, year: 1448 };
+        if (gregEl) gregEl.textContent = `${todayStr()} (Офлайн)`;
+        if (hijriEl) hijriEl.textContent = `Хиджра: ${hDateOff.day}.${hDateOff.month}.${hDateOff.year} AH`;
         calcNext();
         renderPrayerList();
         updateQiblaInfo();
       }
     } catch(e2) {
       console.error('Ошибка офлайн расчёта:', e2);
-      locEl.textContent = '⚠️ Не удалось связаться с Aladhan API. Проверьте интернет.';
+      if (locEl) locEl.textContent = '⚠️ Не удалось связаться с Aladhan API. Проверьте интернет.';
     }
   }
 }
@@ -1846,25 +1901,33 @@ function syncNativeLocation() {
 }
 
 document.getElementById('btnGeo').onclick = () => {
+  const dict = I18N[currentLang] || I18N.ru;
   if (!navigator.geolocation) {
-    showToast('Геолокация не поддерживается вашим браузером', 'error');
+    showToast(dict.gpsNotSupported || 'Геолокация не поддерживается вашим браузером', 'error');
     return;
   }
-  document.getElementById('locInfo').textContent = '📍 Определение положения через GPS…';
+  const locEl = document.getElementById('locInfo');
+  if (locEl) locEl.textContent = dict.gpsDetecting || '📍 Определение положения через GPS…';
   navigator.geolocation.getCurrentPosition(
     pos => {
       S.lat = pos.coords.latitude;
       S.lon = pos.coords.longitude;
       store.set('lat', S.lat);
       store.set('lon', S.lon);
-      document.getElementById('inLat').value = S.lat.toFixed(4);
-      document.getElementById('inLon').value = S.lon.toFixed(4);
+      const inLat = document.getElementById('inLat');
+      const inLon = document.getElementById('inLon');
+      if (inLat) inLat.value = S.lat.toFixed(4);
+      if (inLon) inLon.value = S.lon.toFixed(4);
       syncNativeLocation();
       loadTimings();
-      showToast('📍 Координаты получены по GPS');
+      showToast(dict.gpsSuccess || '📍 Координаты получены по GPS');
     },
     err => {
-      showToast(`Ошибка GPS: ${err.message}. Введите вручную в Настройках.`, 'error');
+      console.warn('GPS location error:', err && err.message);
+      if (locEl) {
+        locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Метод: ${S.method}`;
+      }
+      showToast(dict.gpsError || 'Не удалось определить положение по GPS. Введите координаты вручную в Настройках.', 'error');
     },
     { enableHighAccuracy: true, timeout: 10000 }
   );
@@ -2688,6 +2751,9 @@ document.getElementById('btnQuizReset').onclick = () => {
 // ==========================================
 // 8c. ХИДЖРИ-КАЛЕНДАРЬ НА МЕСЯЦ
 // ==========================================
+const HIJRI_MONTHS_RU = ['', 'Мухаррам', 'Сафар', 'Раби аль-авваль', 'Раби ас-сани', 'Джумада аль-уля', 'Джумада аль-ахира', 'Раджаб', 'Шаабан', 'Рамадан', 'Шавваль', 'Зуль-каада', 'Зуль-хиджа'];
+const GREG_MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
 const CAL_LOCALES = {
   ru: {
     weekdays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
@@ -2841,7 +2907,11 @@ document.getElementById('btnCalToday').onclick = () => {
   renderHijriCalendar(n.getFullYear(), n.getMonth());
 };
 
-renderHijriCalendar(calYear, calMonth);
+try {
+  renderHijriCalendar(calYear, calMonth);
+} catch (e) {
+  console.error('Ошибка инициализации календаря:', e);
+}
 
 // ==========================================
 // 8d. МЕЧЕТИ РЯДОМ (OVERPASS API + LEAFLET + FALLBACK)
