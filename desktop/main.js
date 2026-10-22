@@ -82,7 +82,7 @@ function createWindow() {
 }
 
 function allowPermissions() {
-  const allow = new Set(['notifications', 'geolocation']);
+  const allow = new Set(['notifications', 'geolocation', 'media']);
   session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => {
     cb(allow.has(permission));
   });

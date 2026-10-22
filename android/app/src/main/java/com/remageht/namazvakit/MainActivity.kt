@@ -1,12 +1,18 @@
 package com.remageht.namazvakit
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import android.webkit.GeolocationPermissions
 import android.webkit.JavascriptInterface
+import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -116,6 +122,64 @@ class MainActivity : Activity() {
         private const val ONLINE_URL = "https://remageht.github.io/namaz-vakit/"
         private const val OFFLINE_URL = "file:///android_asset/namaz/index.html"
         private const val ALLOWED_ORIGIN = "https://remageht.github.io"
+        private const val REQ_CODE_NOTIF = 7
+        private const val REQ_CODE_LOCATION = 8
+        private const val REQ_CODE_CAMERA = 9
+    }
+
+    private var pendingGeoOrigin: String? = null
+    private var pendingGeoCallback: GeolocationPermissions.Callback? = null
+    private var pendingCameraRequest: PermissionRequest? = null
+
+    private fun showLocationSettingsDialog() {
+        val lang = Locale.getDefault().language
+        val title = when (lang) {
+            "tt" -> "Урнашуны билгеләү"
+            "en" -> "Location Permission"
+            else -> "Разрешение на геолокацию"
+        }
+        val msg = when (lang) {
+            "tt" -> "Намаз вакытларын һәм Кыбла юнәлешен төгәл билгеләү өчен геолокация кирәк. Зинһар, көйләүләрдә рөхсәт итегез."
+            "en" -> "Location access is needed to calculate accurate prayer times and Qibla direction. Please enable it in App Settings."
+            else -> "Для точного расчёта времени намаза и направления Киблы приложению требуется доступ к геолокации. Пожалуйста, включите разрешение в настройках приложения."
+        }
+        val btnSettings = when (lang) {
+            "tt" -> "Көйләүләр"
+            "en" -> "Settings"
+            else -> "Настройки"
+        }
+        val btnCancel = when (lang) {
+            "tt" -> "Баш тарту"
+            "en" -> "Cancel"
+            else -> "Отмена"
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setMessage(msg)
+            .setPositiveButton(btnSettings) { _, _ ->
+                try {
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", packageName, null)
+                    }
+                    startActivity(intent)
+                } catch (_: Exception) {
+                }
+                pendingGeoCallback?.invoke(pendingGeoOrigin, false, false)
+                pendingGeoCallback = null
+                pendingGeoOrigin = null
+            }
+            .setNegativeButton(btnCancel) { _, _ ->
+                pendingGeoCallback?.invoke(pendingGeoOrigin, false, false)
+                pendingGeoCallback = null
+                pendingGeoOrigin = null
+            }
+            .setOnCancelListener {
+                pendingGeoCallback?.invoke(pendingGeoOrigin, false, false)
+                pendingGeoCallback = null
+                pendingGeoOrigin = null
+            }
+            .show()
     }
 
     override fun onCreate(s: Bundle?) {
@@ -156,10 +220,52 @@ class MainActivity : Activity() {
                 callback: GeolocationPermissions.Callback?
             ) {
                 // App runs from bundled assets: allow file origin + our site.
-                if (origin != null && (origin.startsWith(ALLOWED_ORIGIN) || origin.startsWith("file://"))) {
-                    callback?.invoke(origin, true, false)
-                } else {
+                if (origin == null || (!origin.startsWith(ALLOWED_ORIGIN) && !origin.startsWith("file://"))) {
                     callback?.invoke(origin, false, false)
+                    return
+                }
+
+                val hasFine = checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                val hasCoarse = checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                if (hasFine || hasCoarse) {
+                    callback?.invoke(origin, true, false)
+                    return
+                }
+
+                pendingGeoOrigin = origin
+                pendingGeoCallback = callback
+
+                val prefs = getSharedPreferences("app_perms", Context.MODE_PRIVATE)
+                val requestedBefore = prefs.getBoolean("geo_requested", false)
+                val canShowRationale = shouldShowRequestPermissionRationale(android.Manifest.permission.ACCESS_FINE_LOCATION) ||
+                        shouldShowRequestPermissionRationale(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+
+                if (requestedBefore && !canShowRationale) {
+                    showLocationSettingsDialog()
+                } else {
+                    prefs.edit().putBoolean("geo_requested", true).apply()
+                    requestPermissions(
+                        arrayOf(
+                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                            android.Manifest.permission.ACCESS_COARSE_LOCATION
+                        ),
+                        REQ_CODE_LOCATION
+                    )
+                }
+            }
+
+            override fun onPermissionRequest(request: PermissionRequest?) {
+                if (request == null) return
+                val resources = request.resources ?: return
+                if (resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
+                    if (checkSelfPermission(android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                        request.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+                    } else {
+                        pendingCameraRequest = request
+                        requestPermissions(arrayOf(android.Manifest.permission.CAMERA), REQ_CODE_CAMERA)
+                    }
+                } else {
+                    request.deny()
                 }
             }
         }
@@ -219,7 +325,7 @@ class MainActivity : Activity() {
             checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
             android.content.pm.PackageManager.PERMISSION_GRANTED
         ) {
-            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 7)
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), REQ_CODE_NOTIF)
         }
         PanelService.refresh(this)
     }
@@ -230,7 +336,30 @@ class MainActivity : Activity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 7) PanelService.refresh(this)
+        when (requestCode) {
+            REQ_CODE_NOTIF -> {
+                PanelService.refresh(this)
+            }
+            REQ_CODE_LOCATION -> {
+                val granted = grantResults.isNotEmpty() && grantResults.any { it == PackageManager.PERMISSION_GRANTED }
+                if (granted) {
+                    pendingGeoCallback?.invoke(pendingGeoOrigin, true, false)
+                } else {
+                    pendingGeoCallback?.invoke(pendingGeoOrigin, false, false)
+                }
+                pendingGeoCallback = null
+                pendingGeoOrigin = null
+            }
+            REQ_CODE_CAMERA -> {
+                val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                if (granted) {
+                    pendingCameraRequest?.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+                } else {
+                    pendingCameraRequest?.deny()
+                }
+                pendingCameraRequest = null
+            }
+        }
     }
 
     @Suppress("DEPRECATION")

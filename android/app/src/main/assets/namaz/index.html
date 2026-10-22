@@ -971,13 +971,14 @@
         <div class="num" id="qiblaDistKm">—</div>
       </div>
     </div>
+    <div id="compassNorthNote" class="sub" style="margin-top:6px; margin-bottom:12px; text-align:center; font-size:11px; opacity:0.85;">Север истинный (поправка WMM2025)</div>
 
-    <button class="btn btn-gold" id="btnCompass">🧭 Включить компас (датчик устройства)</button>
+    <button class="btn btn-gold" id="btnCompass" data-i18n="compassBtnTurnOn">🧭 Включить компас (датчик устройства)</button>
 
     <div style="margin-top:14px; text-align:left;">
-      <label>Симуляция компаса вручную (0° - 360°): <span id="simVal" style="color:var(--gold); font-weight:bold;">0°</span></label>
+      <label><span data-i18n="compassSimLabel">Симуляция курса (0° - 360°):</span> <span id="simVal" style="color:var(--gold); font-weight:bold;">0°</span></label>
       <input type="range" id="simHeading" min="0" max="360" value="0">
-      <div class="sub">Если датчик ориентации недоступен на компьютере, используйте ползунок для проверки направления.</div>
+      <div class="sub" data-i18n="compassSimHint">Если датчик ориентации недоступен на компьютере, используйте ползунок для проверки направления.</div>
     </div>
   </div>
 
@@ -1305,10 +1306,15 @@
 // ==========================================
 // 1. НАВИГАЦИЯ ПО РАЗДЕЛАМ (С МЯГКИМ ПЕРЕКЛЮЧЕНИЕМ)
 // ==========================================
+let activePageId = 'p-times';
+
 function openPage(pageId) {
+  activePageId = pageId;
   if (pageId !== 'p-qibla') {
     if (typeof stopArCamera === 'function') stopArCamera();
-    if (typeof compassStopAll === 'function') compassStopAll();
+    if (typeof compassPause === 'function') compassPause();
+  } else {
+    if (typeof compassResume === 'function') compassResume();
   }
 
   // Обновление состояния вкладок навигации
@@ -1337,6 +1343,14 @@ document.querySelectorAll('button[data-page]').forEach(btn => {
   btn.onclick = () => {
     if (btn.dataset.page) openPage(btn.dataset.page);
   };
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (typeof compassPause === 'function') compassPause();
+  } else if (activePageId === 'p-qibla') {
+    if (typeof compassResume === 'function') compassResume();
+  }
 });
 
 // Toast уведомления вместо блокирующих alert
@@ -1388,6 +1402,9 @@ const store = {
 const S = {
   lat: parseFloat(store.get('lat')) || DEFAULT_LOC.lat,
   lon: parseFloat(store.get('lon')) || DEFAULT_LOC.lon,
+  acc: parseFloat(store.get('loc_acc')) || null,
+  locSource: store.get('loc_source') || (store.get('lat') ? 'manual' : 'default'),
+  locTime: parseInt(store.get('loc_time'), 10) || null,
   method: store.get('method') || '3',
   school: store.get('school') || '1',
   notif10: store.get('notif10') !== 'off',
@@ -1428,10 +1445,40 @@ const I18N = {
     dataExportTitle: 'Данные и расписание',
     nextPrayer: 'Следующий намаз',
     locAutoBtn: 'Определить автоматически (GPS)',
-    gpsDetecting: '📍 Определение положения через GPS…',
+    gpsDetecting: '📍 Определение положения…',
     gpsSuccess: '📍 Координаты получены по GPS',
+    gpsDenied: 'Доступ к геолокации запрещён. Разрешите доступ в настройках устройства или укажите координаты вручную.',
+    gpsUnavailable: 'Служба геолокации недоступна на устройстве.',
+    gpsTimeout: 'Таймаут получения координат GPS.',
     gpsError: 'Не удалось определить положение по GPS. Введите координаты вручную в Настройках.',
     gpsNotSupported: 'Геолокация не поддерживается вашим браузером',
+    locIpSuccess: '📍 Координаты определены примерно по IP',
+    locSourceGps: 'GPS',
+    locSourceIp: 'примерно по IP',
+    locSourceManual: 'вручную',
+    locSourceDefault: 'по умолчанию (Саки)',
+    compassTitle: '🧭 Компас Киблы (Кааба)',
+    compassOff: 'Компас выключен',
+    compassDetecting: 'Определение курса…',
+    compassNoSensor: 'Датчик ориентации недоступен на этом устройстве',
+    compassRelativeOnly: 'Датчик абсолютного курса недоступен. Используйте ручной ползунок ниже.',
+    compassCalibHint: '⚠️ Требуется калибровка: опишите телефоном восьмёрку в воздухе, вдали от металла и магнитов.',
+    compassInaccurate: 'Курс неточен (±{n}°). Опишите восьмёрку телефоном.',
+    compassMagneticInterference: '⚠️ Магнитные помехи рядом с устройством',
+    compassAligned: '✅ <b>На Кибле!</b> Вы смотрите прямо на Каабу',
+    compassTurnRight: 'Поверните устройство <b>вправо на {n}°</b>',
+    compassTurnLeft: 'Поверните устройство <b>влево на {n}°</b>',
+    compassTrueNorthNote: 'Север истинный (поправка WMM2025: {decl}°)',
+    compassBtnTurnOn: '🧭 Включить компас (датчик устройства)',
+    compassBtnTurnOff: '⏹ Выключить компас',
+    compassSimLabel: 'Симуляция курса (0° - 360°):',
+    compassSimHint: 'Если датчик ориентации недоступен на компьютере, используйте ползунок для проверки направления.',
+    arTurnOn: '📷 Включить камеру',
+    arTurnOff: '⏹ Отключить камеру',
+    arAligned: '✅ <b>На Кибле!</b> Вы смотрите прямо на Каабу',
+    arTurnRight: 'Поверните вправо на {n}°',
+    arTurnLeft: 'Поверните влево на {n}°',
+    arNotice: '📱 Камера недоступна (требуется HTTPS / мобильное устройство). Доступен стандартный компас с датчиком ориентации выше.',
     prayersToday: 'Молитвы сегодня',
     streak: 'Серия',
     days: 'дн.',
@@ -1474,10 +1521,40 @@ const I18N = {
     dataExportTitle: 'Мәгълүмат һәм вакытлар',
     nextPrayer: 'Чираттагы намаз',
     locAutoBtn: 'Автоматик билгеләү (GPS)',
-    gpsDetecting: '📍 GPS аша урнашуны билгеләү…',
+    gpsDetecting: '📍 Урнашуны билгеләү…',
     gpsSuccess: '📍 Координатлар GPS аша алынды',
+    gpsDenied: 'Геолокациягә рөхсәт бирелмәгән. Көйләүләрдә рөхсәт итегез яки кулдан керетегез.',
+    gpsUnavailable: 'Геолокация хезмәте бу җайланмада мөмкин түгел.',
+    gpsTimeout: 'GPS буенча вакыт узды.',
     gpsError: 'GPS аша урнашуны билгеләп булмады. Көйләүләрдә кулдан керетегез.',
     gpsNotSupported: 'Сезнең браузер геолокацияне тәэмин итми',
+    locIpSuccess: '📍 Координатлар якынча IP буенча билгеләнде',
+    locSourceGps: 'GPS',
+    locSourceIp: 'якынча IP буенча',
+    locSourceManual: 'кулдан',
+    locSourceDefault: 'гадәттәгечә (Саки)',
+    compassTitle: '🧭 Кыбла компасы (Кәгъбә)',
+    compassOff: 'Компас сүндерелгән',
+    compassDetecting: 'Курсны билгеләү…',
+    compassNoSensor: 'Ориентация датчигы бу җайланмада юк',
+    compassRelativeOnly: 'Абсолют курс датчигы юк. Түбәндәге кул көйләгечен кулланыгыз.',
+    compassCalibHint: '⚠️ Калибрлау кирәк: телефонны һавада сигезле ясап йөртегез.',
+    compassInaccurate: 'Курс төгәл түгел (±{n}°). Телефонны сигезле итеп әйләндерегез.',
+    compassMagneticInterference: '⚠️ Магнит комачаулыклары бар',
+    compassAligned: '✅ <b>Кыблада!</b> Сез туп-туры Кәгъбәгә карыйсыз',
+    compassTurnRight: 'Җайланманы <b>уңга {n}°</b> борыгыз',
+    compassTurnLeft: 'Җайланманы <b>сулга {n}°</b> борыгыз',
+    compassTrueNorthNote: 'Төньяк чын (WMM2025 төзәтмәсе: {decl}°)',
+    compassBtnTurnOn: '🧭 Компасны кабызу (җайланма датчигы)',
+    compassBtnTurnOff: '⏹ Компасны сүндерү',
+    compassSimLabel: 'Курс симуляциясе (0° - 360°):',
+    compassSimHint: 'Датчик булмаса, юнәлешне тикшерү өчен шудыргычны кулланыгыз.',
+    arTurnOn: '📷 Камераны кабызу',
+    arTurnOff: '⏹ Камераны сүндерү',
+    arAligned: '✅ <b>Кыблада!</b> Сез туп-туры Кәгъбәгә карыйсыз',
+    arTurnRight: 'Уңга {n}° борыгыз',
+    arTurnLeft: 'Сулга {n}° борыгыз',
+    arNotice: '📱 Камера мөмкин түгел. Югарыдагы стандарт компасны кулланыгыз.',
     prayersToday: 'Бүген намазлар',
     streak: 'Серия',
     days: 'көн',
@@ -1520,10 +1597,40 @@ const I18N = {
     dataExportTitle: 'Data & Schedule',
     nextPrayer: 'Next Prayer',
     locAutoBtn: 'Auto-detect location (GPS)',
-    gpsDetecting: '📍 Detecting location via GPS…',
+    gpsDetecting: '📍 Detecting location…',
     gpsSuccess: '📍 Location received via GPS',
+    gpsDenied: 'Location access denied. Please grant permission in settings or set manually.',
+    gpsUnavailable: 'Location service is unavailable on this device.',
+    gpsTimeout: 'GPS location request timed out.',
     gpsError: 'Unable to determine GPS location. Please enter coordinates manually in Settings.',
     gpsNotSupported: 'Geolocation is not supported by your browser',
+    locIpSuccess: '📍 Location estimated via IP',
+    locSourceGps: 'GPS',
+    locSourceIp: 'estimated via IP',
+    locSourceManual: 'manual',
+    locSourceDefault: 'default (Saki)',
+    compassTitle: '🧭 Qibla Compass (Kaaba)',
+    compassOff: 'Compass is off',
+    compassDetecting: 'Determining heading…',
+    compassNoSensor: 'Orientation sensor not available on this device',
+    compassRelativeOnly: 'Absolute compass sensor not available. Use manual slider below.',
+    compassCalibHint: '⚠️ Calibration required: wave your phone in a figure-8 motion away from metal.',
+    compassInaccurate: 'Heading inaccurate (±{n}°). Wave phone in figure-8.',
+    compassMagneticInterference: '⚠️ Magnetic interference nearby',
+    compassAligned: '✅ <b>On Qibla!</b> You are facing the Kaaba',
+    compassTurnRight: 'Turn device <b>right by {n}°</b>',
+    compassTurnLeft: 'Turn device <b>left by {n}°</b>',
+    compassTrueNorthNote: 'True North (WMM2025 declination: {decl}°)',
+    compassBtnTurnOn: '🧭 Turn on compass (device sensor)',
+    compassBtnTurnOff: '⏹ Turn off compass',
+    compassSimLabel: 'Heading simulation (0° - 360°):',
+    compassSimHint: 'If orientation sensor is unavailable on computer, use the slider to check direction.',
+    arTurnOn: '📷 Start camera',
+    arTurnOff: '⏹ Stop camera',
+    arAligned: '✅ <b>On Qibla!</b> You are facing the Kaaba',
+    arTurnRight: 'Turn right by {n}°',
+    arTurnLeft: 'Turn left by {n}°',
+    arNotice: '📱 Camera not available. Standard compass with orientation sensor is available above.',
     prayersToday: 'Today\'s Prayers',
     streak: 'Streak',
     days: 'days',
@@ -1573,6 +1680,8 @@ function setAppLang(lang) {
     if (dict[k]) el.textContent = dict[k];
   });
 
+  if (typeof updateLocInfoDisplay === 'function') updateLocInfoDisplay();
+  if (typeof renderCompass === 'function') renderCompass();
   if (nextPrayer) calcNext();
   if (timings) renderPrayerList();
   if (typeof renderPrayerStats === 'function') renderPrayerStats();
@@ -1603,8 +1712,7 @@ function todayStr(offsetDays = 0) {
 // 3. ЗАГРУЗКА РАСПИСАНИЯ (ALADHAN API + ОФЛАЙН-ФОЛЛБЭК)
 // ==========================================
 async function loadTimings() {
-  const locEl = document.getElementById('locInfo');
-  if (locEl) locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Метод ${S.method} • Загрузка…`;
+  updateLocInfoDisplay();
 
   // Показываем дату и Хиджру сразу локально, не дожидаясь ответа сети
   const now = new Date();
@@ -1659,12 +1767,11 @@ async function loadTimings() {
     calcNext();
     renderPrayerList();
     updateQiblaInfo();
-
-    if (locEl) locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Метод: ${S.method} • Обновлено: ${new Date().toLocaleTimeString()}`;
+    updateLocInfoDisplay();
   } catch (err) {
     clearTimeout(timeoutId);
     console.warn('Ошибка загрузки Aladhan API, переключение на офлайн-расчёт:', err);
-    if (locEl) locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Автономный расчёт`;
+    updateLocInfoDisplay();
     try {
       if (typeof calcOfflinePrayerTimes === 'function') {
         const off = calcOfflinePrayerTimes(S.lat, S.lon, new Date(), parseInt(S.method, 10), parseInt(S.school, 10));
@@ -1890,6 +1997,7 @@ document.getElementById('btnTest0').onclick = () => {
 };
 
 // ==========================================
+// ==========================================
 // 5. ГЕОЛОКАЦИЯ И НАСТРОЙКИ
 // ==========================================
 function syncNativeLocation() {
@@ -1900,53 +2008,203 @@ function syncNativeLocation() {
   } catch (e) {}
 }
 
-document.getElementById('btnGeo').onclick = () => {
+function formatLocationInfo() {
   const dict = I18N[currentLang] || I18N.ru;
-  if (!navigator.geolocation) {
-    showToast(dict.gpsNotSupported || 'Геолокация не поддерживается вашим браузером', 'error');
-    return;
+  const latStr = S.lat.toFixed(4);
+  const lonStr = S.lon.toFixed(4);
+  let srcStr = dict.locSourceDefault || 'по умолчанию (Саки)';
+  if (S.locSource === 'gps') {
+    srcStr = dict.locSourceGps || 'GPS';
+  } else if (S.locSource === 'ip') {
+    srcStr = dict.locSourceIp || 'примерно по IP';
+  } else if (S.locSource === 'manual') {
+    srcStr = dict.locSourceManual || 'вручную';
   }
-  const locEl = document.getElementById('locInfo');
-  if (locEl) locEl.textContent = dict.gpsDetecting || '📍 Определение положения через GPS…';
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      S.lat = pos.coords.latitude;
-      S.lon = pos.coords.longitude;
-      store.set('lat', S.lat);
-      store.set('lon', S.lon);
-      const inLat = document.getElementById('inLat');
-      const inLon = document.getElementById('inLon');
-      if (inLat) inLat.value = S.lat.toFixed(4);
-      if (inLon) inLon.value = S.lon.toFixed(4);
-      syncNativeLocation();
-      loadTimings();
-      showToast(dict.gpsSuccess || '📍 Координаты получены по GPS');
-    },
-    err => {
-      console.warn('GPS location error:', err && err.message);
-      if (locEl) {
-        locEl.textContent = `📍 ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} • Метод: ${S.method}`;
-      }
-      showToast(dict.gpsError || 'Не удалось определить положение по GPS. Введите координаты вручную в Настройках.', 'error');
-    },
-    { enableHighAccuracy: true, timeout: 10000 }
-  );
-};
+  let accStr = '';
+  if (S.acc && S.locSource === 'gps') {
+    const accM = Math.round(S.acc);
+    accStr = ` · ±${accM} м`;
+  }
+  return `📍 ${latStr}, ${lonStr}${accStr} · ${srcStr}`;
+}
 
-function setCity(lat, lon, name) {
-  document.getElementById('inLat').value = lat;
-  document.getElementById('inLon').value = lon;
+function updateLocInfoDisplay() {
+  const locEl = document.getElementById('locInfo');
+  if (locEl) locEl.textContent = formatLocationInfo();
+}
+
+function saveLocationFix(lat, lon, acc, source) {
   S.lat = lat;
   S.lon = lon;
-  store.set('lat', lat);
-  store.set('lon', lon);
+  S.acc = (acc !== null && acc !== undefined && !isNaN(acc)) ? acc : null;
+  S.locSource = source;
+  S.locTime = Date.now();
+  store.set('lat', S.lat);
+  store.set('lon', S.lon);
+  if (S.acc !== null) store.set('loc_acc', S.acc);
+  else try { window['localStorage'].removeItem('loc_acc'); } catch (e) {}
+  store.set('loc_source', S.locSource);
+  store.set('loc_time', S.locTime);
+
+  const inLat = document.getElementById('inLat');
+  const inLon = document.getElementById('inLon');
+  if (inLat) inLat.value = S.lat.toFixed(4);
+  if (inLon) inLon.value = S.lon.toFixed(4);
+
+  updateLocInfoDisplay();
   syncNativeLocation();
   loadTimings();
+}
+
+function getBestLocation(options = {}) {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      return reject({ code: 2, message: 'Geolocation not supported' });
+    }
+
+    let watchId = null;
+    let timer = null;
+    let bestFix = null;
+    let fixCount = 0;
+    const maxFixes = 3;
+    const targetAccuracy = 50; // meters target
+    const timeoutMs = options.timeout || 12000;
+
+    function cleanup() {
+      if (watchId !== null) {
+        try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
+        watchId = null;
+      }
+      if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    }
+
+    function finish(fix, lastErr) {
+      cleanup();
+      if (fix && fix.coords) {
+        resolve({
+          lat: fix.coords.latitude,
+          lon: fix.coords.longitude,
+          accuracy: fix.coords.accuracy,
+          source: 'gps'
+        });
+      } else if (lastErr) {
+        reject(lastErr);
+      } else {
+        reject({ code: 3, message: 'Timeout acquiring GPS coordinates' });
+      }
+    }
+
+    timer = setTimeout(() => {
+      finish(bestFix, bestFix ? null : { code: 3, message: 'Timeout' });
+    }, timeoutMs);
+
+    try {
+      watchId = navigator.geolocation.watchPosition(
+        pos => {
+          if (!pos || !pos.coords) return;
+          fixCount++;
+          const acc = pos.coords.accuracy || 9999;
+          if (!bestFix || acc < (bestFix.coords.accuracy || 9999)) {
+            bestFix = pos;
+          }
+          if (acc <= targetAccuracy || fixCount >= maxFixes) {
+            finish(bestFix, null);
+          }
+        },
+        err => {
+          if (err && err.code === 1) { // PERMISSION_DENIED
+            finish(null, { code: 1, message: 'Permission denied' });
+          } else if (bestFix) {
+            finish(bestFix, null);
+          } else if (fixCount === 0 && err && err.code === 2) {
+            finish(null, { code: 2, message: 'Position unavailable' });
+          }
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: timeoutMs }
+      );
+    } catch (e) {
+      cleanup();
+      reject({ code: 2, message: e.message || 'Geolocation error' });
+    }
+  });
+}
+
+async function getLocationByIp() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch('https://ipwho.is/', { signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data && data.success && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+      return {
+        lat: data.latitude,
+        lon: data.longitude,
+        accuracy: null,
+        source: 'ip'
+      };
+    }
+    throw new Error('Invalid IP geo response');
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
+}
+
+async function requestLocation() {
+  const btn = document.getElementById('btnGeo');
+  const dict = I18N[currentLang] || I18N.ru;
+  const locEl = document.getElementById('locInfo');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = dict.gpsDetecting || '📍 Определение…';
+  }
+  if (locEl) locEl.textContent = dict.gpsDetecting || '📍 Определение положения…';
+
+  try {
+    const fix = await getBestLocation({ timeout: 12000 });
+    saveLocationFix(fix.lat, fix.lon, fix.accuracy, 'gps');
+    const accM = Math.round(fix.accuracy || 0);
+    showToast(`${dict.gpsSuccess || '📍 Координаты получены по GPS'}${accM ? ` (±${accM} м)` : ''}`);
+  } catch (err) {
+    console.warn('GPS location failed (code ' + (err && err.code) + '):', err && err.message);
+    if (err && err.code === 1) {
+      showToast(dict.gpsDenied || 'Доступ к геолокации запрещён. Введите координаты вручную в Настройках.', 'error');
+      updateLocInfoDisplay();
+    } else {
+      // Position unavailable (2) or timeout (3): try IP fallback
+      try {
+        const ipFix = await getLocationByIp();
+        saveLocationFix(ipFix.lat, ipFix.lon, null, 'ip');
+        showToast(dict.locIpSuccess || '📍 Координаты определены примерно по IP');
+      } catch (ipErr) {
+        console.warn('IP fallback failed:', ipErr && ipErr.message);
+        showToast(dict.gpsError || 'Не удалось определить положение по GPS. Введите координаты вручную в Настройках.', 'error');
+        updateLocInfoDisplay();
+      }
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '📍 GPS';
+    }
+  }
+}
+
+document.getElementById('btnGeo').onclick = requestLocation;
+
+function setCity(lat, lon, name) {
+  saveLocationFix(lat, lon, null, 'manual');
   showToast(`Город установлен: ${name}`);
 }
 
-document.getElementById('inLat').value = S.lat;
-document.getElementById('inLon').value = S.lon;
+document.getElementById('inLat').value = S.lat.toFixed(4);
+document.getElementById('inLon').value = S.lon.toFixed(4);
 document.getElementById('inMethod').value = S.method;
 document.getElementById('inSchool').value = S.school;
 
@@ -1957,23 +2215,17 @@ document.getElementById('btnSave').onclick = () => {
     showToast('Введите корректные числовые координаты широты и долготы', 'error');
     return;
   }
-  S.lat = latVal;
-  S.lon = lonVal;
   S.method = document.getElementById('inMethod').value;
   S.school = document.getElementById('inSchool').value;
-
-  store.set('lat', S.lat);
-  store.set('lon', S.lon);
   store.set('method', S.method);
   store.set('school', S.school);
 
-  syncNativeLocation();
-  loadTimings();
+  saveLocationFix(latVal, lonVal, null, 'manual');
   showToast('Настройки сохранены и расписание обновлено!');
 };
 
 // ==========================================
-// 6. КИБЛА И КОМПАС (СФЕРИЧЕСКАЯ ТРИГОНОМЕТРИЯ)
+// 6. КИБЛА И КОМПАС (WMM2025 + TILT-COMPENSATION)
 // ==========================================
 const KAABA = { lat: 21.422487, lon: 39.826206 };
 
@@ -1992,66 +2244,273 @@ function calcQiblaBearing(lat, lon) {
 }
 
 function calcQiblaDist(lat, lon) {
-  const R = 6371; // радиус Земли в км
+  const R = 6371; // Earth radius km
   const dLat = toRad(KAABA.lat - lat);
   const dLon = toRad(KAABA.lon - lon);
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat)) * Math.cos(toRad(KAABA.lat)) * Math.sin(dLon / 2) ** 2;
   return Math.round(2 * R * Math.asin(Math.sqrt(a)));
 }
 
+// Compact WMM2025 Spherical Harmonics model for offline magnetic declination
+const WMM2025_COEFF = {
+  epoch: 2025.0,
+  n_max: 12,
+  n_sec: 12,
+  g: [0,-29351.8,-1410.8,-2556.6,2951.1,1649.3,1361,-2404.1,1243.8,453.6,895,799.5,55.7,-281.1,12.1,-233.2,368.9,187.2,-138.7,-142,20.9,64.4,63.8,76.9,-115.7,-40.9,14.9,-60.7,79.5,-77,-8.8,59.3,15.8,2.5,-11.1,14.2,23.2,10.8,-17.5,2,-21.7,16.9,15,-16.8,0.9,4.6,7.8,3,-0.2,-2.5,-13.1,2.4,8.6,-8.7,-12.9,-1.3,-6.4,0.2,2,-1,-0.6,-0.9,1.5,0.9,-2.7,-3.9,2.9,-1.5,-2.5,2.4,-0.6,-0.1,-0.6,-0.1,1.1,-1,-0.2,2.6,-2,-0.2,0.3,1.2,-1.3,0.6,0.6,0.5,-0.1,-0.4,-0.2,-1.3,-0.7],
+  h: [0,0,4545.4,0,-3133.6,-815.1,0,-56.6,237.5,-549.5,0,278.6,-133.9,212,-375.6,0,45.4,220.2,-122.9,43,106.1,0,-18.4,16.8,48.8,-59.8,10.9,72.7,0,-48.9,-14.4,-1,23.4,-7.4,-25.1,-2.3,0,7.1,-12.6,11.4,-9.7,12.7,0.7,-5.2,3.9,0,-24.8,12.2,8.3,-3.3,-5.2,7.2,-0.6,0.8,10,0,3.3,0,2.4,5.3,-9.1,0.4,-4.2,-3.8,0.9,-9.1,0,0,2.9,-0.6,0.2,0.5,-0.3,-1.2,-1.7,-2.9,-1.8,-2.3,0,-1.3,0.7,1,-1.4,0,0.6,-0.1,0.8,0.1,-1,0.1,0.2],
+  dg: [0,12,9.7,-11.6,-5.2,-8,-1.3,-4.2,0.4,-15.6,-1.6,-2.4,-6,5.6,-7,0.6,1.4,0,0.6,2.2,0.9,-0.2,-0.4,0.9,1.2,-0.9,0.3,0.9,0,-0.1,-0.1,0.5,-0.1,-0.8,-0.8,0.8,-0.1,0.2,0,0.5,-0.1,0.3,0.2,0,0.2,0,-0.1,0.1,0.3,-0.3,0,0.3,-0.1,0.1,-0.1,0.1,0,0.1,0.1,0,-0.3,0,-0.1,-0.1,0,0,0,0,0,0,0,-0.1,0,0,-0.1,-0.1,-0.1,-0.1,0,0,0,0,0,0,0.1,0,0,0,-0.1,0,-0.1],
+  dh: [0,0,-21.5,0,-27.7,-12.1,0,4,-0.3,-4.1,0,-1.1,4.1,1.6,-4.4,0,-0.5,2.2,0.4,1.7,1.9,0,0.3,-1.6,-0.4,0.9,0.7,0.9,0,0.6,0.5,-0.8,0,-1,0.6,-0.2,0,-0.2,0.5,-0.4,0.4,-0.5,-0.6,0.3,0.2,0,-0.3,0.3,-0.3,0.3,0.2,-0.1,-0.2,0.4,0.1,0,0,0,-0.2,0.1,-0.1,0.1,0,-0.1,0.2,0,0,0,0.1,0,0.1,0,0,0.1,0,0,0,0,0,0,0,-0.1,0.1,0,0,0,0,0,0,0,-0.1]
+};
+
+function calcMagneticDeclination(lat, lon, date = new Date()) {
+  const epoch = WMM2025_COEFF.epoch;
+  const year_int = date.getUTCFullYear();
+  const frac_year = (date.valueOf() - Date.UTC(year_int, 0, 1)) / (1000 * 3600 * 24 * 365.25);
+  const dyear = (year_int + frac_year) - epoch;
+
+  const n_max = WMM2025_COEFF.n_max;
+  const n_sec = WMM2025_COEFF.n_sec;
+  const bTerms = n_sec * (n_sec + 1) / 2 + n_sec;
+
+  const g = [];
+  const h = [];
+  for (let n = 1; n <= n_max; n++) {
+    for (let m = 0; m <= n; m++) {
+      const i = n * (n + 1) / 2 + m;
+      const g0 = WMM2025_COEFF.g[i] || 0;
+      const h0 = WMM2025_COEFF.h[i] || 0;
+      const dg = WMM2025_COEFF.dg[i] || 0;
+      const dh = WMM2025_COEFF.dh[i] || 0;
+      if (i <= bTerms) {
+        g[i] = g0 + dyear * dg;
+        h[i] = h0 + dyear * dh;
+      } else {
+        g[i] = g0;
+        h[i] = h0;
+      }
+    }
+  }
+
+  const rad = Math.PI / 180;
+  const coslat = Math.cos(lat * rad);
+  const sinlat = Math.sin(lat * rad);
+  const a_ell = 6378.137;
+  const b_ell = 6356.7523142;
+  const epssq = 1 - (b_ell * b_ell) / (a_ell * a_ell);
+  const rc = a_ell / Math.sqrt(1 - epssq * sinlat * sinlat);
+  const xp = rc * coslat;
+  const zp = rc * (1 - epssq) * sinlat;
+  const r_sph = Math.sqrt(xp * xp + zp * zp);
+  const phig = (180 / Math.PI) * Math.asin(zp / r_sph);
+
+  const x = Math.sin(phig * rad);
+  const z = Math.sqrt((1 - x) * (1 + x));
+  const pcup = [1.0];
+  const dpcup = [0.0];
+  const schmidt = [1.0];
+
+  for (let n = 1; n <= n_max; n++) {
+    for (let m = 0; m <= n; m++) {
+      const i = n * (n + 1) / 2 + m;
+      if (n === m) {
+        const i1 = (n - 1) * n / 2 + m - 1;
+        pcup[i] = z * pcup[i1];
+        dpcup[i] = z * dpcup[i1] + x * pcup[i1];
+      } else if (n === 1 && m === 0) {
+        const i1 = (n - 1) * n / 2 + m;
+        pcup[i] = x * pcup[i1];
+        dpcup[i] = x * dpcup[i1] - z * pcup[i1];
+      } else {
+        const i1 = (n - 2) * (n - 1) / 2 + m;
+        const i2 = (n - 1) * n / 2 + m;
+        if (m > n - 2) {
+          pcup[i] = x * pcup[i2];
+          dpcup[i] = x * dpcup[i2] - z * pcup[i2];
+        } else {
+          const k = ((n - 1) * (n - 1) - m * m) / ((2 * n - 1) * (2 * n - 3));
+          pcup[i] = x * pcup[i2] - k * pcup[i1];
+          dpcup[i] = x * dpcup[i2] - z * pcup[i2] - k * dpcup[i1];
+        }
+      }
+    }
+  }
+
+  for (let n = 1; n <= n_max; n++) {
+    const i = n * (n + 1) / 2;
+    const i1 = (n - 1) * n / 2;
+    schmidt[i] = schmidt[i1] * (2 * n - 1) / n;
+    for (let m = 1; m <= n; m++) {
+      const idx = n * (n + 1) / 2 + m;
+      const idx1 = n * (n + 1) / 2 + m - 1;
+      schmidt[idx] = schmidt[idx1] * Math.sqrt(((n - m + 1) * (m === 1 ? 2 : 1)) / (n + m));
+    }
+  }
+
+  for (let n = 1; n <= n_max; n++) {
+    for (let m = 0; m <= n; m++) {
+      const i = n * (n + 1) / 2 + m;
+      pcup[i] *= schmidt[i];
+      dpcup[i] *= -schmidt[i];
+    }
+  }
+
+  const cos_lambda = Math.cos(rad * lon);
+  const sin_lambda = Math.sin(rad * lon);
+  const cos_mlambda = [1.0, cos_lambda];
+  const sin_mlambda = [0.0, sin_lambda];
+  const rel_r_power = [(6371.2 / r_sph) ** 2];
+
+  for (let n = 1; n <= n_max; n++) rel_r_power[n] = rel_r_power[n - 1] * (6371.2 / r_sph);
+  for (let m = 2; m <= n_max; m++) {
+    cos_mlambda[m] = cos_mlambda[m - 1] * cos_lambda - sin_mlambda[m - 1] * sin_lambda;
+    sin_mlambda[m] = cos_mlambda[m - 1] * sin_lambda + sin_mlambda[m - 1] * cos_lambda;
+  }
+
+  let bx = 0, by = 0, bz = 0;
+  for (let n = 1; n <= n_max; n++) {
+    for (let m = 0; m <= n; m++) {
+      const i = n * (n + 1) / 2 + m;
+      bz -= rel_r_power[n] * (g[i] * cos_mlambda[m] + h[i] * sin_mlambda[m]) * (n + 1) * pcup[i];
+      by += rel_r_power[n] * (g[i] * sin_mlambda[m] - h[i] * cos_mlambda[m]) * m * pcup[i];
+      bx -= rel_r_power[n] * (g[i] * cos_mlambda[m] + h[i] * sin_mlambda[m]) * dpcup[i];
+    }
+  }
+
+  const cos_phig = Math.cos(rad * phig);
+  if (Math.abs(cos_phig) > 1e-10) by = by / cos_phig;
+
+  const psi = rad * (phig - lat);
+  const bx_geo = bx * Math.cos(psi) - bz * Math.sin(psi);
+  const by_geo = by;
+  return (180 / Math.PI) * Math.atan2(by_geo, bx_geo);
+}
+
+function getScreenOrientationAngle() {
+  if (typeof window !== 'undefined' && window.screen && window.screen.orientation && typeof window.screen.orientation.angle === 'number') {
+    return window.screen.orientation.angle;
+  }
+  if (typeof window !== 'undefined' && typeof window.orientation === 'number') {
+    return window.orientation;
+  }
+  return 0;
+}
+
+function calcTiltCompensatedHeading(alpha, beta, gamma) {
+  const degToRad = Math.PI / 180;
+  const a = (alpha || 0) * degToRad;
+  const b = (beta || 0) * degToRad;
+  const g = (gamma || 0) * degToRad;
+
+  const cA = Math.cos(a), sA = Math.sin(a);
+  const cB = Math.cos(b), sB = Math.sin(b);
+  const cG = Math.cos(g), sG = Math.sin(g);
+
+  // Rotation matrix components R = Rz(a) * Rx(b) * Ry(g)
+  const r12 = -sA * cB;
+  const r22 = cA * cB;
+  const r13 = cA * sG + sA * sB * cG;
+  const r23 = sA * sG - cA * sB * cG;
+
+  // Forward vector sightline projection on ground
+  const Vx = r12 * cB - r13 * sB;
+  const Vy = r22 * cB - r23 * sB;
+
+  let heading = (180 / Math.PI) * Math.atan2(Vx, Vy);
+  heading = ((heading % 360) + 360) % 360;
+
+  // Compensate for screen orientation
+  const screenAngle = getScreenOrientationAngle();
+  heading = ((heading + screenAngle) % 360 + 360) % 360;
+
+  return heading;
+}
+
 let deviceHeading = 0;
 let qiblaBearingDeg = 0;
+let currentMagneticDeclination = 0;
 
 function updateQiblaInfo() {
   qiblaBearingDeg = calcQiblaBearing(S.lat, S.lon);
   const dist = calcQiblaDist(S.lat, S.lon);
+  currentMagneticDeclination = calcMagneticDeclination(S.lat, S.lon);
 
-  document.getElementById('qiblaDeg').textContent = qiblaBearingDeg.toFixed(1) + '°';
-  document.getElementById('qiblaDistKm').textContent = `${dist} км`;
+  const qDegEl = document.getElementById('qiblaDeg');
+  const qDistEl = document.getElementById('qiblaDistKm');
+  const noteEl = document.getElementById('compassNorthNote');
+  const dict = I18N[currentLang] || I18N.ru;
+
+  if (qDegEl) qDegEl.textContent = qiblaBearingDeg.toFixed(1) + '°';
+  if (qDistEl) qDistEl.textContent = `${dist} км`;
+  if (noteEl) {
+    const declSign = currentMagneticDeclination >= 0 ? '+' : '';
+    const declText = declSign + currentMagneticDeclination.toFixed(1);
+    noteEl.textContent = (dict.compassTrueNorthNote || 'Север истинный (поправка WMM2025: {decl}°)').replace('{decl}', declText);
+  }
 
   renderCompass();
 }
 
-function renderCompass() {
+function renderCompass(sensorAccuracy = null) {
+  const dict = I18N[currentLang] || I18N.ru;
+
   // Относительный угол поворота стрелки к Кибле
   const relAngle = (qiblaBearingDeg - deviceHeading + 360) % 360;
   // Кратчайшее отклонение
   const minDelta = relAngle > 180 ? 360 - relAngle : relAngle;
+  const deltaRounded = Math.round(minDelta);
+  const deltaSign = (deltaRounded === 0) ? '' : (relAngle > 180 ? '-' : '+');
 
-  document.getElementById('headingVal').textContent = Math.round(deviceHeading) + '°';
-  document.getElementById('deltaVal').textContent = (relAngle > 180 ? '-' : '+') + Math.round(minDelta) + '°';
+  const headingEl = document.getElementById('headingVal');
+  const deltaEl = document.getElementById('deltaVal');
+  const dialEl = document.getElementById('dial');
+  const qiblaArrowEl = document.getElementById('qiblaArrow');
+
+  if (headingEl) headingEl.textContent = Math.round(deviceHeading) + '°';
+  if (deltaEl) deltaEl.textContent = deltaSign + deltaRounded + '°';
 
   // Поворот шкалы компаса относительно севера
-  document.getElementById('dial').style.transform = `rotate(${-deviceHeading}deg)`;
+  if (dialEl) dialEl.style.transform = `rotate(${-deviceHeading}deg)`;
   // Поворот стрелки Киблы относительно устройства
-  document.getElementById('qiblaArrow').style.transform = `translate(-50%, -100%) rotate(${relAngle}deg)`;
+  if (qiblaArrowEl) qiblaArrowEl.style.transform = `translate(-50%, -100%) rotate(${relAngle}deg)`;
 
   const statusEl = document.getElementById('qiblaStatusBox');
-  if (minDelta < 8) {
-    statusEl.className = 'qibla-status aligned';
-    statusEl.innerHTML = '✅ <b>На Кибле!</b> Вы смотрите прямо на Каабу';
-  } else {
-    statusEl.className = 'qibla-status';
-    const turnDir = relAngle > 180 ? 'влево' : 'вправо';
-    statusEl.innerHTML = `Поверните устройство <b>${turnDir} на ${Math.round(minDelta)}°</b>`;
+  if (statusEl) {
+    if (!compassIsRunning && !compassSimulating) {
+      statusEl.className = 'qibla-status';
+      statusEl.innerHTML = dict.compassOff || 'Компас выключен';
+    } else if (sensorAccuracy !== null && sensorAccuracy < 0) {
+      statusEl.className = 'qibla-status';
+      statusEl.innerHTML = dict.compassCalibHint || '⚠️ Требуется калибровка: опишите телефоном восьмёрку в воздухе';
+    } else if (sensorAccuracy !== null && sensorAccuracy > 15) {
+      statusEl.className = 'qibla-status';
+      statusEl.innerHTML = (dict.compassInaccurate || 'Курс неточен (±{n}°). Опишите восьмёрку телефоном.').replace('{n}', Math.round(sensorAccuracy));
+    } else if (minDelta < 8) {
+      statusEl.className = 'qibla-status aligned';
+      statusEl.innerHTML = dict.compassAligned || '✅ <b>На Кибле!</b> Вы смотрите прямо на Каабу';
+    } else {
+      statusEl.className = 'qibla-status';
+      const tpl = relAngle > 180 ? (dict.compassTurnLeft || 'Поверните устройство <b>влево на {n}°</b>') : (dict.compassTurnRight || 'Поверните устройство <b>вправо на {n}°</b>');
+      statusEl.innerHTML = tpl.replace('{n}', deltaRounded);
+    }
   }
 
   // Обновление наложения в AR-режиме
-  updateArOverlay(relAngle, minDelta);
+  updateArOverlay(relAngle, minDelta, deltaRounded);
 }
 
-function updateArOverlay(relAngle, minDelta) {
+function updateArOverlay(relAngle, minDelta, deltaRounded) {
   const arArrow = document.getElementById('arArrow');
   const arBadge = document.getElementById('arBadge');
+  const dict = I18N[currentLang] || I18N.ru;
   if (!arArrow || !arBadge) return;
   arArrow.style.transform = `rotate(${relAngle}deg)`;
   if (minDelta < 8) {
     arBadge.style.background = 'rgba(34,197,94,0.92)';
-    arBadge.innerHTML = '✅ <b>На Кибле!</b> Вы смотрите прямо на Каабу';
+    arBadge.innerHTML = dict.arAligned || '✅ <b>На Кибле!</b> Вы смотрите прямо на Каабу';
   } else {
     arBadge.style.background = 'rgba(6,40,31,0.85)';
-    const turnDir = relAngle > 180 ? 'влево' : 'вправо';
-    arBadge.innerHTML = `Поверните ${turnDir} на ${Math.round(minDelta)}°`;
+    const tpl = relAngle > 180 ? (dict.arTurnLeft || 'Поверните влево на {n}°') : (dict.arTurnRight || 'Поверните вправо на {n}°');
+    arBadge.innerHTML = tpl.replace('{n}', deltaRounded);
   }
 }
 
@@ -2062,19 +2521,15 @@ async function toggleArCamera() {
   const container = document.getElementById('arContainer');
   const notice = document.getElementById('arFallbackNotice');
   const video = document.getElementById('arVideo');
+  const dict = I18N[currentLang] || I18N.ru;
 
   if (arMediaStream) {
-    arMediaStream.getTracks().forEach(t => t.stop());
-    arMediaStream = null;
-    video.srcObject = null;
-    container.style.display = 'none';
-    notice.style.display = 'none';
-    btn.textContent = '📷 Включить камеру';
+    stopArCamera();
     return;
   }
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    notice.style.display = 'block';
+    if (notice) notice.style.display = 'block';
     return;
   }
 
@@ -2084,57 +2539,97 @@ async function toggleArCamera() {
       audio: false
     });
     arMediaStream = stream;
-    video.srcObject = stream;
-    container.style.display = 'block';
-    notice.style.display = 'none';
-    btn.textContent = '⏹ Отключить камеру';
+    if (video) video.srcObject = stream;
+    if (container) container.style.display = 'block';
+    if (notice) notice.style.display = 'none';
+    if (btn) btn.textContent = dict.arTurnOff || '⏹ Отключить камеру';
     renderCompass();
-  } catch(err) {
+  } catch (err) {
     console.warn('AR camera access failed:', err);
-    notice.style.display = 'block';
-    container.style.display = 'none';
-    btn.textContent = '📷 Включить камеру';
+    if (notice) notice.style.display = 'block';
+    if (container) container.style.display = 'none';
+    if (btn) btn.textContent = dict.arTurnOn || '📷 Включить камеру';
   }
+}
+
+function stopArCamera() {
+  const btn = document.getElementById('btnToggleAr');
+  const container = document.getElementById('arContainer');
+  const notice = document.getElementById('arFallbackNotice');
+  const video = document.getElementById('arVideo');
+  const dict = I18N[currentLang] || I18N.ru;
+
+  if (arMediaStream) {
+    try {
+      arMediaStream.getTracks().forEach(t => t.stop());
+    } catch (e) {}
+    arMediaStream = null;
+  }
+  if (video) video.srcObject = null;
+  if (container) container.style.display = 'none';
+  if (notice) notice.style.display = 'none';
+  if (btn) btn.textContent = dict.arTurnOn || '📷 Включить камеру';
 }
 
 document.getElementById('btnToggleAr').onclick = toggleArCamera;
 
+let compassSimulating = false;
 document.getElementById('simHeading').oninput = e => {
-  deviceHeading = parseFloat(e.target.value);
-  compassSmoothedDeg = deviceHeading;
-  compassLastRenderedDeg = deviceHeading;
+  compassSimulating = true;
+  const val = parseFloat(e.target.value);
+  deviceHeading = val;
+  compassSmoothedDeg = val;
+  compassLastRenderedDeg = val;
   compassJitterReset();
-  document.getElementById('simVal').textContent = deviceHeading + '°';
+  const simV = document.getElementById('simVal');
+  if (simV) simV.textContent = Math.round(val) + '°';
   renderCompass();
 };
 
-// --- Компас Киблы: один активный слушатель + low-pass + deadband + подсказка калибровки ---
-var compassActiveType = null;
-var compassGotData = false;
-var compassFallbackTimer = null;
-var compassSmoothedDeg = null;
-var compassLastRenderedDeg = null;
-var compassJitterEvents = [];
-var compassCalibShownAt = 0;
+// --- Сглаживание компаса: круговая медиана из 3 отсчётов + адаптивный low-pass + deadband 1° ---
+let compassIsRunning = false;
+let compassActiveType = null;
+let compassGotData = false;
+let compassFallbackTimer = null;
+let compassSmoothedDeg = null;
+let compassLastRenderedDeg = null;
+let compassJitterEvents = [];
+let compassCalibShownAt = 0;
+const compassRecentHeadings = [];
+
+function circularMedian3(headings) {
+  if (headings.length === 0) return 0;
+  if (headings.length === 1) return headings[0];
+  if (headings.length === 2) {
+    const d = ((((headings[1] - headings[0] + 540) % 360 + 360) % 360) - 180);
+    return ((((headings[0] + d * 0.5) % 360) + 360) % 360);
+  }
+  const a0 = headings[0];
+  const d1 = ((((headings[1] - a0 + 540) % 360 + 360) % 360) - 180);
+  const d2 = ((((headings[2] - a0 + 540) % 360 + 360) % 360) - 180);
+  const sorted = [0, d1, d2].sort((a, b) => a - b);
+  return ((((a0 + sorted[1]) % 360) + 360) % 360);
+}
 
 function compassAngDiff(a, b) {
   return Math.abs((((a - b + 540) % 360 + 360) % 360) - 180);
 }
 
 function compassLerpAngle(prev, next, alpha) {
-  var d = ((((next - prev + 540) % 360 + 360) % 360) - 180);
+  const d = ((((next - prev + 540) % 360 + 360) % 360) - 180);
   return ((((prev + d * alpha) % 360) + 360) % 360);
 }
 
 function compassEnsureCalibHint() {
-  var box = document.getElementById('qiblaStatusBox');
-  var hint = document.getElementById('compassCalibHint');
+  const box = document.getElementById('qiblaStatusBox');
+  let hint = document.getElementById('compassCalibHint');
+  const dict = I18N[currentLang] || I18N.ru;
   if (!hint && box && box.parentNode) {
     hint = document.createElement('div');
     hint.id = 'compassCalibHint';
     hint.className = 'sub';
     hint.style.cssText = 'margin-top:8px;padding:10px;border-radius:10px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.5);font-size:13px;line-height:1.4;';
-    hint.textContent = '⚠️ Стрелка дрожит? Откалибруйте компас: опишите восьмёрку телефоном в воздухе, вдали от металла и магнитов.';
+    hint.textContent = dict.compassCalibHint || '⚠️ Требуется калибровка: опишите телефоном восьмёрку в воздухе, вдали от металла и магнитов.';
     hint.style.display = 'none';
     box.parentNode.insertBefore(hint, box.nextSibling);
   }
@@ -2144,43 +2639,62 @@ function compassEnsureCalibHint() {
 function compassJitterReset() {
   compassJitterEvents = [];
   compassCalibShownAt = 0;
-  var h = document.getElementById('compassCalibHint');
+  const h = document.getElementById('compassCalibHint');
   if (h) h.style.display = 'none';
 }
 
 function compassNoteRaw(raw) {
-  var now = Date.now();
-  var base = (compassSmoothedDeg === null) ? raw : compassSmoothedDeg;
-  var jump = compassAngDiff(raw, base);
+  const now = Date.now();
+  const base = (compassSmoothedDeg === null) ? raw : compassSmoothedDeg;
+  const jump = compassAngDiff(raw, base);
   if (jump > 25) compassJitterEvents.push(now);
-  compassJitterEvents = compassJitterEvents.filter(function (t) { return (now - t) < 3000; });
+  compassJitterEvents = compassJitterEvents.filter(t => (now - t) < 3000);
   if (compassJitterEvents.length >= 5) {
-    var hint = compassEnsureCalibHint();
+    const hint = compassEnsureCalibHint();
     if (hint) hint.style.display = 'block';
     compassCalibShownAt = now;
     compassJitterEvents = [];
   } else if (compassCalibShownAt && (now - compassCalibShownAt) > 8000) {
-    var h2 = document.getElementById('compassCalibHint');
+    const h2 = document.getElementById('compassCalibHint');
     if (h2) h2.style.display = 'none';
     compassCalibShownAt = 0;
   }
 }
 
-function compassApplyHeading(raw) {
-  raw = (((raw % 360) + 360) % 360);
-  compassNoteRaw(raw);
-  if (compassSmoothedDeg === null) compassSmoothedDeg = raw;
-  else compassSmoothedDeg = compassLerpAngle(compassSmoothedDeg, raw, 0.25);
-  if (compassLastRenderedDeg === null || compassAngDiff(compassSmoothedDeg, compassLastRenderedDeg) >= 1) {
-    compassLastRenderedDeg = compassSmoothedDeg;
-    deviceHeading = compassSmoothedDeg;
-    var sim = document.getElementById('simHeading');
-    var simV = document.getElementById('simVal');
+function filterHeading(raw) {
+  compassRecentHeadings.push(raw);
+  if (compassRecentHeadings.length > 3) compassRecentHeadings.shift();
+
+  const med = circularMedian3(compassRecentHeadings);
+  if (compassSmoothedDeg === null) {
+    compassSmoothedDeg = med;
+    return compassSmoothedDeg;
+  }
+
+  const diff = compassAngDiff(med, compassSmoothedDeg);
+  // Адаптивное сглаживание: сильнее (0.12) при дрожании, слабее (до 0.60) при повороте
+  const alpha = 0.12 + 0.48 * Math.min(1.0, diff / 20.0);
+  compassSmoothedDeg = compassLerpAngle(compassSmoothedDeg, med, alpha);
+  return compassSmoothedDeg;
+}
+
+function compassApplyHeading(trueHeading, accuracy = null) {
+  trueHeading = (((trueHeading % 360) + 360) % 360);
+  compassNoteRaw(trueHeading);
+
+  const filtered = filterHeading(trueHeading);
+
+  // Deadband 1°: обновляем только при изменении >= 1°
+  if (compassLastRenderedDeg === null || compassAngDiff(filtered, compassLastRenderedDeg) >= 1.0) {
+    compassLastRenderedDeg = filtered;
+    deviceHeading = filtered;
+    const sim = document.getElementById('simHeading');
+    const simV = document.getElementById('simVal');
     if (sim && document.activeElement !== sim) {
-      try { sim.value = String(Math.round(compassSmoothedDeg)); } catch (e2) {}
+      try { sim.value = String(Math.round(filtered)); } catch (e2) {}
     }
-    if (simV) simV.textContent = Math.round(compassSmoothedDeg) + '°';
-    renderCompass();
+    if (simV) simV.textContent = Math.round(filtered) + '°';
+    renderCompass(accuracy);
   }
 }
 
@@ -2198,46 +2712,134 @@ function compassStart(type) {
   compassActiveType = type;
   window.addEventListener(type, onDeviceOrientation, true);
   if (type === 'deviceorientationabsolute') {
-    compassFallbackTimer = setTimeout(function () {
-      if (!compassGotData) compassStart('deviceorientation');
+    compassFallbackTimer = setTimeout(() => {
+      if (!compassGotData && compassIsRunning) {
+        compassStart('deviceorientation');
+      }
     }, 1500);
   }
 }
 
-document.getElementById('btnCompass').onclick = async () => {
+function compassPause() {
+  if (compassIsRunning) {
+    compassStopAll();
+  }
+}
+
+function compassResume() {
+  if (compassIsRunning && activePageId === 'p-qibla' && !document.hidden) {
+    compassStart('deviceorientationabsolute');
+  }
+}
+
+function updateCompassBtnState() {
+  const btn = document.getElementById('btnCompass');
+  const dict = I18N[currentLang] || I18N.ru;
+  if (!btn) return;
+  if (compassIsRunning) {
+    btn.textContent = dict.compassBtnTurnOff || '⏹ Выключить компас';
+    btn.className = 'btn btn-ghost';
+  } else {
+    btn.textContent = dict.compassBtnTurnOn || '🧭 Включить компас (датчик устройства)';
+    btn.className = 'btn btn-gold';
+  }
+}
+
+async function startCompass() {
+  const dict = I18N[currentLang] || I18N.ru;
   try {
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
       const resp = await DeviceOrientationEvent.requestPermission();
       if (resp !== 'granted') {
-        showToast('Доступ к датчикам ориентации был отклонён', 'error');
+        showToast(dict.gpsDenied || 'Доступ к датчикам ориентации был отклонён', 'error');
         return;
       }
     }
+    compassIsRunning = true;
+    compassSimulating = false;
+    updateCompassBtnState();
     compassStart('deviceorientationabsolute');
-    showToast('Компас активирован. Медленно вращайте телефон.');
+
+    const statusEl = document.getElementById('qiblaStatusBox');
+    if (statusEl) {
+      statusEl.className = 'qibla-status';
+      statusEl.innerHTML = dict.compassDetecting || 'Определение курса…';
+    }
+    showToast(dict.compassDetecting || 'Компас активирован. Медленно вращайте телефон.');
   } catch (err) {
     console.warn('Компас недоступен:', err);
-    showToast('Датчик компаса недоступен. Используйте ручной ползунок ниже.');
+    compassIsRunning = false;
+    updateCompassBtnState();
+    const statusEl = document.getElementById('qiblaStatusBox');
+    if (statusEl) statusEl.innerHTML = dict.compassNoSensor || 'Датчик ориентации недоступен на этом устройстве';
+  }
+}
+
+function stopCompass() {
+  compassIsRunning = false;
+  compassStopAll();
+  compassRecentHeadings.length = 0;
+  compassSmoothedDeg = null;
+  compassLastRenderedDeg = null;
+  compassJitterReset();
+  updateCompassBtnState();
+  renderCompass();
+}
+
+document.getElementById('btnCompass').onclick = () => {
+  if (compassIsRunning) {
+    stopCompass();
+  } else {
+    startCompass();
   }
 };
 
 function onDeviceOrientation(e) {
   if (!e) return;
-  let h = null;
+  const dict = I18N[currentLang] || I18N.ru;
+  let trueHeading = null;
+  let accuracy = null;
+
   if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null && !isNaN(e.webkitCompassHeading)) {
-    // iOS Safari: точный компасный курс — приоритет
-    h = e.webkitCompassHeading;
+    // iOS Safari
+    const magHeading = e.webkitCompassHeading;
+    accuracy = (typeof e.webkitCompassAccuracy === 'number') ? e.webkitCompassAccuracy : null;
+    const decl = calcMagneticDeclination(S.lat, S.lon);
+    trueHeading = ((magHeading + decl) % 360 + 360) % 360;
   } else {
-    // Android: требуем абсолютный курс, когда поле absolute присутствует
-    if (('absolute' in e) && e.absolute !== undefined && e.absolute !== null && e.absolute !== true) return;
+    // Android / Chrome: проверка absolute
+    if (('absolute' in e) && e.absolute !== undefined && e.absolute !== null && e.absolute !== true) {
+      // Только относительный датчик
+      const statusEl = document.getElementById('qiblaStatusBox');
+      if (statusEl) {
+        statusEl.className = 'qibla-status';
+        statusEl.innerHTML = dict.compassRelativeOnly || 'Датчик абсолютного курса недоступен. Используйте ручной ползунок ниже.';
+      }
+      return;
+    }
     if (e.alpha === null || e.alpha === undefined || isNaN(e.alpha)) return;
-    // alpha растёт против часовой стрелки — инвертируем к курсу по часовой
-    h = (360 - e.alpha) % 360;
+
+    // Tilt-compensated magnetic heading with rotation matrix & screen orientation
+    const magTiltHeading = calcTiltCompensatedHeading(e.alpha, e.beta, e.gamma);
+    const decl = calcMagneticDeclination(S.lat, S.lon);
+    trueHeading = ((magTiltHeading + decl) % 360 + 360) % 360;
   }
 
-  if (h !== null && !isNaN(h)) {
+  if (trueHeading !== null && !isNaN(trueHeading)) {
     compassGotData = true;
-    compassApplyHeading(h);
+    compassApplyHeading(trueHeading, accuracy);
+  }
+}
+
+// Слушатель изменения ориентации экрана
+if (typeof window !== 'undefined') {
+  window.addEventListener('orientationchange', () => {
+    if (compassGotData) renderCompass();
+  });
+  if (window.screen && window.screen.orientation) {
+    window.screen.orientation.addEventListener('change', () => {
+      if (compassGotData) renderCompass();
+    });
   }
 }
 
@@ -3461,22 +4063,23 @@ if ('serviceWorker' in navigator) {
 loadTimings();
 syncNativeLocation();
 
-// Попытка фонового уточнения по GPS, если геопозиция ещё не сохранялась
-if (!store.get('lat') && navigator.geolocation) {
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      S.lat = pos.coords.latitude;
-      S.lon = pos.coords.longitude;
-      store.set('lat', S.lat);
-      store.set('lon', S.lon);
-      document.getElementById('inLat').value = S.lat.toFixed(4);
-      document.getElementById('inLon').value = S.lon.toFixed(4);
-      syncNativeLocation();
-      loadTimings();
-    },
-    () => {},
-    { timeout: 7000 }
-  );
+// Фоновое уточнение координат — ТОЛЬКО если разрешение уже было выдано и фиксация старше 24 ч
+if (navigator.permissions && navigator.permissions.query) {
+  try {
+    navigator.permissions.query({ name: 'geolocation' }).then(result => {
+      if (result && result.state === 'granted') {
+        const lastFixTime = parseInt(store.get('loc_time'), 10) || 0;
+        const hoursAgo = (Date.now() - lastFixTime) / (1000 * 60 * 60);
+        if (hoursAgo > 24) {
+          getBestLocation({ timeout: 12000 })
+            .then(fix => {
+              saveLocationFix(fix.lat, fix.lon, fix.accuracy, 'gps');
+            })
+            .catch(() => {});
+        }
+      }
+    }).catch(() => {});
+  } catch (e) {}
 }
 
 // ==========================================
