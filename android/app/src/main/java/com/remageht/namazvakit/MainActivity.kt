@@ -284,7 +284,18 @@ class MainActivity : Activity() {
                 view: WebView?,
                 request: WebResourceRequest?
             ): Boolean {
-                return false
+                val url = request?.url ?: return false
+                val urlStr = url.toString()
+                if (urlStr.startsWith("file:///android_asset") || urlStr.startsWith(ONLINE_URL)) {
+                    return false
+                }
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, url)
+                    startActivity(intent)
+                    return true
+                } catch (_: Exception) {
+                    return false
+                }
             }
 
             override fun onReceivedError(

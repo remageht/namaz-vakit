@@ -72,6 +72,10 @@ class PanelService : Service() {
     private val ticker = object : Runnable {
         override fun run() {
             update()
+            try {
+                WidgetCommon.updateAll(this@PanelService)
+            } catch (_: Exception) {
+            }
             handler.postDelayed(this, 30_000L)
         }
     }

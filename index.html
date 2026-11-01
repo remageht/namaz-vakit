@@ -1908,7 +1908,10 @@ setInterval(() => {
   const now = new Date();
   let diff = nextPrayer.date - now;
 
+  const pNames = (currentLang === 'tt') ? PRAYERS_TT : (currentLang === 'en' ? PRAYERS_EN : PRAYERS_RU);
+
   if (diff <= 0) {
+    checkNotifications(0);
     calcNext();
     renderPrayerList();
     return;
@@ -1923,12 +1926,11 @@ setInterval(() => {
     `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   document.getElementById('nextSub').textContent = `${langObj.remaining}: ${h} ${langObj.hours} ${m} ${langObj.mins} ${s} ${langObj.secs}`;
   const tbEl = document.getElementById('tbText');
-  if (tbEl && nextPrayer) tbEl.textContent = `${PRAYERS_RU[nextPrayer.key]} ${nextPrayer.date.toTimeString().slice(0, 5)} · −${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  if (tbEl && nextPrayer) tbEl.textContent = `${pNames[nextPrayer.key] || nextPrayer.name} ${nextPrayer.date.toTimeString().slice(0, 5)} · −${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
   if (window.NamazDesktop && window.NamazDesktop.updateTray && (s === 0 || typeof _lastTraySent === 'undefined' || now - _lastTraySent > 25000)) {
     window._lastTraySent = now;
     const cdText = `${h > 0 ? h + ' ' + (langObj.hours || 'ч') + ' ' : ''}${m} ${langObj.mins || 'мин'}`;
-    const pNames = (currentLang === 'tt') ? PRAYERS_TT : (currentLang === 'en' ? PRAYERS_EN : PRAYERS_RU);
     window.NamazDesktop.updateTray({
       nextKey: nextPrayer.key,
       nextName: pNames[nextPrayer.key] || nextPrayer.name,
@@ -1942,17 +1944,43 @@ setInterval(() => {
   checkNotifications(diff);
 }, 1000);
 
-function playBeep() {
+let _sharedAudioCtx = null;
+function getAudioContext() {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
+    if (!AudioCtx) return null;
+    if (!_sharedAudioCtx || _sharedAudioCtx.state === 'closed') {
+      _sharedAudioCtx = new AudioCtx();
+    }
+    if (_sharedAudioCtx.state === 'suspended') {
+      _sharedAudioCtx.resume().catch(() => {});
+    }
+    return _sharedAudioCtx;
+  } catch (e) {
+    return null;
+  }
+}
+
+function unlockAudio() {
+  const ctx = getAudioContext();
+  if (ctx && ctx.state === 'suspended') {
+    ctx.resume().catch(() => {});
+  }
+}
+['pointerdown', 'touchstart', 'keydown'].forEach(evt => {
+  window.addEventListener(evt, unlockAudio, { once: true, passive: true });
+});
+
+function playBeep() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime); // нота A5
-    osc.frequency.exponentialRampToValueAtTime(1174.66, ctx.currentTime + 0.3); // перелив к D6
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1174.66, ctx.currentTime + 0.3);
 
     gain.gain.setValueAtTime(0.2, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
@@ -1973,14 +2001,10 @@ function playAdhanSound(mode = S.soundMode || 'adhan') {
     playBeep();
     return;
   }
-  // 'adhan': гармоничный восточный перезвон / такбир через Web Audio API
   try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) { playBeep(); return; }
-    const ctx = new AudioCtx();
-    if (ctx.state === 'suspended') ctx.resume();
+    const ctx = getAudioContext();
+    if (!ctx) { playBeep(); return; }
 
-    // Ноты: C5 (523.25), G4 (392.00), A4 (440.00), F4 (349.23)
     const notes = [
       { f: 523.25, dur: 0.65, delay: 0.0 },
       { f: 392.00, dur: 0.65, delay: 0.65 },
@@ -2014,10 +2038,6 @@ function playAdhanSound(mode = S.soundMode || 'adhan') {
       osc.stop(startTime + dur);
       oscHarmonic.stop(startTime + dur);
     });
-
-    setTimeout(() => {
-      try { ctx.close(); } catch (e) {}
-    }, 3500);
   } catch (e) {
     console.warn('playAdhanSound error:', e);
     playBeep();
@@ -2053,8 +2073,8 @@ function checkNotifications(diffMs) {
     triggerNotification(title, body, S.soundMode || 'adhan');
   }
 
-  // 00:00 - наступление времени намаза (первые 20 секунд)
-  if (S.notif0 && diffMs <= 20000 && !store.get(k0)) {
+  // 00:00 - наступление времени намаза
+  if (S.notif0 && diffMs <= 1000 && !store.get(k0)) {
     store.set(k0, '1');
     const title = langObj.notifNowTitle || 'Время намаза 🕌';
     const body = (langObj.notifNowBody || 'Наступило время молитвы: {p}').replace('{p}', pName);
