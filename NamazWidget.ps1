@@ -1,4 +1,4 @@
-﻿# NamazWidget.ps1 — виджет времени намаза в трее Windows (рядом с часами)
+# NamazWidget.ps1 — виджет времени намаза в трее Windows (рядом с часами)
 # Показывает следующий намаз + обратный отсчёт, балуны за 10 мин и в начале.
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -128,11 +128,12 @@ function Calc-PrayerTimes([double]$lat, [double]$lon, [datetime]$date) {
     return [Math]::Acos($cosH) / $dr / 15.0
   }
 
-  $asrAlt = [Math]::Atan(1.0 / (2.0 + [Math]::Tan([Math]::Abs($lat - $dec) * $dr))) / $dr
+  $asrFactor = if ($School -eq 0) { 1.0 } else { 2.0 }
+  $asrAlt = [Math]::Atan(1.0 / ($asrFactor + [Math]::Tan([Math]::Abs($lat - $dec) * $dr))) / $dr
 
-  # Углы Fajr 18°/19.5° и Isha 17°/17.5° в соответствии со стандартами
-  $fajrAngle = if ($Method -eq 3) { 19.5 } else { 18.0 }
-  $ishaAngle = if ($Method -eq 3) { 17.5 } else { 17.0 }
+  # Углы Fajr и Isha в соответствии с выбранным методом
+  $fajrAngle = if ($Method -eq 3) { 19.5 } elseif ($Method -eq 14) { 16.0 } elseif ($Method -eq 1) { 18.0 } else { 18.0 }
+  $ishaAngle = if ($Method -eq 3) { 17.5 } elseif ($Method -eq 14) { 15.0 } elseif ($Method -eq 1) { 18.0 } else { 17.0 }
 
   $fajr    = $Tnoon - (fHA (-$fajrAngle))
   $sunrise = $Tnoon - (fHA (-0.8333))

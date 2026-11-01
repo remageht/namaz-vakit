@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.SystemClock
 import android.widget.RemoteViews
 import java.util.Calendar
+import java.util.Locale
 
 /** Shared state for 1x1 and 2x2 widgets + adhan chime at prayer start. */
 object WidgetCommon {
@@ -95,7 +96,7 @@ object WidgetCommon {
 
         val n = PrayTimes.next(lat, lon, now, method, school, lang)
         val totalMin = (n.inMs / 60000).toInt()
-        val cd = String.format("%02d:%02d", totalMin / 60, totalMin % 60)
+        val cd = String.format(Locale.US, "%02d:%02d", totalMin / 60, totalMin % 60)
         val names = PrayTimes.namesFor(lang)
         val labels = listOf(
             names["Fajr"] ?: "Фаджр 🌅",

@@ -1,6 +1,7 @@
 package com.remageht.namazvakit
 
 import java.util.Calendar
+import java.util.Locale
 import java.util.TimeZone
 import kotlin.math.*
 
@@ -117,7 +118,7 @@ object PrayTimes {
         var mInt = ((hh - hInt) * 60).roundToInt()
         if (mInt == 60) { hInt += 1; mInt = 0 }
         if (hInt == 24) hInt = 0
-        return String.format("%02d:%02d", hInt, mInt)
+        return String.format(Locale.US, "%02d:%02d", hInt, mInt)
     }
 
     private fun atTime(t: DayTimes, key: String, base: Calendar): Calendar {
@@ -145,7 +146,7 @@ object PrayTimes {
         for (k in order) {
             val d = atTime(t, k, now)
             if (d.after(now)) {
-                val hhmm = String.format("%02d:%02d",
+                val hhmm = String.format(Locale.US, "%02d:%02d",
                     d.get(Calendar.HOUR_OF_DAY), d.get(Calendar.MINUTE))
                 return Next(names[k] ?: k, hhmm, d.timeInMillis - now.timeInMillis, k)
             }
@@ -153,7 +154,7 @@ object PrayTimes {
         val tm = (now.clone() as Calendar).apply { add(Calendar.DAY_OF_MONTH, 1) }
         val t2 = calculate(lat, lon, tm, method, school)
         val d = atTime(t2, "Fajr", tm)
-        val hhmm = String.format("%02d:%02d",
+        val hhmm = String.format(Locale.US, "%02d:%02d",
             d.get(Calendar.HOUR_OF_DAY), d.get(Calendar.MINUTE))
         return Next(names["Fajr"] ?: "Fajr", hhmm, d.timeInMillis - now.timeInMillis, "Fajr")
     }
