@@ -20,7 +20,7 @@ object WidgetCommon {
     private const val DEF_LAT = 45.1342
     private const val DEF_LON = 33.60
 
-    /** Coordinates synced from the app (GPS/city pick); Saki defaults otherwise. */
+    /** Coordinates and settings synced from the app (GPS/city pick); defaults otherwise. */
     fun latOf(context: Context): Double =
         context.getSharedPreferences("loc", Context.MODE_PRIVATE)
             .getFloat("lat", DEF_LAT.toFloat()).toDouble()
@@ -29,8 +29,19 @@ object WidgetCommon {
         context.getSharedPreferences("loc", Context.MODE_PRIVATE)
             .getFloat("lon", DEF_LON.toFloat()).toDouble()
 
+    fun methodOf(context: Context): Int =
+        context.getSharedPreferences("loc", Context.MODE_PRIVATE)
+            .getInt("method", 3)
+
+    fun schoolOf(context: Context): Int =
+        context.getSharedPreferences("loc", Context.MODE_PRIVATE)
+            .getInt("school", 1)
+
+    fun langOf(context: Context): String =
+        context.getSharedPreferences("loc", Context.MODE_PRIVATE)
+            .getString("lang", "ru") ?: "ru"
+
     private val PRAYERS = listOf("Fajr", "Dhuhr", "Asr", "Maghrib", "Isha")
-    private val LABELS = listOf("Фаджр 🌅", "Зухр ☀️", "Аср 🌤", "Магриб 🌇", "Иша 🌙")
 
     private fun tickIntent(context: Context): PendingIntent {
         val i = Intent(context, NamazWidgetProvider::class.java).apply {
@@ -63,8 +74,8 @@ object WidgetCommon {
     }
 
     private fun openIntent(context: Context): PendingIntent {
-        val open = Intent(Intent.ACTION_VIEW, Uri.parse(APP_URL)).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        val open = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         return PendingIntent.getActivity(
             context, 0, open,
@@ -78,9 +89,21 @@ object WidgetCommon {
         val now = Calendar.getInstance()
         val lat = latOf(context)
         val lon = lonOf(context)
-        val n = PrayTimes.next(lat, lon, now)
+        val method = methodOf(context)
+        val school = schoolOf(context)
+        val lang = langOf(context)
+
+        val n = PrayTimes.next(lat, lon, now, method, school, lang)
         val totalMin = (n.inMs / 60000).toInt()
         val cd = String.format("%02d:%02d", totalMin / 60, totalMin % 60)
+        val names = PrayTimes.namesFor(lang)
+        val labels = listOf(
+            names["Fajr"] ?: "Фаджр 🌅",
+            names["Dhuhr"] ?: "Зухр ☀️",
+            names["Asr"] ?: "Аср 🌤",
+            names["Maghrib"] ?: "Магриб 🌇",
+            names["Isha"] ?: "Иша 🌙"
+        )
 
         val c1 = ComponentName(context, NamazWidgetProvider::class.java)
         for (id in mgr.getAppWidgetIds(c1)) {
@@ -97,7 +120,7 @@ object WidgetCommon {
             val v = RemoteViews(context.packageName, R.layout.widget_2x2)
             v.setOnClickPendingIntent(R.id.widget2_root, pi)
             v.setTextViewText(R.id.widget2_header, "🕌 ${n.name} · −$cd")
-            val t = PrayTimes.calculate(lat, lon, now)
+            val t = PrayTimes.calculate(lat, lon, now, method, school)
             val times = listOf(t.fajr, t.dhuhr, t.asr, t.maghrib, t.isha)
             val nameIds = intArrayOf(
                 R.id.w2_name_1, R.id.w2_name_2, R.id.w2_name_3,
@@ -107,10 +130,9 @@ object WidgetCommon {
                 R.id.w2_time_1, R.id.w2_time_2, R.id.w2_time_3,
                 R.id.w2_time_4, R.id.w2_time_5
             )
-            val nextKey = keyOf(n.name)
             for (i in 0 until 5) {
-                val isNext = PRAYERS[i] == nextKey
-                v.setTextViewText(nameIds[i], LABELS[i])
+                val isNext = PRAYERS[i] == n.key
+                v.setTextViewText(nameIds[i], labels[i])
                 v.setTextViewText(timeIds[i], times[i])
                 v.setTextColor(nameIds[i], if (isNext) 0xFFD4AF37.toInt() else 0xFF86EFAC.toInt())
                 v.setTextColor(timeIds[i], if (isNext) 0xFFD4AF37.toInt() else 0xFFFFFFFF.toInt())
@@ -123,10 +145,10 @@ object WidgetCommon {
 
     private fun keyOf(prayerName: String): String =
         when {
-            prayerName.contains("Фаджр") -> "Fajr"
-            prayerName.contains("Зухр") -> "Dhuhr"
-            prayerName.contains("Аср") -> "Asr"
-            prayerName.contains("Магриб") -> "Maghrib"
+            prayerName.contains("Фаджр") || prayerName.contains("Иртәнге") || prayerName.contains("Fajr") -> "Fajr"
+            prayerName.contains("Зухр") || prayerName.contains("Өйлә") || prayerName.contains("Dhuhr") -> "Dhuhr"
+            prayerName.contains("Аср") || prayerName.contains("Икенде") || prayerName.contains("Asr") -> "Asr"
+            prayerName.contains("Магриб") || prayerName.contains("Ахшам") || prayerName.contains("Maghrib") -> "Maghrib"
             else -> "Isha"
         }
 
@@ -135,7 +157,7 @@ object WidgetCommon {
         try {
             val day = now.get(Calendar.DAY_OF_YEAR) * 1000 + now.get(Calendar.YEAR)
             val prefs = context.getSharedPreferences("adhan", Context.MODE_PRIVATE)
-            val times = PrayTimes.calculate(latOf(context), lonOf(context), now)
+            val times = PrayTimes.calculate(latOf(context), lonOf(context), now, methodOf(context), schoolOf(context))
             val list = listOf(
                 "Fajr" to times.fajr, "Dhuhr" to times.dhuhr, "Asr" to times.asr,
                 "Maghrib" to times.maghrib, "Isha" to times.isha

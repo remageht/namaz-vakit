@@ -1103,6 +1103,16 @@
       <option value="0">0: Шафии / стандартный (одинарная тень)</option>
     </select>
 
+    <label data-i18n="lblSound">Звуковой сигнал намаза:</label>
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+      <select id="inSound" style="flex:1; margin:0;">
+        <option value="adhan">🕌 Мелодичный перезвон (Азан)</option>
+        <option value="beep">🔔 Короткий сигнал</option>
+        <option value="off">🔇 Без звука</option>
+      </select>
+      <button type="button" class="btn btn-ghost" id="btnTestSound" style="padding:7px 12px; font-size:13px;" title="Прослушать">▶ <span data-i18n="btnTest">Тест</span></button>
+    </div>
+
     <button class="btn btn-gold" id="btnSave">💾 <span data-i18n="saveSettings">Сохранить и обновить расписание</span></button>
     <div class="sub" style="margin-top:8px;">
       Координаты сохраняются локально в памяти браузера. Расчёт времени выполняется через надёжный Aladhan API.
@@ -1407,6 +1417,7 @@ const S = {
   locTime: parseInt(store.get('loc_time'), 10) || null,
   method: store.get('method') || '3',
   school: store.get('school') || '1',
+  soundMode: store.get('sound_mode') || 'adhan',
   notif10: store.get('notif10') !== 'off',
   notif0: store.get('notif0') !== 'off',
 };
@@ -1422,6 +1433,24 @@ const PRAYERS_RU = {
   Asr: 'Аср 🌤',
   Maghrib: 'Магриб 🌇',
   Isha: 'Иша 🌙'
+};
+
+const PRAYERS_TT = {
+  Fajr: 'Иртәнге 🌅',
+  Sunrise: 'Кояш чыгу ☀️',
+  Dhuhr: 'Өйлә ☀️',
+  Asr: 'Икенде 🌤',
+  Maghrib: 'Ахшам 🌇',
+  Isha: 'Ястү 🌙'
+};
+
+const PRAYERS_EN = {
+  Fajr: 'Fajr 🌅',
+  Sunrise: 'Sunrise ☀️',
+  Dhuhr: 'Dhuhr ☀️',
+  Asr: 'Asr 🌤',
+  Maghrib: 'Maghrib 🌇',
+  Isha: 'Isha 🌙'
 };
 const ORDER = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 
@@ -1493,6 +1522,12 @@ const I18N = {
     badgeNext: 'следующий',
     panelOn: 'Плашка в шторке: ВКЛ',
     panelOff: 'Плашка в шторке: выключена',
+    lblSound: 'Звуковой сигнал намаза:',
+    btnTest: 'Тест',
+    notifPrepTitle: 'Подготовка к молитве ⏳',
+    notifPrepBody: 'Осталось 10 минут до {p}. Совершите омовение (вуду).',
+    notifNowTitle: 'Время намаза 🕌',
+    notifNowBody: 'Наступило время молитвы: {p}',
     prayers: {
       Fajr: 'Фаджр 🌅',
       Sunrise: 'Восход ☀️',
@@ -1569,6 +1604,12 @@ const I18N = {
     badgeNext: 'чираттагы',
     panelOn: 'Шторда плашка: кабынган',
     panelOff: 'Шторда плашка: сүнгән',
+    lblSound: 'Намаз вакытында тавыш:',
+    btnTest: 'Сынау',
+    notifPrepTitle: 'Намазга әзерлек ⏳',
+    notifPrepBody: '{p} намазына 10 минут калды. Тәһарәт алыгыз.',
+    notifNowTitle: 'Намаз вакыты җитте 🕌',
+    notifNowBody: '{p} намазының вакыты керде',
     prayers: {
       Fajr: 'Иртәнге 🌅',
       Sunrise: 'Кояш чыгу ☀️',
@@ -1645,6 +1686,12 @@ const I18N = {
     badgeNext: 'next',
     panelOn: 'Panel in shade: ON',
     panelOff: 'Panel in shade: OFF',
+    lblSound: 'Prayer sound alert:',
+    btnTest: 'Test',
+    notifPrepTitle: 'Prayer reminder ⏳',
+    notifPrepBody: '10 minutes left until {p}. Make wudu.',
+    notifNowTitle: 'Prayer time 🕌',
+    notifNowBody: 'It is time for {p} prayer',
     prayers: {
       Fajr: 'Fajr 🌅',
       Sunrise: 'Sunrise ☀️',
@@ -1693,6 +1740,7 @@ function setAppLang(lang) {
       console.error('Ошибка календаря:', e);
     }
   }
+  if (typeof syncNativeLocation === 'function') syncNativeLocation();
 }
 
 function fmtTime(d) {
@@ -1877,6 +1925,20 @@ setInterval(() => {
   const tbEl = document.getElementById('tbText');
   if (tbEl && nextPrayer) tbEl.textContent = `${PRAYERS_RU[nextPrayer.key]} ${nextPrayer.date.toTimeString().slice(0, 5)} · −${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
+  if (window.NamazDesktop && window.NamazDesktop.updateTray && (s === 0 || typeof _lastTraySent === 'undefined' || now - _lastTraySent > 25000)) {
+    window._lastTraySent = now;
+    const cdText = `${h > 0 ? h + ' ' + (langObj.hours || 'ч') + ' ' : ''}${m} ${langObj.mins || 'мин'}`;
+    const pNames = (currentLang === 'tt') ? PRAYERS_TT : (currentLang === 'en' ? PRAYERS_EN : PRAYERS_RU);
+    window.NamazDesktop.updateTray({
+      nextKey: nextPrayer.key,
+      nextName: pNames[nextPrayer.key] || nextPrayer.name,
+      nextTime: nextPrayer.date.toTimeString().slice(0, 5),
+      countdownText: cdText,
+      times: timings,
+      labels: pNames
+    });
+  }
+
   checkNotifications(diff);
 }, 1000);
 
@@ -1905,8 +1967,65 @@ function playBeep() {
   }
 }
 
-function triggerNotification(title, body) {
-  playBeep();
+function playAdhanSound(mode = S.soundMode || 'adhan') {
+  if (mode === 'off') return;
+  if (mode === 'beep') {
+    playBeep();
+    return;
+  }
+  // 'adhan': гармоничный восточный перезвон / такбир через Web Audio API
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) { playBeep(); return; }
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+
+    // Ноты: C5 (523.25), G4 (392.00), A4 (440.00), F4 (349.23)
+    const notes = [
+      { f: 523.25, dur: 0.65, delay: 0.0 },
+      { f: 392.00, dur: 0.65, delay: 0.65 },
+      { f: 440.00, dur: 0.65, delay: 1.30 },
+      { f: 349.23, dur: 0.95, delay: 1.95 }
+    ];
+
+    notes.forEach(({ f, dur, delay }) => {
+      const startTime = ctx.currentTime + delay;
+      const osc = ctx.createOscillator();
+      const oscHarmonic = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, startTime);
+
+      oscHarmonic.type = 'sine';
+      oscHarmonic.frequency.setValueAtTime(f * 2, startTime);
+
+      const peak = 0.32;
+      gain.gain.setValueAtTime(0.001, startTime);
+      gain.gain.linearRampToValueAtTime(peak, startTime + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
+
+      osc.connect(gain);
+      oscHarmonic.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      oscHarmonic.start(startTime);
+      osc.stop(startTime + dur);
+      oscHarmonic.stop(startTime + dur);
+    });
+
+    setTimeout(() => {
+      try { ctx.close(); } catch (e) {}
+    }, 3500);
+  } catch (e) {
+    console.warn('playAdhanSound error:', e);
+    playBeep();
+  }
+}
+
+function triggerNotification(title, body, soundMode = S.soundMode || 'adhan') {
+  playAdhanSound(soundMode);
   if ('Notification' in window && Notification.permission === 'granted') {
     try {
       new Notification(title, { body, icon: 'icon-192.png' });
@@ -1923,17 +2042,23 @@ function checkNotifications(diffMs) {
   const dayKey = todayStr();
   const k10 = `n10_${nextPrayer.key}_${dayKey}`;
   const k0 = `n0_${nextPrayer.key}_${dayKey}`;
+  const langObj = I18N[currentLang] || I18N.ru;
+  const pName = getPrayerName(nextPrayer.key, currentLang);
 
   // 10 минут до намаза (между 10:00 и 09:40)
   if (S.notif10 && diffMs <= 10 * 60 * 1000 && diffMs > 9 * 60 * 1000 && !store.get(k10)) {
     store.set(k10, '1');
-    triggerNotification('Подготовка к молитве ⏳', `Осталось 10 минут до ${PRAYERS_RU[nextPrayer.key]}. Совершите омовение (вуду).`);
+    const title = langObj.notifPrepTitle || 'Подготовка к молитве ⏳';
+    const body = (langObj.notifPrepBody || 'Осталось 10 минут до {p}. Совершите омовение (вуду).').replace('{p}', pName);
+    triggerNotification(title, body, S.soundMode || 'adhan');
   }
 
   // 00:00 - наступление времени намаза (первые 20 секунд)
   if (S.notif0 && diffMs <= 20000 && !store.get(k0)) {
     store.set(k0, '1');
-    triggerNotification('Время намаза 🕌', `Наступило время молитвы: ${PRAYERS_RU[nextPrayer.key]}`);
+    const title = langObj.notifNowTitle || 'Время намаза 🕌';
+    const body = (langObj.notifNowBody || 'Наступило время молитвы: {p}').replace('{p}', pName);
+    triggerNotification(title, body, S.soundMode || 'adhan');
   }
 }
 
@@ -2002,8 +2127,28 @@ document.getElementById('btnTest0').onclick = () => {
 // ==========================================
 function syncNativeLocation() {
   try {
-    if (window.NamazHost && window.NamazHost.setLocation) {
-      window.NamazHost.setLocation(S.lat, S.lon);
+    if (window.NamazHost) {
+      if (window.NamazHost.syncSettings) {
+        window.NamazHost.syncSettings(S.lat, S.lon, parseInt(S.method, 10), parseInt(S.school, 10), currentLang || 'ru');
+      } else if (window.NamazHost.setLocation) {
+        window.NamazHost.setLocation(S.lat, S.lon);
+      }
+    }
+  } catch (e) {}
+  try {
+    if (window.NamazDesktop && window.NamazDesktop.syncConfig) {
+      window.NamazDesktop.syncConfig({
+        latitude: S.lat,
+        longitude: S.lon,
+        method: parseInt(S.method, 10),
+        school: parseInt(S.school, 10),
+        lang: currentLang || 'ru',
+        place: store.get('city_name') || 'Саки',
+        theme: store.get('app_theme') || 'gold',
+        showCountdown: true,
+        showSeconds: true,
+        startup: true
+      });
     }
   } catch (e) {}
 }
@@ -2199,6 +2344,7 @@ async function requestLocation() {
 document.getElementById('btnGeo').onclick = requestLocation;
 
 function setCity(lat, lon, name) {
+  store.set('city_name', name);
   saveLocationFix(lat, lon, null, 'manual');
   showToast(`Город установлен: ${name}`);
 }
@@ -2207,6 +2353,16 @@ document.getElementById('inLat').value = S.lat.toFixed(4);
 document.getElementById('inLon').value = S.lon.toFixed(4);
 document.getElementById('inMethod').value = S.method;
 document.getElementById('inSchool').value = S.school;
+if (document.getElementById('inSound')) {
+  document.getElementById('inSound').value = S.soundMode || 'adhan';
+}
+const btnTestSound = document.getElementById('btnTestSound');
+if (btnTestSound) {
+  btnTestSound.onclick = () => {
+    const mode = (document.getElementById('inSound') && document.getElementById('inSound').value) || 'adhan';
+    playAdhanSound(mode);
+  };
+}
 
 document.getElementById('btnSave').onclick = () => {
   const latVal = parseFloat(document.getElementById('inLat').value);
@@ -2219,6 +2375,11 @@ document.getElementById('btnSave').onclick = () => {
   S.school = document.getElementById('inSchool').value;
   store.set('method', S.method);
   store.set('school', S.school);
+
+  if (document.getElementById('inSound')) {
+    S.soundMode = document.getElementById('inSound').value;
+    store.set('sound_mode', S.soundMode);
+  }
 
   saveLocationFix(latVal, lonVal, null, 'manual');
   showToast('Настройки сохранены и расписание обновлено!');
@@ -3923,7 +4084,12 @@ function calcOfflinePrayerTimes(lat, lon, date, method = 3, school = 1) {
     return `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`;
   };
 
-  const fajrDeg = 19.5, ishaDeg = 17.5;
+  let fajrDeg = 18.0, ishaDeg = 17.0;
+  const mNum = parseInt(method, 10);
+  if (mNum === 3) { fajrDeg = 19.5; ishaDeg = 17.5; }
+  else if (mNum === 14) { fajrDeg = 16.0; ishaDeg = 15.0; }
+  else if (mNum === 1) { fajrDeg = 18.0; ishaDeg = 18.0; }
+  else if (mNum === 2 || mNum === 13) { fajrDeg = 18.0; ishaDeg = 17.0; }
   const asrFactor = (school === 1 || school === '1') ? 2.0 : 1.0;
 
   return {

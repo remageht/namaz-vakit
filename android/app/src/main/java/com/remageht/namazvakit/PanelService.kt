@@ -115,8 +115,13 @@ class PanelService : Service() {
         val now = Calendar.getInstance()
         val lat = WidgetCommon.latOf(this)
         val lon = WidgetCommon.lonOf(this)
-        val n = PrayTimes.next(lat, lon, now)
-        val t = PrayTimes.calculate(lat, lon, now)
+        val method = WidgetCommon.methodOf(this)
+        val school = WidgetCommon.schoolOf(this)
+        val lang = WidgetCommon.langOf(this)
+
+        val n = PrayTimes.next(lat, lon, now, method, school, lang)
+        val t = PrayTimes.calculate(lat, lon, now, method, school)
+        val names = PrayTimes.namesFor(lang)
 
         val night = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
                 Configuration.UI_MODE_NIGHT_YES
@@ -131,9 +136,15 @@ class PanelService : Service() {
         v.setTextColor(R.id.panel_countdown, main)
         v.setChronometer(R.id.panel_countdown, SystemClock.elapsedRealtime() + n.inMs, "-%s", true)
         v.setChronometerCountDown(R.id.panel_countdown, true)
+
+        val fn = names["Fajr"]?.substringBefore(" ") ?: "Фаджр"
+        val dn = names["Dhuhr"]?.substringBefore(" ") ?: "Зухр"
+        val an = names["Asr"]?.substringBefore(" ") ?: "Аср"
+        val mn = names["Maghrib"]?.substringBefore(" ") ?: "Магриб"
+        val iname = names["Isha"]?.substringBefore(" ") ?: "Иша"
         v.setTextViewText(
             R.id.panel_schedule,
-            "Фаджр ${t.fajr} · Зухр ${t.dhuhr} · Аср ${t.asr} · Магриб ${t.maghrib} · Иша ${t.isha}"
+            "$fn ${t.fajr} · $dn ${t.dhuhr} · $an ${t.asr} · $mn ${t.maghrib} · $iname ${t.isha}"
         )
         v.setTextColor(R.id.panel_schedule, dim)
 
@@ -148,7 +159,16 @@ class PanelService : Service() {
         )
 
         val mins = (n.inMs / 60_000).toInt()
-        val left = String.format("осталось %d ч %02d мин", mins / 60, mins % 60)
+        val left = when (lang) {
+            "tt" -> String.format("калды: %d сәг %02d мин", mins / 60, mins % 60)
+            "en" -> String.format("%d h %02d min left", mins / 60, mins % 60)
+            else -> String.format("осталось %d ч %02d мин", mins / 60, mins % 60)
+        }
+        val dismissLabel = when (lang) {
+            "tt" -> "Ябу"
+            "en" -> "Dismiss"
+            else -> "Убрать"
+        }
 
         return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_namaz)
@@ -161,7 +181,7 @@ class PanelService : Service() {
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setShowWhen(false)
             .setCustomBigContentView(v)
-            .addAction(0, "Убрать", hidePi)
+            .addAction(0, dismissLabel, hidePi)
             .build()
     }
 

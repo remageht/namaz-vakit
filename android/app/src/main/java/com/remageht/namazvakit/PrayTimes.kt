@@ -15,15 +15,12 @@ object PrayTimes {
         val asr: String, val maghrib: String, val isha: String
     )
 
-    data class Next(val name: String, val time: String, val inMs: Long)
+    data class Next(val name: String, val time: String, val inMs: Long, val key: String)
 
     private const val DEG = Math.PI / 180.0
-    private const val FAJR_ANGLE = 19.5
-    private const val ISHA_ANGLE = 17.5
     private const val SUN_ANGLE = 0.8333
-    private const val ASR_FACTOR = 2.0 // Hanafi
 
-    private val NAMES = mapOf(
+    private val NAMES_RU = mapOf(
         "Fajr" to "Фаджр 🌅",
         "Sunrise" to "Восход ☀️",
         "Dhuhr" to "Зухр ☀️",
@@ -32,7 +29,47 @@ object PrayTimes {
         "Isha" to "Иша 🌙"
     )
 
-    fun calculate(lat: Double, lon: Double, date: Calendar): DayTimes {
+    private val NAMES_TT = mapOf(
+        "Fajr" to "Иртәнге 🌅",
+        "Sunrise" to "Кояш чыгу ☀️",
+        "Dhuhr" to "Өйлә ☀️",
+        "Asr" to "Икенде 🌤",
+        "Maghrib" to "Ахшам 🌇",
+        "Isha" to "Ястү 🌙"
+    )
+
+    private val NAMES_EN = mapOf(
+        "Fajr" to "Fajr 🌅",
+        "Sunrise" to "Sunrise ☀️",
+        "Dhuhr" to "Dhuhr ☀️",
+        "Asr" to "Asr 🌤",
+        "Maghrib" to "Maghrib 🌇",
+        "Isha" to "Isha 🌙"
+    )
+
+    fun namesFor(lang: String): Map<String, String> = when (lang) {
+        "tt" -> NAMES_TT
+        "en" -> NAMES_EN
+        else -> NAMES_RU
+    }
+
+    fun getAngles(method: Int): Pair<Double, Double> = when (method) {
+        3 -> Pair(19.5, 17.5)   // Egypt
+        14 -> Pair(16.0, 15.0)  // SAM RF
+        1 -> Pair(18.0, 18.0)   // Karachi
+        else -> Pair(18.0, 17.0) // MWL (2), Diyanet (13), default
+    }
+
+    fun calculate(
+        lat: Double,
+        lon: Double,
+        date: Calendar,
+        method: Int = 3,
+        school: Int = 1
+    ): DayTimes {
+        val (fajrAngle, ishaAngle) = getAngles(method)
+        val asrFactor = if (school == 0) 1.0 else 2.0 // 0=Shafi, 1=Hanafi
+
         var yr = date.get(Calendar.YEAR)
         var mo = date.get(Calendar.MONTH) + 1
         val dy = date.get(Calendar.DAY_OF_MONTH)
@@ -62,15 +99,15 @@ object PrayTimes {
             return acos(cosH) / DEG / 15.0
         }
 
-        val asrAlt = atan(1.0 / (ASR_FACTOR + tan(abs(lat - dec) * DEG))) / DEG
+        val asrAlt = atan(1.0 / (asrFactor + tan(abs(lat - dec) * DEG))) / DEG
 
         return DayTimes(
-            fajr = fmt(noon - ha(-FAJR_ANGLE)),
+            fajr = fmt(noon - ha(-fajrAngle)),
             sunrise = fmt(noon - ha(-SUN_ANGLE)),
             dhuhr = fmt(noon),
             asr = fmt(noon + ha(asrAlt)),
             maghrib = fmt(noon + ha(-SUN_ANGLE)),
-            isha = fmt(noon + ha(-ISHA_ANGLE))
+            isha = fmt(noon + ha(-ishaAngle))
         )
     }
 
@@ -94,22 +131,30 @@ object PrayTimes {
         }
     }
 
-    fun next(lat: Double, lon: Double, now: Calendar): Next {
+    fun next(
+        lat: Double,
+        lon: Double,
+        now: Calendar,
+        method: Int = 3,
+        school: Int = 1,
+        lang: String = "ru"
+    ): Next {
         val order = listOf("Fajr", "Dhuhr", "Asr", "Maghrib", "Isha")
-        val t = calculate(lat, lon, now)
+        val names = namesFor(lang)
+        val t = calculate(lat, lon, now, method, school)
         for (k in order) {
             val d = atTime(t, k, now)
             if (d.after(now)) {
                 val hhmm = String.format("%02d:%02d",
                     d.get(Calendar.HOUR_OF_DAY), d.get(Calendar.MINUTE))
-                return Next(NAMES[k]!!, hhmm, d.timeInMillis - now.timeInMillis)
+                return Next(names[k] ?: k, hhmm, d.timeInMillis - now.timeInMillis, k)
             }
         }
         val tm = (now.clone() as Calendar).apply { add(Calendar.DAY_OF_MONTH, 1) }
-        val t2 = calculate(lat, lon, tm)
+        val t2 = calculate(lat, lon, tm, method, school)
         val d = atTime(t2, "Fajr", tm)
         val hhmm = String.format("%02d:%02d",
             d.get(Calendar.HOUR_OF_DAY), d.get(Calendar.MINUTE))
-        return Next(NAMES["Fajr"]!!, hhmm, d.timeInMillis - now.timeInMillis)
+        return Next(names["Fajr"] ?: "Fajr", hhmm, d.timeInMillis - now.timeInMillis, "Fajr")
     }
 }

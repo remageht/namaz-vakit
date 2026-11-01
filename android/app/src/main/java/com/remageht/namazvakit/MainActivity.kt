@@ -80,19 +80,28 @@ class TtsBridge(activity: Activity) {
 /** JS bridge: keeps native widgets in sync with the PWA location. */
 class HostBridge(private val activity: Activity) {
     @JavascriptInterface
-    fun setLocation(lat: Double, lon: Double) {
+    fun syncSettings(lat: Double, lon: Double, method: Int, school: Int, lang: String) {
         try {
             if (lat.isNaN() || lon.isNaN()) return
             if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return
+            val safeLang = if (lang in listOf("ru", "tt", "en")) lang else "ru"
             activity.getSharedPreferences("loc", Context.MODE_PRIVATE).edit()
                 .putFloat("lat", lat.toFloat())
                 .putFloat("lon", lon.toFloat())
+                .putInt("method", method)
+                .putInt("school", school)
+                .putString("lang", safeLang)
                 .apply()
             WidgetCommon.schedule(activity)
             WidgetCommon.updateAll(activity)
             PanelService.refresh(activity)
         } catch (_: Exception) {
         }
+    }
+
+    @JavascriptInterface
+    fun setLocation(lat: Double, lon: Double) {
+        syncSettings(lat, lon, 3, 1, "ru")
     }
 
     /** Включение/выключение плашки из настроек PWA. */
