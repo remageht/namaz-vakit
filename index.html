@@ -746,6 +746,64 @@
     box-shadow: 0 0 5px rgba(212, 175, 55, 0.6);
   }
 
+  /* Чтение Корана */
+  .quran-ayah-item {
+    background: #093327;
+    border: 1px solid #175845;
+    border-radius: 12px;
+    padding: 12px 14px;
+    transition: all .2s ease;
+  }
+  .quran-ayah-item.active-ayah {
+    background: rgba(212, 175, 55, 0.12);
+    border-color: var(--gold);
+    box-shadow: 0 0 14px rgba(212, 175, 55, 0.25);
+  }
+  .quran-ayah-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .quran-ayah-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold);
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    padding: 2px 8px;
+    border-radius: 12px;
+  }
+  .quran-ayah-ar {
+    font-family: 'Amiri', 'Traditional Arabic', 'Scheherazade New', serif;
+    font-size: 24px;
+    line-height: 2.1;
+    direction: rtl;
+    text-align: right;
+    color: #fff;
+    margin: 8px 0;
+  }
+  .quran-ayah-tr {
+    font-size: 13px;
+    color: var(--gold-light);
+    font-style: italic;
+    line-height: 1.5;
+    margin-bottom: 6px;
+  }
+  .quran-ayah-trans {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .quran-ayah-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  }
+
   footer {
     text-align: center;
     color: var(--muted);
@@ -1157,6 +1215,11 @@
     <div class="label" data-i18n="moreTitle">Дополнительные разделы</div>
     <div class="sub" style="margin:4px 0 12px;" data-i18n="moreSub">Полезные исламские инструменты и настройки приложения</div>
     <div class="more-grid">
+      <div class="more-card" onclick="openPage('p-quran')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPage('p-quran')">
+        <div class="more-icon">📖</div>
+        <div class="more-title" data-i18n="tabQuran">Коран</div>
+        <div class="more-desc" data-i18n="descQuran">Чтение сур и аятов с переводом и аудио (тест)</div>
+      </div>
       <div class="more-card" onclick="openPage('p-mosques')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPage('p-mosques')">
         <div class="more-icon">🕌</div>
         <div class="more-title" data-i18n="tabMosques">Мечети</div>
@@ -1187,6 +1250,108 @@
       <button class="btn btn-gold" onclick="exportMonthlyCsv()" style="flex:1;" data-i18n="btnExportCsv">📥 Скачать CSV</button>
       <button class="btn btn-ghost" onclick="printSchedule()" style="flex:1;" data-i18n="btnPrintBtn">🖨 Печать</button>
     </div>
+  </div>
+</section>
+
+<!-- ЧТЕНИЕ КОРАНА -->
+<section id="p-quran" class="page">
+  <div class="subpage-nav">
+    <button class="btn btn-ghost" onclick="openPage('p-more')" style="padding:4px 12px; font-size:13px; font-weight:600;">
+      ← <span data-i18n="backToMore">Все разделы</span>
+    </button>
+  </div>
+
+  <!-- Закладка: продолжить чтение -->
+  <div class="card" id="quranResumeCard" style="display:none; margin-bottom:12px; background:linear-gradient(135deg, rgba(212,175,55,0.12), rgba(6,40,31,0.6)); border:1px solid var(--gold);">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="label" style="color:var(--gold);" data-i18n="quranResumeTitle">🔖 Закладка</div>
+        <div id="quranResumeText" style="font-size:14px; font-weight:600; margin-top:2px;">—</div>
+      </div>
+      <button class="btn btn-gold" id="btnQuranResume" style="padding:6px 14px; font-size:12px;" onclick="resumeQuranBookmark()" data-i18n="quranBtnResume">Читать ➔</button>
+    </div>
+  </div>
+
+  <!-- Каталог и выбор суры -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <b style="font-size:16px;">📖 <span data-i18n="quranTitle">Священный Коран</span></b>
+      <span class="badge" id="quranModeBadge" style="background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid #22c55e;">Офлайн / Сеть</span>
+    </div>
+    <div class="sub" style="margin:4px 0 12px;" data-i18n="descQuran">Чтение сур и аятов с переводом и аудио (тест)</div>
+
+    <!-- Поиск суры -->
+    <div style="margin-bottom:8px;">
+      <input type="text" id="quranSearch" placeholder="Поиск суры (номер или название)…" data-i18n-placeholder="quranSearchPlaceholder" oninput="filterQuranSurahs(this.value)" style="margin:0;">
+    </div>
+
+    <!-- Выпадающий список 114 сур -->
+    <label data-i18n="quranSelectSurah" style="margin-top:6px; font-size:12px;">Выберите суру:</label>
+    <select id="quranSurahSelect" onchange="openQuranSurah(parseInt(this.value, 10))" style="margin-bottom:8px; font-weight:600;"></select>
+
+    <!-- Быстрые чипы частых сур -->
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+      <button type="button" class="city-chip" onclick="openQuranSurah(1)">1. Аль-Фатиха</button>
+      <button type="button" class="city-chip" onclick="openQuranSurah(36)">36. Йа Син</button>
+      <button type="button" class="city-chip" onclick="openQuranSurah(55)">55. Ар-Рахман</button>
+      <button type="button" class="city-chip" onclick="openQuranSurah(67)">67. Аль-Мульк</button>
+      <button type="button" class="city-chip" onclick="openQuranSurah(112)">112. Аль-Ихлас</button>
+      <button type="button" class="city-chip" onclick="openQuranSurah(114)">114. Ан-Нас</button>
+    </div>
+  </div>
+
+  <!-- Ридер суры -->
+  <div class="card" id="quranReaderCard" style="margin-top:12px;">
+    <!-- Заголовок активной суры -->
+    <div style="text-align:center; padding:8px 0 12px; border-bottom:1px solid rgba(212,175,55,0.2);">
+      <div id="quranSurahAr" style="font-size:28px; color:var(--gold); font-family:'Amiri', serif;">—</div>
+      <div id="quranSurahTitle" style="font-size:16px; font-weight:700; margin-top:4px;">—</div>
+      <div id="quranSurahMeta" class="sub" style="font-size:12px; margin-top:2px;">—</div>
+    </div>
+
+    <!-- Панель управления ридером -->
+    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
+      <!-- Аудио воспроизведение суры -->
+      <button class="btn btn-gold" id="btnQuranPlayAll" style="padding:6px 12px; font-size:13px;" onclick="toggleSurahPlayback()">
+        ▶ <span id="lblQuranPlayAll" data-i18n="quranPlayAll">Слушать суру</span>
+      </button>
+
+      <!-- Размер шрифта -->
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span class="sub" style="font-size:12px;" data-i18n="quranFont">Шрифт:</span>
+        <button class="btn btn-ghost" onclick="changeQuranFontSize(-2)" style="padding:4px 8px; font-size:12px; font-weight:bold;">A−</button>
+        <button class="btn btn-ghost" onclick="changeQuranFontSize(2)" style="padding:4px 8px; font-size:12px; font-weight:bold;">A+</button>
+      </div>
+
+      <!-- Тумблеры транскрипции и перевода -->
+      <div style="display:flex; align-items:center; gap:12px; font-size:13px;">
+        <label style="display:flex; align-items:center; gap:4px; margin:0; cursor:pointer;">
+          <input type="checkbox" id="chkQuranTranslit" checked onchange="toggleQuranTranslit(this.checked)">
+          <span data-i18n="quranTranslitToggle">Транскрипция</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:4px; margin:0; cursor:pointer;">
+          <input type="checkbox" id="chkQuranTranslation" checked onchange="toggleQuranTranslation(this.checked)">
+          <span data-i18n="quranTransToggle">Перевод</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Статус аудиоплеера -->
+    <div id="quranAudioBar" style="display:none; padding:8px 12px; background:rgba(212,175,55,0.1); border:1px solid var(--gold); border-radius:8px; margin:10px 0; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="color:var(--gold);">🔊</span>
+        <span id="quranAudioInfo" style="font-size:13px; font-weight:600;">Воспроизведение…</span>
+      </div>
+      <button class="btn btn-ghost" style="padding:2px 8px; font-size:12px;" onclick="stopQuranAudio()">⏹ <span data-i18n="quranStop">Стоп</span></button>
+    </div>
+
+    <!-- Бисмиллях -->
+    <div id="quranBismillah" style="text-align:center; font-size:24px; color:var(--gold); padding:14px 0 10px; font-family:'Amiri', serif;">
+      بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+    </div>
+
+    <!-- Список аятов -->
+    <div id="quranAyahsList" style="margin-top:10px; display:flex; flex-direction:column; gap:12px;"></div>
   </div>
 </section>
 
@@ -1330,7 +1495,7 @@ function openPage(pageId) {
   // Обновление состояния вкладок навигации
   document.querySelectorAll('nav.tabs button').forEach(b => {
     const isTarget = (b.dataset.page === pageId) || 
-      (b.dataset.page === 'p-more' && ['p-mosques', 'p-names', 'p-qada', 'p-settings', 'p-more'].includes(pageId));
+      (b.dataset.page === 'p-more' && ['p-mosques', 'p-names', 'p-qada', 'p-settings', 'p-quran', 'p-more'].includes(pageId));
     b.classList.toggle('active', isTarget);
     b.setAttribute('aria-selected', isTarget ? 'true' : 'false');
   });
@@ -1346,6 +1511,9 @@ function openPage(pageId) {
   // Обновление карты при входе в раздел мечетей
   if (pageId === 'p-mosques' && typeof mosquesMapInstance !== 'undefined' && mosquesMapInstance) {
     setTimeout(() => mosquesMapInstance.invalidateSize(), 150);
+  }
+  if (pageId === 'p-quran' && typeof checkQuranResume === 'function') {
+    checkQuranResume();
   }
 }
 
@@ -1455,6 +1623,7 @@ const PRAYERS_EN = {
 const ORDER = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 const TRACKER_PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 const QADA_PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+var isQuranReady = false;
 
 const I18N = {
   ru: {
@@ -1465,6 +1634,7 @@ const I18N = {
     tabLearn: 'Намаз',
     tabCal: 'Календарь',
     tabMore: 'Ещё',
+    tabQuran: 'Коран',
     tabMosques: 'Мечети',
     tabNames: '99 Имён',
     tabQada: 'Каза',
@@ -1555,6 +1725,23 @@ const I18N = {
     ramadanFastDay: '🌙 День поста Рамадана',
     regularDay: 'Обычный день',
     hijriPrefix: 'Хиджра:',
+    descQuran: 'Чтение сур и аятов с переводом и аудио (тест)',
+    quranTitle: 'Священный Коран',
+    quranSelectSurah: 'Выберите суру:',
+    quranSearchPlaceholder: 'Поиск суры (номер или название)…',
+    quranPlayAll: 'Слушать суру',
+    quranStop: 'Стоп',
+    quranFont: 'Шрифт:',
+    quranTranslitToggle: 'Транскрипция',
+    quranTransToggle: 'Перевод',
+    quranResumeTitle: '🔖 Закладка',
+    quranBtnResume: 'Читать ➔',
+    quranAyahNumLabel: 'Аят {n}',
+    quranAyahListen: 'Слушать',
+    quranBookmarkSaved: 'Аят сохранён в закладках',
+    quranPlayingSurah: 'Воспроизведение: Сура {s}, аят {a}',
+    quranOfflineNotice: '⚠️ Нет подключения к интернету. Показана доступная офлайн-сура.',
+    quranTotalAyahs: '{n} аятов',
     descMosques: 'Поиск ближайших мечетей на карте OSM с дистанцией',
     descNames: 'Имя дня, счётчик зикра и тренажёр заучивания',
     descQada: 'Учёт и калькулятор пропущенных молитв',
@@ -1662,6 +1849,7 @@ const I18N = {
     tabLearn: 'Намаз',
     tabCal: 'Календарь',
     tabMore: 'Тагын',
+    tabQuran: 'Коръән',
     tabMosques: 'Мәчетләр',
     tabNames: '99 Исем',
     tabQada: 'Каза',
@@ -1752,6 +1940,23 @@ const I18N = {
     ramadanFastDay: '🌙 Рамазан уразасы көне',
     regularDay: 'Гадәти көн',
     hijriPrefix: 'Һиҗри:',
+    descQuran: 'Сүрәләрне һәм аятьләрне уку, тәрҗемә һәм аудио (тест)',
+    quranTitle: 'Изге Коръән',
+    quranSelectSurah: 'Сүрәне сайлагыз:',
+    quranSearchPlaceholder: 'Сүрәне эзләү (номер яки исем)…',
+    quranPlayAll: 'Сүрәне тыңлау',
+    quranStop: 'Туктату',
+    quranFont: 'Шрифт:',
+    quranTranslitToggle: 'Транскрипция',
+    quranTransToggle: 'Тәрҗемә',
+    quranResumeTitle: '🔖 Кыстыргыч',
+    quranBtnResume: 'Уку ➔',
+    quranAyahNumLabel: '{n} аять',
+    quranAyahListen: 'Тыңлау',
+    quranBookmarkSaved: 'Аять кыстыргычка сакланды',
+    quranPlayingSurah: 'Яңгырый: {s} сүрәсе, {a} аять',
+    quranOfflineNotice: '⚠️ Интернет юк. Офлайн сүрә күрсәтелде.',
+    quranTotalAyahs: '{n} аять',
     descMosques: 'OSM картасында якындагы мәчетләрне һәм араны табу',
     descNames: 'Көн исеме, зикер исәпләгеч һәм өйрәнү тренажеры',
     descQada: 'Каза намазларын исәпләү һәм калькулятор',
@@ -1859,6 +2064,7 @@ const I18N = {
     tabLearn: 'Lessons',
     tabCal: 'Calendar',
     tabMore: 'More',
+    tabQuran: 'Quran',
     tabMosques: 'Mosques',
     tabNames: '99 Names',
     tabQada: 'Qada',
@@ -1949,6 +2155,23 @@ const I18N = {
     ramadanFastDay: '🌙 Ramadan Fasting Day',
     regularDay: 'Regular Day',
     hijriPrefix: 'Hijri:',
+    descQuran: 'Surah reading with translation and audio (test)',
+    quranTitle: 'Holy Quran',
+    quranSelectSurah: 'Select Surah:',
+    quranSearchPlaceholder: 'Search surah (number or name)…',
+    quranPlayAll: 'Play Surah',
+    quranStop: 'Stop',
+    quranFont: 'Font:',
+    quranTranslitToggle: 'Transliteration',
+    quranTransToggle: 'Translation',
+    quranResumeTitle: '🔖 Bookmark',
+    quranBtnResume: 'Read ➔',
+    quranAyahNumLabel: 'Ayah {n}',
+    quranAyahListen: 'Listen',
+    quranBookmarkSaved: 'Ayah bookmarked',
+    quranPlayingSurah: 'Playing: Surah {s}, Ayah {a}',
+    quranOfflineNotice: '⚠️ Offline. Showing available offline surah.',
+    quranTotalAyahs: '{n} verses',
     descMosques: 'Find nearby mosques on OSM map with distances',
     descNames: 'Name of the day, dhikr counter and learning quiz',
     descQada: 'Tracker and calculator for missed prayers',
@@ -2146,6 +2369,8 @@ function setAppLang(lang) {
       console.error('Ошибка календаря:', e);
     }
   }
+  if (typeof isQuranReady !== 'undefined' && isQuranReady && typeof renderQuranReader === 'function') renderQuranReader();
+  if (typeof isQuranReady !== 'undefined' && isQuranReady && typeof checkQuranResume === 'function') checkQuranResume();
   if (typeof syncNativeLocation === 'function') syncNativeLocation();
 }
 
@@ -4840,6 +5065,407 @@ if (btnQadaCalc) {
     showToast(dict.qadaAddedSuccess || '✔ Добавлено к счётчику каза');
   };
 }
+
+
+// ==========================================
+// 12. ЧТЕНИЕ КОРАНА (ТЕСТОВАЯ ВЕРСИЯ / MVP)
+// ==========================================
+const QURAN_SURAHS_INDEX = [[1,"Аль-Фатиха","Al-Faatiha","ٱلْفَاتِحَةِ",7,0,1],[2,"Аль-Бакара","Al-Baqara","البَقَرَةِ",286,7,0],[3,"Аль Имран","Aal-i-Imraan","آلِ عِمۡرَانَ",200,293,0],[4,"Ан-Ниса","An-Nisaa","النِّسَاءِ",176,493,0],[5,"Аль-Маида","Al-Maaida","المَائـِدَةِ",120,669,0],[6,"Аль-Анам","Al-An'aam","الأَنۡعَامِ",165,789,1],[7,"Аль-Араф","Al-A'raaf","الأَعۡرَافِ",206,954,1],[8,"Аль-Анфаль","Al-Anfaal","الأَنفَالِ",75,1160,0],[9,"Ат-Тауба","At-Tawba","التَّوۡبَةِ",129,1235,0],[10,"Юнус","Yunus","يُونُسَ",109,1364,1],[11,"Худ","Hud","هُودٍ",123,1473,1],[12,"Юсуф","Yusuf","يُوسُفَ",111,1596,1],[13,"Ар-Раад","Ar-Ra'd","الرَّعۡدِ",43,1707,0],[14,"Ибрахим","Ibrahim","إِبۡرَاهِيمَ",52,1750,1],[15,"Аль-Хиджр","Al-Hijr","الحِجۡرِ",99,1802,1],[16,"Ан-Нахль","An-Nahl","النَّحۡلِ",128,1901,1],[17,"Аль-Исра","Al-Israa","الإِسۡرَاءِ",111,2029,1],[18,"Аль-Кахф","Al-Kahf","الكَهۡفِ",110,2140,1],[19,"Марьям","Maryam","مَرۡيَمَ",98,2250,1],[20,"Та Ха","Taa-Haa","طه",135,2348,1],[21,"Аль-Анбия","Al-Anbiyaa","الأَنبِيَاءِ",112,2483,1],[22,"Аль-Хадж","Al-Hajj","الحَجِّ",78,2595,0],[23,"Аль-Муминун","Al-Muminoon","المُؤۡمِنُونَ",118,2673,1],[24,"Ан-Нур","An-Noor","النُّورِ",64,2791,0],[25,"Аль-Фуркан","Al-Furqaan","الفُرۡقَانِ",77,2855,1],[26,"Аш-Шуара","Ash-Shu'araa","الشُّعَرَاءِ",227,2932,1],[27,"Ан-Намль","An-Naml","النَّمۡلِ",93,3159,1],[28,"Аль-Касас","Al-Qasas","القَصَصِ",88,3252,1],[29,"Аль-Анкабут","Al-Ankaboot","العَنكَبُوتِ",69,3340,1],[30,"Ар-Рум","Ar-Room","الرُّومِ",60,3409,1],[31,"Лукман","Luqman","لُقۡمَانَ",34,3469,1],[32,"Ас-Саджда","As-Sajda","السَّجۡدَةِ",30,3503,1],[33,"Аль-Ахзаб","Al-Ahzaab","الأَحۡزَابِ",73,3533,0],[34,"Саба","Saba","سَبَإٍ",54,3606,1],[35,"Фатыр","Faatir","فَاطِرٍ",45,3660,1],[36,"Йа Син","Yaseen","يسٓ",83,3705,1],[37,"Ас-Саффат","As-Saaffaat","الصَّافَّاتِ",182,3788,1],[38,"Сад","Saad","صٓ",88,3970,1],[39,"Аз-Зумар","Az-Zumar","الزُّمَرِ",75,4058,1],[40,"Гафир","Ghafir","غَافِرٍ",85,4133,1],[41,"Фуссылят","Fussilat","فُصِّلَتۡ",54,4218,1],[42,"Аш-Шура","Ash-Shura","الشُّورَىٰ",53,4272,1],[43,"Аз-Зухруф","Az-Zukhruf","الزُّخۡرُفِ",89,4325,1],[44,"Ад-Духан","Ad-Dukhaan","الدُّخَانِ",59,4414,1],[45,"Аль-Джасия","Al-Jaathiya","الجَاثِيَةِ",37,4473,1],[46,"Аль-Ахкаф","Al-Ahqaf","الأَحۡقَافِ",35,4510,1],[47,"Мухаммад","Muhammad","مُحَمَّدٍ",38,4545,0],[48,"Аль-Фатх","Al-Fath","الفَتۡحِ",29,4583,0],[49,"Аль-Худжурат","Al-Hujuraat","الحُجُرَاتِ",18,4612,0],[50,"Каф","Qaaf","قٓ",45,4630,1],[51,"Аз-Зарият","Adh-Dhaariyat","الذَّارِيَاتِ",60,4675,1],[52,"Ат-Тур","At-Tur","الطُّورِ",49,4735,1],[53,"Ан-Наджм","An-Najm","النَّجۡمِ",62,4784,1],[54,"Аль-Камар","Al-Qamar","القَمَرِ",55,4846,1],[55,"Ар-Рахман","Ar-Rahmaan","الرَّحۡمَٰن",78,4901,0],[56,"Аль-Вакиа","Al-Waaqia","الوَاقِعَةِ",96,4979,1],[57,"Аль-Хадид","Al-Hadid","الحَدِيدِ",29,5075,0],[58,"Аль-Муджадила","Al-Mujaadila","المُجَادلَةِ",22,5104,0],[59,"Аль-Хашр","Al-Hashr","الحَشۡرِ",24,5126,0],[60,"Аль-Мумтахана","Al-Mumtahana","المُمۡتَحنَةِ",13,5150,0],[61,"Ас-Сафф","As-Saff","الصَّفِّ",14,5163,0],[62,"Аль-Джумуа","Al-Jumu'a","الجُمُعَةِ",11,5177,0],[63,"Аль-Мунафикун","Al-Munaafiqoon","المُنَافِقُونَ",11,5188,0],[64,"Ат-Тагабун","At-Taghaabun","التَّغَابُنِ",18,5199,0],[65,"Ат-Талак","At-Talaaq","الطَّلَاقِ",12,5217,0],[66,"Ат-Тахрим","At-Tahrim","التَّحۡرِيمِ",12,5229,0],[67,"Аль-Мульк","Al-Mulk","المُلۡكِ",30,5241,1],[68,"Аль-Калям","Al-Qalam","القَلَمِ",52,5271,1],[69,"Аль-Хакка","Al-Haaqqa","الحَاقَّةِ",52,5323,1],[70,"Аль-Мааридж","Al-Ma'aarij","المَعَارِجِ",44,5375,1],[71,"Нух","Nooh","نُوحٍ",28,5419,1],[72,"Аль-Джинн","Al-Jinn","الجِنِّ",28,5447,1],[73,"Аль-Муззаммиль","Al-Muzzammil","المُزَّمِّلِ",20,5475,1],[74,"Аль-Муддассир","Al-Muddaththir","المُدَّثِّرِ",56,5495,1],[75,"Аль-Кыяма","Al-Qiyaama","القِيَامَةِ",40,5551,1],[76,"Аль-Инсан","Al-Insaan","الإِنسَانِ",31,5591,0],[77,"Аль-Мурсалят","Al-Mursalaat","المُرۡسَلَاتِ",50,5622,1],[78,"Ан-Наба","An-Naba","النَّبَإِ",40,5672,1],[79,"Ан-Назиат","An-Naazi'aat","النَّازِعَاتِ",46,5712,1],[80,"Абаса","Abasa","عَبَسَ",42,5758,1],[81,"Ат-Таквир","At-Takwir","التَّكۡوِيرِ",29,5800,1],[82,"Аль-Инфитар","Al-Infitaar","الانفِطَارِ",19,5829,1],[83,"Аль-Мутаффифин","Al-Mutaffifin","المُطَفِّفِينَ",36,5848,1],[84,"Аль-Иншикак","Al-Inshiqaaq","الانشِقَاقِ",25,5884,1],[85,"Аль-Бурудж","Al-Burooj","البُرُوجِ",22,5909,1],[86,"Ат-Тарик","At-Taariq","الطَّارِقِ",17,5931,1],[87,"Аль-Аля","Al-A'laa","الأَعۡلَىٰ",19,5948,1],[88,"Аль-Гашия","Al-Ghaashiya","الغَاشِيَةِ",26,5967,1],[89,"Аль-Фаджар","Al-Fajr","الفَجۡرِ",30,5993,1],[90,"Аль-Баляд","Al-Balad","البَلَدِ",20,6023,1],[91,"Аш-Шамс","Ash-Shams","الشَّمۡسِ",15,6043,1],[92,"Аль-Лейл","Al-Lail","اللَّيۡلِ",21,6058,1],[93,"Ад-Духа","Ad-Dhuhaa","الضُّحَىٰ",11,6079,1],[94,"Аш-Шарх","Ash-Sharh","الشَّرۡحِ",8,6090,1],[95,"Ат-Тин","At-Tin","التِّينِ",8,6098,1],[96,"Аль-Аляк","Al-Alaq","العَلَقِ",19,6106,1],[97,"Аль-Кадр","Al-Qadr","القَدۡرِ",5,6125,1],[98,"Аль-Баййина","Al-Bayyina","البَيِّنَةِ",8,6130,0],[99,"Аз-Зальзаля","Az-Zalzala","الزَّلۡزَلَةِ",8,6138,0],[100,"Аль-Адият","Al-Aadiyaat","العَادِيَاتِ",11,6146,1],[101,"Аль-Кариа","Al-Qaari'a","القَارِعَةِ",11,6157,1],[102,"Ат-Такасур","At-Takaathur","التَّكَاثُرِ",8,6168,1],[103,"Аль-Аср","Al-Asr","العَصۡرِ",3,6176,1],[104,"Аль-Хумаза","Al-Humaza","الهُمَزَةِ",9,6179,1],[105,"Аль-Филь","Al-Fil","الفِيلِ",5,6188,1],[106,"Курайш","Quraish","قُرَيۡشٍ",4,6193,1],[107,"Аль-Маун","Al-Maa'un","المَاعُونِ",7,6197,1],[108,"Аль-Каусар","Al-Kawthar","الكَوۡثَرِ",3,6204,1],[109,"Аль-Кафирун","Al-Kaafiroon","الكَافِرُونَ",6,6207,1],[110,"Ан-Наср","An-Nasr","النَّصۡرِ",3,6213,0],[111,"Аль-Масад","Al-Masad","المَسَدِ",5,6216,1],[112,"Аль-Ихлас","Al-Ikhlaas","الإِخۡلَاصِ",4,6221,1],[113,"Аль-Фаляк","Al-Falaq","الفَلَقِ",5,6225,1],[114,"Ан-Нас","An-Naas","النَّاسِ",6,6230,1]];
+const OFFLINE_QURAN_DATA = {"1":[{"n":1,"g":1,"ar":"﻿بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ","ru":"Во имя Аллаха, Милостивого, Милосердного!","en":"In the name of Allah, the Entirely Merciful, the Especially Merciful.","tt":"Рәхимле, шәфкатьле Аллаһ исеме белән.","tr":"Бисмилляхир-Рахманир-Рахим"},{"n":2,"g":2,"ar":"ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ","ru":"Хвала Аллаху, Господу миров,","en":"[All] praise is [due] to Allah, Lord of the worlds -","tt":"Барча мактау галәмнәрнең Раббысы Аллаһка булсын.","tr":"Альхамду лилляхи Раббиль-алямин"},{"n":3,"g":3,"ar":"ٱلرَّحْمَٰنِ ٱلرَّحِيمِ","ru":"Милостивому, Милосердному,","en":"The Entirely Merciful, the Especially Merciful,","tt":"Ул — Рәхимле һәм Шәфкатьле.","tr":"Ар-Рахманир-Рахим"},{"n":4,"g":4,"ar":"مَٰلِكِ يَوْمِ ٱلدِّينِ","ru":"Властелину Дня воздаяния!","en":"Sovereign of the Day of Recompense.","tt":"Хисап (җәза) көненең Хуҗасы.","tr":"Малики яумид-дин"},{"n":5,"g":5,"ar":"إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ","ru":"Тебе одному мы поклоняемся и Тебя одного молим о помощи.","en":"It is You we worship and You we ask for help.","tt":"Бары тик Сиңа гына гыйбадәт кылабыз һәм Сиңа гына ярдәм сорап мөрәҗәгать итәбез.","tr":"Иййака наъбуду ва иййака настаъин"},{"n":6,"g":6,"ar":"ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ","ru":"Веди нас прямым путем,","en":"Guide us to the straight path -","tt":"Безне туры юлга күндер,","tr":"Ихдинас-сыраталь-мустакым"},{"n":7,"g":7,"ar":"صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ","ru":"путем тех, кого Ты облагодетельствовал, не тех, на кого пал гнев, и не заблудших.","en":"The path of those upon whom You have bestowed favor, not of those who have evoked [Your] anger or of those who are astray.","tt":"Үзең нигъмәт биргән кешеләрнең юлына, Үзең ачуланган һәм адашканнарның юлына түгел.","tr":"Сыраталь-лязина анъамта аляйхим, гайриль-магдуби аляйхим ва ляд-даллин"}],"36":[{"n":1,"g":3706,"ar":"بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ يسٓ","ru":"Йа. Син.","en":"Ya, Seen."},{"n":2,"g":3707,"ar":"وَٱلْقُرْءَانِ ٱلْحَكِيمِ","ru":"Клянусь мудрым Кораном!","en":"By the wise Qur'an."},{"n":3,"g":3708,"ar":"إِنَّكَ لَمِنَ ٱلْمُرْسَلِينَ","ru":"Воистину, ты - один из посланников","en":"Indeed you, [O Muhammad], are from among the messengers,"},{"n":4,"g":3709,"ar":"عَلَىٰ صِرَٰطٍۢ مُّسْتَقِيمٍۢ","ru":"на прямом пути.","en":"On a straight path."},{"n":5,"g":3710,"ar":"تَنزِيلَ ٱلْعَزِيزِ ٱلرَّحِيمِ","ru":"Он ниспослан Могущественным, Милосердным,","en":"[This is] a revelation of the Exalted in Might, the Merciful,"},{"n":6,"g":3711,"ar":"لِتُنذِرَ قَوْمًۭا مَّآ أُنذِرَ ءَابَآؤُهُمْ فَهُمْ غَٰفِلُونَ","ru":"чтобы ты предостерег людей, отцов которых никто не предостерег, из-за чего они оставались беспечными невеждами.","en":"That you may warn a people whose forefathers were not warned, so they are unaware."},{"n":7,"g":3712,"ar":"لَقَدْ حَقَّ ٱلْقَوْلُ عَلَىٰٓ أَكْثَرِهِمْ فَهُمْ لَا يُؤْمِنُونَ","ru":"Относительно большинства из них сбылось Слово, и они не уверуют.","en":"Already the word has come into effect upon most of them, so they do not believe."},{"n":8,"g":3713,"ar":"إِنَّا جَعَلْنَا فِىٓ أَعْنَٰقِهِمْ أَغْلَٰلًۭا فَهِىَ إِلَى ٱلْأَذْقَانِ فَهُم مُّقْمَحُونَ","ru":"Воистину, Мы наложили на их шеи оковы до самого подбородка, и их головы задраны.","en":"Indeed, We have put shackles on their necks, and they are to their chins, so they are with heads [kept] aloft."},{"n":9,"g":3714,"ar":"وَجَعَلْنَا مِنۢ بَيْنِ أَيْدِيهِمْ سَدًّۭا وَمِنْ خَلْفِهِمْ سَدًّۭا فَأَغْشَيْنَٰهُمْ فَهُمْ لَا يُبْصِرُونَ","ru":"Мы установили преграду перед ними и преграду позади них и накрыли их покрывалом, и они не видят.","en":"And We have put before them a barrier and behind them a barrier and covered them, so they do not see."},{"n":10,"g":3715,"ar":"وَسَوَآءٌ عَلَيْهِمْ ءَأَنذَرْتَهُمْ أَمْ لَمْ تُنذِرْهُمْ لَا يُؤْمِنُونَ","ru":"Им все равно, предостерег ты их или не предостерег. Они не веруют.","en":"And it is all the same for them whether you warn them or do not warn them - they will not believe."},{"n":11,"g":3716,"ar":"إِنَّمَا تُنذِرُ مَنِ ٱتَّبَعَ ٱلذِّكْرَ وَخَشِىَ ٱلرَّحْمَٰنَ بِٱلْغَيْبِ ۖ فَبَشِّرْهُ بِمَغْفِرَةٍۢ وَأَجْرٍۢ كَرِيمٍ","ru":"Ты можешь предостеречь только того, кто последовал за Напоминанием и устрашился Милостивого, не видя Его воочию. Обрадуй его вестью о прощении и щедрой награде.","en":"You can only warn one who follows the message and fears the Most Merciful unseen. So give him good tidings of forgiveness and noble reward."},{"n":12,"g":3717,"ar":"إِنَّا نَحْنُ نُحْىِ ٱلْمَوْتَىٰ وَنَكْتُبُ مَا قَدَّمُوا۟ وَءَاثَٰرَهُمْ ۚ وَكُلَّ شَىْءٍ أَحْصَيْنَٰهُ فِىٓ إِمَامٍۢ مُّبِينٍۢ","ru":"Воистину, Мы оживляем мертвых и записываем то, что они совершили, и то, что они оставили после себя. Всякую вещь Мы подсчитали в ясном руководстве (Хранимой скрижали).","en":"Indeed, it is We who bring the dead to life and record what they have put forth and what they left behind, and all things We have enumerated in a clear register."},{"n":13,"g":3718,"ar":"وَٱضْرِبْ لَهُم مَّثَلًا أَصْحَٰبَ ٱلْقَرْيَةِ إِذْ جَآءَهَا ٱلْمُرْسَلُونَ","ru":"В качестве притчи приведи им жителей селения, к которым явились посланники.","en":"And present to them an example: the people of the city, when the messengers came to it -"},{"n":14,"g":3719,"ar":"إِذْ أَرْسَلْنَآ إِلَيْهِمُ ٱثْنَيْنِ فَكَذَّبُوهُمَا فَعَزَّزْنَا بِثَالِثٍۢ فَقَالُوٓا۟ إِنَّآ إِلَيْكُم مُّرْسَلُونَ","ru":"Когда Мы отправили к ним двух посланников, они сочли их лжецами, и тогда Мы подкрепили их третьим. Они сказали: «Воистину, мы посланы к вам».","en":"When We sent to them two but they denied them, so We strengthened them with a third, and they said, \"Indeed, we are messengers to you.\""},{"n":15,"g":3720,"ar":"قَالُوا۟ مَآ أَنتُمْ إِلَّا بَشَرٌۭ مِّثْلُنَا وَمَآ أَنزَلَ ٱلرَّحْمَٰنُ مِن شَىْءٍ إِنْ أَنتُمْ إِلَّا تَكْذِبُونَ","ru":"Они сказали: «Вы - такие же люди, как и мы. Милостивый ничего не ниспосылал, а вы всего лишь лжете».","en":"They said, \"You are not but human beings like us, and the Most Merciful has not revealed a thing. You are only telling lies.\""},{"n":16,"g":3721,"ar":"قَالُوا۟ رَبُّنَا يَعْلَمُ إِنَّآ إِلَيْكُمْ لَمُرْسَلُونَ","ru":"Они сказали: «Наш Господь знает, что мы действительно посланы к вам.","en":"They said, \"Our Lord knows that we are messengers to you,"},{"n":17,"g":3722,"ar":"وَمَا عَلَيْنَآ إِلَّا ٱلْبَلَٰغُ ٱلْمُبِينُ","ru":"На нас возложена только ясная передача откровения».","en":"And we are not responsible except for clear notification.\""},{"n":18,"g":3723,"ar":"قَالُوٓا۟ إِنَّا تَطَيَّرْنَا بِكُمْ ۖ لَئِن لَّمْ تَنتَهُوا۟ لَنَرْجُمَنَّكُمْ وَلَيَمَسَّنَّكُم مِّنَّا عَذَابٌ أَلِيمٌۭ","ru":"Они сказали: «Воистину, мы увидели в вас дурное предзнаменование. Если вы не прекратите, то мы непременно побьем вас камнями и вас коснутся мучительные страдания от нас».","en":"They said, \"Indeed, we consider you a bad omen. If you do not desist, we will surely stone you, and there will surely touch you, from us, a painful punishment.\""},{"n":19,"g":3724,"ar":"قَالُوا۟ طَٰٓئِرُكُم مَّعَكُمْ ۚ ��َئِن ذُكِّرْتُم ۚ بَلْ أَنتُمْ قَوْمٌۭ مُّسْرِفُونَ","ru":"Они сказали: «Ваше дурное предзнаменование обратится против вас самих. Неужели, если вас предостерегают, вы считаете это дурным предзнаменованием? О нет! Вы - народ излишествующий.","en":"They said, \"Your omen is with yourselves. Is it because you were reminded? Rather, you are a transgressing people.\""},{"n":20,"g":3725,"ar":"وَجَآءَ مِنْ أَقْصَا ٱلْمَدِينَةِ رَجُلٌۭ يَسْعَىٰ قَالَ يَٰقَوْمِ ٱتَّبِعُوا۟ ٱلْمُرْسَلِينَ","ru":"С окраины города второпях пришел мужчина и сказал: «О мой народ! Последуйте за посланниками.","en":"And there came from the farthest end of the city a man, running. He said, \"O my people, follow the messengers."},{"n":21,"g":3726,"ar":"ٱتَّبِعُوا۟ مَن لَّا يَسْـَٔلُكُمْ أَجْرًۭا وَهُم مُّهْتَدُونَ","ru":"Последуйте за теми, кто не просит у вас награды и следует прямым путем.","en":"Follow those who do not ask of you [any] payment, and they are [rightly] guided."},{"n":22,"g":3727,"ar":"وَمَا لِىَ لَآ أَعْبُدُ ٱلَّذِى فَطَرَنِى وَإِلَيْهِ تُرْجَعُونَ","ru":"И почему бы мне не поклоняться Тому, Кто сотворил меня и к Кому вы будете возвращены?","en":"And why should I not worship He who created me and to whom you will be returned?"},{"n":23,"g":3728,"ar":"ءَأَتَّخِذُ مِن دُونِهِۦٓ ءَالِهَةً إِن يُرِدْنِ ٱلرَّحْمَٰنُ بِضُرٍّۢ لَّا تُغْنِ عَنِّى شَفَٰعَتُهُمْ شَيْـًۭٔا وَلَا يُنقِذُونِ","ru":"Неужели я стану поклоняться другим богам помимо Него? Ведь если Милостивый пожелает причинить мне зло, то их заступничество ничем не поможет мне, и они не спасут меня.","en":"Should I take other than Him [false] deities [while], if the Most Merciful intends for me some adversity, their intercession will not avail me at all, nor can they save me?"},{"n":24,"g":3729,"ar":"إِنِّىٓ إِذًۭا لَّفِى ضَلَٰلٍۢ مُّبِينٍ","ru":"Вот тогда я окажусь в очевидном заблуждении.","en":"Indeed, I would then be in manifest error."},{"n":25,"g":3730,"ar":"إِنِّىٓ ءَامَنتُ بِرَبِّكُمْ فَٱسْمَعُونِ","ru":"Воистину, я уверовал в вашего Господа. Послушайте же меня».","en":"Indeed, I have believed in your Lord, so listen to me.\""},{"n":26,"g":3731,"ar":"قِيلَ ٱدْخُلِ ٱلْجَنَّةَ ۖ قَالَ يَٰلَيْتَ قَوْمِى يَعْلَمُونَ","ru":"Ему было сказано: «Войди в Рай!». Он сказал: «О, если бы мой народ знал,","en":"It was said, \"Enter Paradise.\" He said, \"I wish my people could know"},{"n":27,"g":3732,"ar":"بِمَا غَفَرَ لِى رَبِّى وَجَعَلَنِى مِنَ ٱلْمُكْرَمِينَ","ru":"за что мой Господь простил меня (или что мой Господь простил меня) и что Он сделал меня одним из почитаемых!».","en":"Of how my Lord has forgiven me and placed me among the honored.\""},{"n":28,"g":3733,"ar":"۞ وَمَآ أَنزَلْنَا عَلَىٰ قَوْمِهِۦ مِنۢ بَعْدِهِۦ مِن جُندٍۢ مِّنَ ٱلسَّمَآءِ وَمَا كُنَّا مُنزِلِينَ","ru":"После него Мы не ниспослали на его народ никакого войска с неба и не собирались делать этого.","en":"And We did not send down upon his people after him any soldiers from the heaven, nor would We have done so."},{"n":29,"g":3734,"ar":"إِن كَانَتْ إِلَّا صَيْحَةًۭ وَٰحِدَةًۭ فَإِذَا هُمْ خَٰمِدُونَ","ru":"Был всего лишь один глас, и они затухли.","en":"It was not but one shout, and immediately they were extinguished."},{"n":30,"g":3735,"ar":"يَٰحَسْرَةً عَلَى ٱلْعِبَادِ ۚ مَا يَأْتِيهِم مِّن رَّسُولٍ إِلَّا كَانُوا۟ بِهِۦ يَسْتَهْزِءُونَ","ru":"О горе рабам! Не приходил к ним ни один посланник, над которым бы они не издевались.","en":"How regretful for the servants. There did not come to them any messenger except that they used to ridicule him."},{"n":31,"g":3736,"ar":"أَلَمْ يَرَوْا۟ كَمْ أَهْلَكْنَا قَبْلَهُم مِّنَ ٱلْقُرُونِ أَنَّهُمْ إِلَيْهِمْ لَا يَرْجِعُونَ","ru":"Неужели они не видят, сколько поколений Мы погубили до них и что они не вернутся к ним?","en":"Have they not considered how many generations We destroyed before them - that they to them will not return?"},{"n":32,"g":3737,"ar":"وَإِن كُلٌّۭ لَّمَّا جَمِيعٌۭ لَّدَيْنَا مُحْضَرُونَ","ru":"Воистину, все они будут собраны у Нас.","en":"And indeed, all of them will yet be brought present before Us."},{"n":33,"g":3738,"ar":"وَءَايَةٌۭ لَّهُمُ ٱلْأَرْضُ ٱلْمَيْتَةُ أَحْيَيْنَٰهَا وَأَخْرَجْنَا مِنْهَا حَبًّۭا فَمِنْهُ يَأْكُلُونَ","ru":"Знамением для них является мертвая земля, которую Мы оживили и извлекли из нее зерно, которым они питаются.","en":"And a sign for them is the dead earth. We have brought it to life and brought forth from it grain, and from it they eat."},{"n":34,"g":3739,"ar":"وَجَعَلْنَا فِيهَا جَنَّٰتٍۢ مِّن نَّخِيلٍۢ وَأَعْنَٰبٍۢ وَفَجَّرْنَا فِيهَا مِنَ ٱلْعُيُونِ","ru":"Мы создали на ней сады из финико��ых пальм и винограда и заставили биться в них источники,","en":"And We placed therein gardens of palm trees and grapevines and caused to burst forth therefrom some springs -"},{"n":35,"g":3740,"ar":"لِيَأْكُلُوا۟ مِن ثَمَرِهِۦ وَمَا عَمِلَتْهُ أَيْدِيهِمْ ۖ أَفَلَا يَشْكُرُونَ","ru":"чтобы они вкушали их плоды и то, что создали своими руками (или чтобы они вкушали плоды, которые они не создали своими руками). Неужели они не будут благодарны?","en":"That they may eat of His fruit. And their hands have not produced it, so will they not be grateful?"},{"n":36,"g":3741,"ar":"سُبْحَٰنَ ٱلَّذِى خَلَقَ ٱلْأَزْوَٰجَ كُلَّهَا مِمَّا تُنۢبِتُ ٱلْأَرْضُ وَمِنْ أَنفُسِهِمْ وَمِمَّا لَا يَعْلَمُونَ","ru":"Пречист Тот, Кто сотворил парами то, что растит земля, их самих и то, чего они не знают.","en":"Exalted is He who created all pairs - from what the earth grows and from themselves and from that which they do not know."},{"n":37,"g":3742,"ar":"وَءَايَةٌۭ لَّهُمُ ٱلَّيْلُ نَسْلَخُ مِنْهُ ٱلنَّهَارَ فَإِذَا هُم مُّظْلِمُونَ","ru":"Знамением для них является ночь, которую Мы отделяем ото дня, и вот они погружаются во мрак.","en":"And a sign for them is the night. We remove from it [the light of] day, so they are [left] in darkness."},{"n":38,"g":3743,"ar":"وَٱلشَّمْسُ تَجْرِى لِمُسْتَقَرٍّۢ لَّهَا ۚ ذَٰلِكَ تَقْدِيرُ ٱلْعَزِيزِ ٱلْعَلِيمِ","ru":"Солнце плывет к своему местопребыванию. Так предопределил Могущественный, Знающий.","en":"And the sun runs [on course] toward its stopping point. That is the determination of the Exalted in Might, the Knowing."},{"n":39,"g":3744,"ar":"وَٱلْقَمَرَ قَدَّرْنَٰهُ مَنَازِلَ حَتَّىٰ عَادَ كَٱلْعُرْجُونِ ٱلْقَدِيمِ","ru":"Мы предопределили для луны положения, пока она вновь не становится подобна старой пальмовой ветви.","en":"And the moon - We have determined for it phases, until it returns [appearing] like the old date stalk."},{"n":40,"g":3745,"ar":"لَا ٱلشَّمْسُ يَنۢبَغِى لَهَآ أَن تُدْرِكَ ٱلْقَمَرَ وَلَا ٱلَّيْلُ سَابِقُ ٱلنَّهَارِ ۚ وَكُلٌّۭ فِى فَلَكٍۢ يَسْبَحُونَ","ru":"Солнцу не надлежит догонять луну, и ночь не опережает день. Каждый плывет по орбите.","en":"It is not allowable for the sun to reach the moon, nor does the night overtake the day, but each, in an orbit, is swimming."},{"n":41,"g":3746,"ar":"وَءَايَةٌۭ لَّهُمْ أَنَّا حَمَلْنَا ذُرِّيَّتَهُمْ فِى ٱلْفُلْكِ ٱلْمَشْحُونِ","ru":"Знамением для них является то, что Мы перенесли их потомство в переполненном ковчеге.","en":"And a sign for them is that We carried their forefathers in a laden ship."},{"n":42,"g":3747,"ar":"وَخَلَقْنَا لَهُم مِّن مِّثْلِهِۦ مَا يَرْكَبُونَ","ru":"Мы создали для них по его подобию то, на что они садятся.","en":"And We created for them from the likes of it that which they ride."},{"n":43,"g":3748,"ar":"وَإِن نَّشَأْ نُغْرِقْهُمْ فَلَا صَرِيخَ لَهُمْ وَلَا هُمْ يُنقَذُونَ","ru":"Если Мы пожелаем, то потопим их, и тогда никто не спасет их, и сами они не спасутся,","en":"And if We should will, We could drown them; then no one responding to a cry would there be for them, nor would they be saved"},{"n":44,"g":3749,"ar":"إِلَّا رَحْمَةًۭ مِّنَّا وَمَتَٰعًا إِلَىٰ حِينٍۢ","ru":"если только Мы не окажем им милость и не позволим им пользоваться благами до определенного времени.","en":"Except as a mercy from Us and provision for a time."},{"n":45,"g":3750,"ar":"وَإِذَا قِيلَ لَهُمُ ٱتَّقُوا۟ مَا بَيْنَ أَيْدِيكُمْ وَمَا خَلْفَكُمْ لَعَلَّكُمْ تُرْحَمُونَ","ru":"Когда им говорят: «Бойтесь того, что перед вами, и того, что после вас, чтобы вы были помилованы», - они не отвечают.","en":"But when it is said to them, \"Beware of what is before you and what is behind you; perhaps you will receive mercy... \""},{"n":46,"g":3751,"ar":"وَمَا تَأْتِيهِم مِّنْ ءَايَةٍۢ مِّنْ ءَايَٰتِ رَبِّهِمْ إِلَّا كَانُوا۟ عَنْهَا مُعْرِضِينَ","ru":"Какое бы знамение из знамений их Господа не явилось к ним, они непременно отворачиваются от него.","en":"And no sign comes to them from the signs of their Lord except that they are from it turning away."},{"n":47,"g":3752,"ar":"وَإِذَا قِيلَ لَهُمْ أَنفِقُوا۟ مِمَّا رَزَقَكُمُ ٱللَّهُ قَالَ ٱلَّذِينَ كَفَرُوا۟ لِلَّذِينَ ءَامَنُوٓا۟ أَنُطْعِمُ مَن لَّوْ يَشَآءُ ٱللَّهُ أَطْعَمَهُۥٓ إِنْ أَنتُمْ إِلَّا فِى ضَلَٰلٍۢ مُّبِينٍۢ","ru":"Когда им говорят: «Расходуйте из того, чем вас наделил Аллах», - неверующие говорят верующим: «Неужели мы будем кормить того, кого накормил бы Аллах, если бы пожелал? Воистину, вы лишь находитесь в очевидном заблуждении».","en":"And when it is said to them, \"Spend from that which Allah has provided for you,\" those who disbelieve say to those who believe, \"Should we feed one whom, if Allah had willed, He would have fed? You are not but in clear error.\""},{"n":48,"g":3753,"ar":"وَيَقُولُونَ مَتَىٰ هَٰذَا ٱلْوَعْدُ إِن كُنتُمْ صَٰدِقِينَ","ru":"Они говорят: «Когда сбудется это обещание, если вы говорите правду?».","en":"And they say, \"When is this promise, if you should be truthful?\""},{"n":49,"g":3754,"ar":"مَا يَنظُرُونَ إِلَّا صَيْحَةًۭ وَٰحِدَةًۭ تَأْخُذُهُمْ وَهُمْ يَخِصِّمُونَ","ru":"Им нечего ожидать, кроме одного только гласа, который поразит их тогда, когда они будут препираться.","en":"They do not await except one blast which will seize them while they are disputing."},{"n":50,"g":3755,"ar":"فَلَا يَسْتَطِيعُونَ تَوْصِيَةًۭ وَلَآ إِلَىٰٓ أَهْلِهِمْ يَرْجِعُونَ","ru":"Они не смогут ни оставить завещание, ни вернуться к своим семьям.","en":"And they will not be able [to give] any instruction, nor to their people can they return."},{"n":51,"g":3756,"ar":"وَنُفِخَ فِى ٱلصُّورِ فَإِذَا هُم مِّنَ ٱلْأَجْدَاثِ إِلَىٰ رَبِّهِمْ يَنسِلُونَ","ru":"Протрубят в Рог, и вот они устремляются к своему Господу из могил.","en":"And the Horn will be blown; and at once from the graves to their Lord they will hasten."},{"n":52,"g":3757,"ar":"قَالُوا۟ يَٰوَيْلَنَا مَنۢ بَعَثَنَا مِن مَّرْقَدِنَا ۜ ۗ هَٰذَا مَا وَعَدَ ٱلرَّحْمَٰنُ وَصَدَقَ ٱلْمُرْسَلُونَ","ru":"Они скажут: «О горе нам! Кто поднял нас с места, где мы спали?». Это - то, что обещал Милостивый, и посланники говорили правду».","en":"They will say, \"O woe to us! Who has raised us up from our sleeping place?\" [The reply will be], \"This is what the Most Merciful had promised, and the messengers told the truth.\""},{"n":53,"g":3758,"ar":"إِن كَانَتْ إِلَّا صَيْحَةًۭ وَٰحِدَةًۭ فَإِذَا هُمْ جَمِيعٌۭ لَّدَيْنَا مُحْضَرُونَ","ru":"Будет один только глас, и все они будут собраны у Нас.","en":"It will not be but one blast, and at once they are all brought present before Us."},{"n":54,"g":3759,"ar":"فَٱلْيَوْمَ لَا تُظْلَمُ نَفْسٌۭ شَيْـًۭٔا وَلَا تُجْزَوْنَ إِلَّا مَا كُنتُمْ تَعْمَلُونَ","ru":"Сегодня ни одной душе не будет причинено никакой несправедливости, и вам воздастся только за то, что вы совершали.","en":"So today no soul will be wronged at all, and you will not be recompensed except for what you used to do."},{"n":55,"g":3760,"ar":"إِنَّ أَصْحَٰبَ ٱلْجَنَّةِ ٱلْيَوْمَ فِى شُغُلٍۢ فَٰكِهُونَ","ru":"Воистину, обитатели Рая сегодня будут заняты тем, что будут наслаждаться.","en":"Indeed the companions of Paradise, that Day, will be amused in [joyful] occupation -"},{"n":56,"g":3761,"ar":"هُمْ وَأَزْوَٰجُهُمْ فِى ظِلَٰلٍ عَلَى ٱلْأَرَآئِكِ مُتَّكِـُٔونَ","ru":"Они и их супруги будут лежать в тенях на ложах, прислонившись.","en":"They and their spouses - in shade, reclining on adorned couches."},{"n":57,"g":3762,"ar":"لَهُمْ فِيهَا فَٰكِهَةٌۭ وَلَهُم مَّا يَدَّعُونَ","ru":"Там для них есть фрукты и все, что они потребуют.","en":"For them therein is fruit, and for them is whatever they request [or wish]"},{"n":58,"g":3763,"ar":"سَلَٰمٌۭ قَو��لًۭا مِّن رَّبٍّۢ رَّحِيمٍۢ","ru":"Милосердный Господь приветствует их словом: «Мир!».","en":"[And] \"Peace,\" a word from a Merciful Lord."},{"n":59,"g":3764,"ar":"وَٱمْتَٰزُوا۟ ٱلْيَوْمَ أَيُّهَا ٱلْمُجْرِمُونَ","ru":"Отделитесь сегодня, грешники!","en":"[Then He will say], \"But stand apart today, you criminals."},{"n":60,"g":3765,"ar":"۞ أَلَمْ أَعْهَدْ إِلَيْكُمْ يَٰبَنِىٓ ءَادَمَ أَن لَّا تَعْبُدُوا۟ ٱلشَّيْطَٰنَ ۖ إِنَّهُۥ لَكُمْ عَدُوٌّۭ مُّبِينٌۭ","ru":"Разве Я не завещал вам, сыны Адама, не поклоняться дьяволу, который является вашим явным врагом,","en":"Did I not enjoin upon you, O children of Adam, that you not worship Satan - [for] indeed, he is to you a clear enemy -"},{"n":61,"g":3766,"ar":"وَأَنِ ٱعْبُدُونِى ۚ هَٰذَا صِرَٰطٌۭ مُّسْتَقِيمٌۭ","ru":"и поклоняться Мне? Это - прямой путь.","en":"And that you worship [only] Me? This is a straight path."},{"n":62,"g":3767,"ar":"وَلَقَدْ أَضَلَّ مِنكُمْ جِبِلًّۭا كَثِيرًا ۖ أَفَلَمْ تَكُونُوا۟ تَعْقِلُونَ","ru":"Он уже ввел в заблуждение многих из вас. Неужели вы не разумеете?","en":"And he had already led astray from among you much of creation, so did you not use reason?"},{"n":63,"g":3768,"ar":"هَٰذِهِۦ جَهَنَّمُ ٱلَّتِى كُنتُمْ تُوعَدُونَ","ru":"Вот Геенна, которая была вам обещана.","en":"This is the Hellfire which you were promised."},{"n":64,"g":3769,"ar":"ٱصْلَوْهَا ٱلْيَوْمَ بِمَا كُنتُمْ تَكْفُرُونَ","ru":"Горите в ней сегодня за то, что вы не веровали».","en":"[Enter to] burn therein today for what you used to deny.\""},{"n":65,"g":3770,"ar":"ٱلْيَوْمَ نَخْتِمُ عَلَىٰٓ أَفْوَٰهِهِمْ وَتُكَلِّمُنَآ أَيْدِيهِمْ وَتَشْهَدُ أَرْجُلُهُم بِمَا كَانُوا۟ يَكْسِبُونَ","ru":"Сегодня Мы запечатаем их уста. Их руки будут говорить с Нами, а их ноги будут свидетельствовать о том, что они приобретали.","en":"That Day, We will seal over their mouths, and their hands will speak to Us, and their feet will testify about what they used to earn."},{"n":66,"g":3771,"ar":"وَلَوْ نَشَآءُ لَطَمَسْنَا عَلَىٰٓ أَعْيُنِهِمْ فَٱسْتَبَقُوا۟ ٱلصِّرَٰطَ فَأَنَّىٰ يُبْصِرُونَ","ru":"Если Мы пожелаем, то лишим их зрения, и тогда они бросятся к Пути. Но как они будут видеть?","en":"And if We willed, We could have obliterated their eyes, and they would race to [find] the path, and how could they see?"},{"n":67,"g":3772,"ar":"وَلَوْ نَشَآءُ لَمَسَخْنَٰهُمْ عَلَىٰ مَكَانَتِهِمْ فَمَا ٱسْتَطَٰعُوا۟ مُضِيًّۭا وَلَا يَرْجِعُونَ","ru":"Если Мы пожелаем, то обезобразим их на их местах, и тогда они не смогут ни двинуться вперед, ни вернуться.","en":"And if We willed, We could have deformed them, [paralyzing them] in their places so they would not be able to proceed, nor could they return."},{"n":68,"g":3773,"ar":"وَمَن نُّعَمِّرْهُ نُنَكِّسْهُ فِى ٱلْخَلْقِ ۖ أَفَلَا يَعْقِلُونَ","ru":"Тому, кому Мы даруем долгую жизнь, Мы придаем противоположный облик. Неужели они не разумеют?","en":"And he to whom We grant long life We reverse in creation; so will they not understand?"},{"n":69,"g":3774,"ar":"وَمَا عَلَّمْنَٰهُ ٱلشِّعْرَ وَمَا يَنۢبَغِى لَهُۥٓ ۚ إِنْ هُوَ إِلَّا ذِكْرٌۭ وَقُرْءَانٌۭ مُّبِينٌۭ","ru":"Мы не учили его (Мухаммада) поэзии, и не подобает ему это. Это - не что иное, как Напоминание и ясный Коран,","en":"And We did not give Prophet Muhammad, knowledge of poetry, nor is it befitting for him. It is not but a message and a clear Qur'an"},{"n":70,"g":3775,"ar":"لِّيُنذِرَ مَن كَانَ حَيًّۭا وَيَحِقَّ ٱلْقَوْلُ عَلَى ٱلْكَٰفِرِينَ","ru":"чтобы он предостерегал тех, кто жив, и чтобы сбылось Слово относительно неверующих.","en":"To warn whoever is alive and justify the word against the disbelievers."},{"n":71,"g":3776,"ar":"أَوَلَمْ يَرَوْا۟ أَنَّا خَلَقْنَا لَهُم مِّمَّا عَمِلَتْ أَيْدِينَآ أَنْعَٰمًۭا فَهُمْ لَهَا مَٰلِكُونَ","ru":"Неужели они не видят, что из того, что совершили Наши руки (Мы Сами), Мы создали для них скот, и что они им владеют?","en":"Do they not see that We have created for them from what Our hands have made, grazing livestock, and [then] they are their owners?"},{"n":72,"g":3777,"ar":"وَذَلَّلْنَٰهَا لَهُمْ فَمِنْهَا رَكُوبُهُمْ وَمِنْهَا يَأْكُلُونَ","ru":"Мы сделали его подвластным им. На одних из них они ездят верхом, а другими питаются.","en":"And We have tamed them for them, so some of them they ride, and some of them they eat."},{"n":73,"g":3778,"ar":"وَلَهُمْ فِيهَا مَنَٰفِعُ وَمَشَارِبُ ۖ أَفَلَا يَشْكُرُونَ","ru":"Они приносят им пользу и питье. Неужели они не будут благодарны?","en":"And for them therein are [other] benefits and drinks, so will they not be grateful?"},{"n":74,"g":3779,"ar":"وَٱتَّخَذُوا۟ مِن دُونِ ٱللَّهِ ءَالِهَةًۭ لَّعَلَّهُمْ يُنصَرُونَ","ru":"Но они поклоняются вместо Аллаха другим богам в надежде на то, что им окажут помощь.","en":"But they have taken besides Allah [false] deities that perhaps they would be helped."},{"n":75,"g":3780,"ar":"لَا يَسْتَطِيعُونَ نَصْرَهُمْ وَهُمْ لَهُمْ جُندٌۭ مُّحْضَرُونَ","ru":"Они не могут помочь им, хотя они являются для них готовым войском (язычники готовы сражаться за своих идолов, или идолы будут в Последней жизни готовым войском против язычников).","en":"They are not able to help them, and they [themselves] are for them soldiers in attendance."},{"n":76,"g":3781,"ar":"فَلَا يَحْزُنكَ قَوْلُهُمْ ۘ إِنَّا نَعْلَمُ مَا يُسِرُّونَ وَمَا يُعْلِنُونَ","ru":"Пусть их речи не печалят тебя. Мы знаем то, что они скрывают, и то, что они обнаруживают.","en":"So let not their speech grieve you. Indeed, We know what they conceal and what they declare."},{"n":77,"g":3782,"ar":"أَوَلَمْ يَرَ ٱلْإِنسَٰنُ أَنَّا خَلَقْنَٰهُ مِن نُّطْفَةٍۢ فَإِذَا هُوَ خَصِيمٌۭ مُّبِينٌۭ","ru":"Неужели человек не видит, что Мы сотворили его из капли? И вот он открыто препирается!","en":"Does man not consider that We created him from a [mere] sperm-drop - then at once he is a clear adversary?"},{"n":78,"g":3783,"ar":"وَضَرَبَ لَنَا مَثَلًۭا وَنَسِىَ خَلْقَهُۥ ۖ قَالَ مَن يُحْىِ ٱلْعِظَٰمَ وَهِىَ رَمِيمٌۭ","ru":"Он привел Нам притчу и забыл о своем сотворении. Он сказал: «Кто оживит кости, которые истлели?».","en":"And he presents for Us an example and forgets his [own] creation. He says, \"Who will give life to bones while they are disintegrated?\""},{"n":79,"g":3784,"ar":"قُلْ يُحْيِيهَا ٱلَّذِىٓ أَنشَأَهَآ أَوَّلَ مَرَّةٍۢ ۖ وَهُوَ بِكُلِّ خَلْقٍ عَلِيمٌ","ru":"Скажи: «Оживит их Тот, Кто создал их в первый раз. Он ведает о всяком творении».","en":"Say, \"He will give them life who produced them the first time; and He is, of all creation, Knowing.\""},{"n":80,"g":3785,"ar":"ٱلَّذِى جَعَلَ لَكُم مِّنَ ٱلشَّجَرِ ٱلْأَخْضَرِ نَارًۭا فَإِذَآ أَنتُم مِّنْهُ تُوقِدُونَ","ru":"Он создал для вас огонь из зеленого дерева, и теперь вы разжигаете огонь от него.","en":"[It is] He who made for you from the green tree, fire, and then from it you ignite."},{"n":81,"g":3786,"ar":"أَوَلَيْسَ ٱلَّذِى خَلَقَ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضَ بِقَٰدِرٍ عَلَىٰٓ أَن يَخْلُقَ مِثْلَهُم ۚ بَلَىٰ وَهُوَ ٱلْخَلَّٰقُ ٱلْعَلِيمُ","ru":"Неужели Тот, Кто сотворил небеса и землю, не способен создать подобных им? Конечно, ведь Он - Творец, Знающий.","en":"Is not He who created the heavens and the earth Able to create the likes of them? Yes, [it is so]; and He is the Knowing Creator."},{"n":82,"g":3787,"ar":"إِنَّمَآ أَمْرُهُۥٓ إِذَآ أَرَادَ شَيْـًٔا أَن يَقُولَ لَهُۥ كُن فَيَكُونُ","ru":"Когда Он желает чего-либо, то стоит Ему сказать: «Будь!». - как это сбывается.","en":"His command is only when He intends a thing that He says to it, \"Be,\" and it is."},{"n":83,"g":3788,"ar":"فَسُبْحَٰنَ ٱلَّذِى بِيَدِهِۦ مَلَكُوتُ كُلِّ شَىْءٍۢ وَإِلَيْهِ تُرْجَعُونَ","ru":"Пречист Тот, в Чьей Руке власть над всякой вещью! К Нему вы будете возвращены.","en":"So exalted is He in whose hand is the realm of all things, and to Him you will be returned."}],"55":[{"n":1,"g":4902,"ar":"بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ ٱلرَّحْمَٰنُ","ru":"Милостивый","en":"The Most Merciful"},{"n":2,"g":4903,"ar":"عَلَّمَ ٱلْقُرْءَانَ","ru":"научил Корану,","en":"Taught the Qur'an,"},{"n":3,"g":4904,"ar":"خَلَقَ ٱلْإِنسَٰنَ","ru":"создал человека","en":"Created man,"},{"n":4,"g":4905,"ar":"عَلَّمَهُ ٱلْبَيَانَ","ru":"и научил его изъясняться.","en":"[And] taught him eloquence."},{"n":5,"g":4906,"ar":"ٱلشَّمْسُ وَٱلْقَمَرُ بِحُسْبَانٍۢ","ru":"Солнце и луна движутся согласно рассчитанному порядку.","en":"The sun and the moon [move] by precise calculation,"},{"n":6,"g":4907,"ar":"وَٱلنَّجْمُ وَٱلشَّجَرُ يَسْجُدَانِ","ru":"Травы (или звезды) и деревья совершают поклоны.","en":"And the stars and trees prostrate."},{"n":7,"g":4908,"ar":"وَٱلسَّمَآءَ رَفَعَهَا وَوَضَعَ ٱلْمِيزَانَ","ru":"Он возвысил небо и установил весы,","en":"And the heaven He raised and imposed the balance"},{"n":8,"g":4909,"ar":"أَلَّا تَطْغَوْا۟ فِى ٱلْمِيزَانِ","ru":"чтобы вы не преступали границы дозволенного на весах.","en":"That you not transgress within the balance."},{"n":9,"g":4910,"ar":"وَأَقِيمُوا۟ ٱلْوَزْنَ بِٱلْقِسْطِ وَلَا تُخْسِرُوا۟ ٱلْمِيزَانَ","ru":"Взвешивайте беспристрастно и не занижайте вес.","en":"And establish weight in justice and do not make deficient the balance."},{"n":10,"g":4911,"ar":"وَٱلْأَرْضَ وَضَعَهَا لِلْأَنَامِ","ru":"Он установил землю для тварей.","en":"And the earth He laid [out] for the creatures."},{"n":11,"g":4912,"ar":"فِيهَا فَٰكِهَةٌۭ وَٱلنَّخْلُ ذَاتُ ٱلْأَكْمَامِ","ru":"На ней есть фрукты и финиковые пальмы с чашечками (или волокнами),","en":"Therein is fruit and palm trees having sheaths [of dates]"},{"n":12,"g":4913,"ar":"وَٱلْحَبُّ ذُو ٱلْعَصْفِ وَٱلرَّيْحَانُ","ru":"а также злаки с листьями и травы благоуханные.","en":"And grain having husks and scented plants."},{"n":13,"g":4914,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":14,"g":4915,"ar":"خَلَقَ ٱلْإِنسَٰنَ مِن صَلْصَٰلٍۢ كَٱلْفَخَّارِ","ru":"Он создал человека из сухой (или звенящей) глины, подобной гончарной,","en":"He created man from clay like [that of] pottery."},{"n":15,"g":4916,"ar":"وَخَلَقَ ٱلْجَآنَّ مِن مَّارِجٍۢ مِّن نَّارٍۢ","ru":"и создал джиннов из чистого пламени (или из пламени, смешанного с дымом).","en":"And He created the jinn from a smokeless flame of fire."},{"n":16,"g":4917,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":17,"g":4918,"ar":"رَبُّ ٱلْمَشْرِقَيْنِ وَرَبُّ ٱلْمَغْرِبَيْنِ","ru":"Господь обоих востоков и Господь обоих западов!","en":"[He is] Lord of the two sunrises and Lord of the two sunsets."},{"n":18,"g":4919,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":19,"g":4920,"ar":"مَرَجَ ٱلْبَحْرَيْنِ يَلْتَقِيَانِ","ru":"Он смешал два моря, которые встречаются друг с другом.","en":"He released the two seas, meeting [side by side];"},{"n":20,"g":4921,"ar":"بَيْنَهُمَا بَرْزَخٌۭ لَّا يَبْغِيَانِ","ru":"Между ними существует преграда, которую они не могут преступить.","en":"Between them is a barrier [so] neither of them transgresses."},{"n":21,"g":4922,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":22,"g":4923,"ar":"يَخْرُجُ مِنْهُمَا ٱللُّؤْلُؤُ وَٱلْمَرْجَانُ","ru":"Из них обоих вылавливают жемчуг и кораллы.","en":"From both of them emerge pearl and coral."},{"n":23,"g":4924,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":24,"g":4925,"ar":"وَلَهُ ٱلْجَوَارِ ٱلْمُنشَـَٔاتُ فِى ٱلْبَحْرِ كَٱلْأَعْلَٰمِ","ru":"Ему принадлежат плывущие по морю с поднятыми парусами корабли, подобные горам.","en":"And to Him belong the ships [with sails] elevated in the sea like mountains."},{"n":25,"g":4926,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":26,"g":4927,"ar":"كُلُّ مَنْ عَلَيْهَا فَانٍۢ","ru":"Все на ней (земле) смертны.","en":"Everyone upon the earth will perish,"},{"n":27,"g":4928,"ar":"وَيَبْقَىٰ وَجْهُ رَبِّكَ ذُو ٱلْجَلَٰلِ وَٱلْإِكْرَامِ","ru":"Вечен лишь Лик Господа твоего, обладающий величием и великодушием.","en":"And there will remain the Face of your Lord, Owner of Majesty and Honor."},{"n":28,"g":4929,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":29,"g":4930,"ar":"يَسْـَٔلُهُۥ مَن فِى ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ ۚ كُلَّ يَوْمٍ هُوَ فِى شَأْنٍۢ","ru":"Его просят те, кто на небесах и на земле, и каждый день Он занят делом.","en":"Whoever is within the heavens and earth asks Him; every day He is bringing about a matter."},{"n":30,"g":4931,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":31,"g":4932,"ar":"سَنَفْرُغُ لَكُمْ أَيُّهَ ٱلثَّقَلَانِ","ru":"Скоро Мы займемся только вами, о два весомых (или обремененных) рода!","en":"We will attend to you, O prominent beings."},{"n":32,"g":4933,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":33,"g":4934,"ar":"يَٰمَعْشَرَ ٱلْجِنِّ وَٱلْإِنسِ إِنِ ٱسْتَطَعْتُمْ أَن تَنفُذُوا۟ مِنْ أَقْطَارِ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ فَٱنفُذُوا۟ ۚ لَا تَنفُذُونَ إِلَّا بِسُلْطَٰنٍۢ","ru":"О сонмище джиннов и людей! Если вы можете проникнуть за пределы небес и земли, то проникните. Но вы не проникните, не обладая властью (или ясным доводом)!","en":"O company of jinn and mankind, if you are able to pass beyond the regions of the heavens and the earth, then pass. You will not pass except by authority [from Allah]."},{"n":34,"g":4935,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":35,"g":4936,"ar":"يُرْسَلُ عَلَيْكُمَا شُوَاظٌۭ مِّن نَّارٍۢ وَنُحَاسٌۭ فَلَا تَنتَصِرَانِ","ru":"На в��с нашлют зеленое пламя (или пламя без дыма) и расплавленную медь (или дым), и вы не поможете друг другу.","en":"There will be sent upon you a flame of fire and smoke, and you will not defend yourselves."},{"n":36,"g":4937,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":37,"g":4938,"ar":"فَإِذَا ٱنشَقَّتِ ٱلسَّمَآءُ فَكَانَتْ وَرْدَةًۭ كَٱلدِّهَانِ","ru":"И вот небо разверзнется и станет красным, как кипящее масло (или покрасневшая кожа; или расплавленный свинец).","en":"And when the heaven is split open and becomes rose-colored like oil -"},{"n":38,"g":4939,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny? -"},{"n":39,"g":4940,"ar":"فَيَوْمَئِذٍۢ لَّا يُسْـَٔلُ عَن ذَنۢبِهِۦٓ إِنسٌۭ وَلَا جَآنٌّۭ","ru":"В тот день ни человек, ни джинн не будет спрошен о его грехе.","en":"Then on that Day none will be asked about his sin among men or jinn."},{"n":40,"g":4941,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":41,"g":4942,"ar":"يُعْرَفُ ٱلْمُجْرِمُونَ بِسِيمَٰهُمْ فَيُؤْخَذُ بِٱلنَّوَٰصِى وَٱلْأَقْدَامِ","ru":"Грешников будут узнавать по их признакам, а затем хватать за хохлы и стопы.","en":"The criminals will be known by their marks, and they will be seized by the forelocks and the feet."},{"n":42,"g":4943,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":43,"g":4944,"ar":"هَٰذِهِۦ جَهَنَّمُ ٱلَّتِى يُكَذِّبُ بِهَا ٱلْمُجْرِمُونَ","ru":"Вот Геенна, которую грешники считали ложью.","en":"This is Hell, which the criminals deny."},{"n":44,"g":4945,"ar":"يَطُوفُونَ بَيْنَهَا وَبَيْنَ حَمِيمٍ ءَانٍۢ","ru":"Они будут ходить между нею и кипящей водой.","en":"They will go around between it and scalding water, heated [to the utmost degree]."},{"n":45,"g":4946,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":46,"g":4947,"ar":"وَلِمَنْ خَافَ مَقَامَ رَبِّهِۦ جَنَّتَانِ","ru":"Тем же, которые боялись предстать перед своим Господом, уготовано два сада.","en":"But for he who has feared the position of his Lord are two gardens -"},{"n":47,"g":4948,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny? -"},{"n":48,"g":4949,"ar":"ذَوَاتَآ أَفْنَانٍۢ","ru":"В них обоих есть ветви.","en":"Having [spreading] branches."},{"n":49,"g":4950,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":50,"g":4951,"ar":"فِيهِمَا عَيْنَانِ تَجْرِيَانِ","ru":"В них обоих текут два источника.","en":"In both of them are two springs, flowing."},{"n":51,"g":4952,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":52,"g":4953,"ar":"فِيهِمَا مِن كُلِّ فَٰكِهَةٍۢ زَوْجَانِ","ru":"В них обоих есть от всех фруктов по паре.","en":"In both of them are of every fruit, two kinds."},{"n":53,"g":4954,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":54,"g":4955,"ar":"مُتَّكِـِٔينَ عَلَىٰ فُرُشٍۭ بَطَآئِنُهَا مِنْ إِسْتَبْرَقٍۢ ۚ وَجَنَى ٱلْجَنَّتَيْنِ دَانٍۢ","ru":"Они будут лежать, прислонившись, на матрацах, выстланных снизу парчой, а свежие плоды этих двух садов будут склоняться низко.","en":"[They are] reclining on beds whose linings are of silk brocade, and the fruit of the two gardens is hanging low."},{"n":55,"g":4956,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":56,"g":4957,"ar":"فِيهِنَّ قَٰصِرَٰتُ ٱلطَّرْفِ لَمْ يَطْمِثْهُنَّ إِنسٌۭ قَبْلَهُمْ وَلَا جَآنٌّۭ","ru":"Там будут девы, потупляющие взоры, с которыми прежде не имели близости ни человек, ни джинн.","en":"In them are women limiting [their] glances, untouched before them by man or jinni -"},{"n":57,"g":4958,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny? -"},{"n":58,"g":4959,"ar":"كَأَنَّهُنَّ ٱلْيَاقُوتُ وَٱلْمَرْجَانُ","ru":"Они подобны рубинам и кораллам.","en":"As if they were rubies and coral."},{"n":59,"g":4960,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":60,"g":4961,"ar":"هَلْ جَزَآءُ ٱلْإِحْسَٰنِ إِلَّا ٱلْإِحْسَٰنُ","ru":"Воздают ли за добро иначе, чем добром?","en":"Is the reward for good [anything] but good?"},{"n":61,"g":4962,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":62,"g":4963,"ar":"وَمِن دُونِهِمَا جَنَّتَانِ","ru":"А перед теми двумя есть еще два сада.","en":"And below them both [in excellence] are two [other] gardens -"},{"n":63,"g":4964,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny? -"},{"n":64,"g":4965,"ar":"مُدْهَآمَّتَانِ","ru":"Они оба - темно-зеленые.","en":"Dark green [in color]."},{"n":65,"g":4966,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":66,"g":4967,"ar":"فِيهِمَا عَيْنَانِ نَضَّاخَتَانِ","ru":"В них обоих бурлят два источника.","en":"In both of them are two springs, spouting."},{"n":67,"g":4968,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":68,"g":4969,"ar":"فِيهِمَا فَٰكِهَةٌۭ وَنَخْلٌۭ وَرُمَّانٌۭ","ru":"В них обоих есть фрукты, финиковые пальмы, гранаты.","en":"In both of them are fruit and palm trees and pomegranates."},{"n":69,"g":4970,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":70,"g":4971,"ar":"فِيهِنَّ خَيْرَٰتٌ حِسَانٌۭ","ru":"Там есть девы хорошие, прекрасные.","en":"In them are good and beautiful women -"},{"n":71,"g":4972,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из ми��остей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny? -"},{"n":72,"g":4973,"ar":"حُورٌۭ مَّقْصُورَٰتٌۭ فِى ٱلْخِيَامِ","ru":"Они - черноокие и большеглазые, удерживаемые в шатрах.","en":"Fair ones reserved in pavilions -"},{"n":73,"g":4974,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny? -"},{"n":74,"g":4975,"ar":"لَمْ يَطْمِثْهُنَّ إِنسٌۭ قَبْلَهُمْ وَلَا جَآنٌّۭ","ru":"С ними прежде не имели близости ни человек, ни джинн.","en":"Untouched before them by man or jinni -"},{"n":75,"g":4976,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny? -"},{"n":76,"g":4977,"ar":"مُتَّكِـِٔينَ عَلَىٰ رَفْرَفٍ خُضْرٍۢ وَعَبْقَرِىٍّ حِسَانٍۢ","ru":"Они будут лежать, прислонившись, на зеленых подушках и прекрасных матрацах.","en":"Reclining on green cushions and beautiful fine carpets."},{"n":77,"g":4978,"ar":"فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ","ru":"Какую же из милостей вашего Господа вы считаете ложью?","en":"So which of the favors of your Lord would you deny?"},{"n":78,"g":4979,"ar":"تَبَٰرَكَ ٱسْمُ رَبِّكَ ذِى ٱلْجَلَٰلِ وَٱلْإِكْرَامِ","ru":"Благословенно имя Господа твоего, Обладающего величием и великодушием!","en":"Blessed is the name of your Lord, Owner of Majesty and Honor."}],"67":[{"n":1,"g":5242,"ar":"بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ تَبَٰرَكَ ٱلَّذِى بِيَدِهِ ٱلْمُلْكُ وَهُوَ عَلَىٰ كُلِّ شَىْءٍۢ قَدِيرٌ","ru":"Благословен Тот, в Чьей Руке власть, Кто способен на всякую вещь,","en":"Blessed is He in whose hand is dominion, and He is over all things competent -"},{"n":2,"g":5243,"ar":"ٱلَّذِى خَلَقَ ٱلْمَوْتَ وَٱلْحَيَوٰةَ لِيَبْلُوَكُمْ أَيُّكُمْ أَحْسَنُ عَمَلًۭا ۚ وَهُوَ ٱلْعَزِيزُ ٱلْغَفُورُ","ru":"Кто сотворил смерть и жизнь, чтобы испытать вас и увидеть, чьи деяния окажутся лучше. Он - Могущественный, Прощающий.","en":"[He] who created death and life to test you [as to] which of you is best in deed - and He is the Exalted in Might, the Forgiving -"},{"n":3,"g":5244,"ar":"ٱلَّذِى خَلَقَ سَبْعَ سَمَٰوَٰتٍۢ طِبَاقًۭا ۖ مَّا تَرَىٰ فِى خَلْقِ ٱلرَّحْمَٰنِ مِن تَفَٰوُتٍۢ ۖ فَٱرْجِعِ ٱلْبَصَرَ هَلْ تَرَىٰ مِن فُطُورٍۢ","ru":"Он создал семь небес одно над другим. В творении Милостивого ты не увидишь никакой несообразности. Взгляни еще раз. Видишь ли ты какую-нибудь трещину?","en":"[And] who created seven heavens in layers. You do not see in the creation of the Most Merciful any inconsistency. So return [your] vision [to the sky]; do you see any breaks?"},{"n":4,"g":5245,"ar":"ثُمَّ ٱرْجِعِ ٱلْبَصَرَ كَرَّتَيْنِ يَنقَلِبْ إِلَيْكَ ٱلْبَصَرُ خَاسِئًۭا وَهُوَ حَسِيرٌۭ","ru":"Потом взгляни еще раз и еще раз, и твой взор вернется к тебе униженным, утомленным.","en":"Then return [your] vision twice again. [Your] vision will return to you humbled while it is fatigued."},{"n":5,"g":5246,"ar":"وَلَقَدْ زَيَّنَّا ٱلسَّمَآءَ ٱلدُّنْيَا بِمَصَٰبِيحَ وَجَعَلْنَٰهَا رُجُومًۭا لِّلشَّيَٰطِينِ ۖ وَأَعْتَدْنَا لَهُمْ عَذَابَ ٱلسَّعِيرِ","ru":"Воистину, Мы украсили ближайшее небо светильниками и установили их для метания в дьяволов. Мы приготовили для них мучения в Пламени.","en":"And We have certainly beautified the nearest heaven with stars and have made [from] them what is thrown at the devils and have prepared for them the punishment of the Blaze."},{"n":6,"g":5247,"ar":"وَلِلَّذِينَ كَفَرُوا۟ بِرَبِّهِمْ عَذَابُ جَهَنَّمَ ۖ وَبِئْسَ ٱلْمَصِيرُ","ru":"Для тех, кто не уверовал в своего Господа, приготовлены мучения в Геенне. Как же скверно это место прибытия!","en":"And for those who disbelieved in their Lord is the punishment of Hell, and wretched is the destination."},{"n":7,"g":5248,"ar":"إِذَآ أُلْقُوا۟ فِيهَا سَمِعُوا۟ لَهَا شَهِيقًۭا وَهِىَ تَفُورُ","ru":"Когда их бросят туда, они услышат, как она ревет, когда кипит.","en":"When they are thrown into it, they hear from it a [dreadful] inhaling while it boils up."},{"n":8,"g":5249,"ar":"تَكَادُ تَمَيَّزُ مِنَ ٱلْغَيْظِ ۖ كُلَّمَآ أُلْقِىَ فِيهَا فَوْجٌۭ سَأَلَهُمْ خَزَنَتُهَآ أَلَمْ يَأْتِكُمْ نَذِيرٌۭ","ru":"Она готова разорваться от ярости. Каждый раз, когда туда будут бросать толпу, ее стражи будут спрашивать их: «Разве к вам не приходил предостерегающий увещеватель?».","en":"It almost bursts with rage. Every time a company is thrown into it, its keepers ask them, \"Did there not come to you a warner?\""},{"n":9,"g":5250,"ar":"قَالُوا۟ بَلَىٰ قَدْ جَآءَنَا نَذِيرٌۭ فَكَذَّبْنَا وَقُلْنَا مَا نَزَّلَ ٱللَّهُ مِن شَىْءٍ إِنْ أَنتُمْ إِلَّا فِى ضَلَٰلٍۢ كَبِيرٍۢ","ru":"Они скажут: «Конечно, предостерегающий увещеватель приходил к нам, но мы сочли его лжецом и сказали: «Аллах ничего не ниспосылал, а вы лишь пребываете в большом заблуждении»».","en":"They will say,\" Yes, a warner had come to us, but we denied and said, 'Allah has not sent down anything. You are not but in great error.'\""},{"n":10,"g":5251,"ar":"وَقَالُوا۟ لَوْ كُنَّا نَسْمَعُ أَوْ نَعْقِلُ مَا كُنَّا فِىٓ أَصْحَٰبِ ٱلسَّعِيرِ","ru":"Они скажут: «Если бы мы прислушивались и были рассудительны, то не оказались бы среди обитателей Пламени».","en":"And they will say, \"If only we had been listening or reasoning, we would not be among the companions of the Blaze.\""},{"n":11,"g":5252,"ar":"فَٱعْتَرَفُوا۟ بِذَنۢبِهِمْ فَسُحْقًۭا لِّأَصْحَٰبِ ٱلسَّعِيرِ","ru":"Они признаются в своем грехе. Прочь же, обитатели Пламени!","en":"And they will admit their sin, so [it is] alienation for the companions of the Blaze."},{"n":12,"g":5253,"ar":"إِنَّ ٱلَّذِينَ يَخْشَوْنَ رَبَّهُم بِٱلْغَيْبِ لَهُم مَّغْفِرَةٌۭ وَأَجْرٌۭ كَبِيرٌۭ","ru":"Воистину, тем, которые боятся своего Господа, не видя Его воочию, уготованы прощение и великая награда.","en":"Indeed, those who fear their Lord unseen will have forgiveness and great reward."},{"n":13,"g":5254,"ar":"وَأَسِرُّوا۟ قَوْلَكُمْ أَوِ ٱجْهَرُوا۟ بِهِۦٓ ۖ إِنَّهُۥ عَلِيمٌۢ بِذَاتِ ٱلصُّدُورِ","ru":"Храните ли вы свои речи в секрете или же говорите о них вслух, Он ведает о том, что в груди.","en":"And conceal your speech or publicize it; indeed, He is Knowing of that within the breasts."},{"n":14,"g":5255,"ar":"أَلَا يَعْلَمُ مَنْ خَلَقَ وَهُوَ ٱللَّطِيفُ ٱلْخَبِيرُ","ru":"Неужели этого не будет знать Тот, Кто сотворил, если Он - Проницательный (или Добрый), Ведающий?","en":"Does He who created not know, while He is the Subtle, the Acquainted?"},{"n":15,"g":5256,"ar":"هُوَ ٱلَّذِى جَعَلَ لَكُمُ ٱلْأَرْضَ ذَلُولًۭا فَٱمْشُوا۟ فِى مَنَاكِبِهَا وَكُلُوا۟ مِن رِّزْقِهِۦ ۖ وَإِلَيْهِ ٱلنُّشُورُ","ru":"Он - Тот, Кто сделал для вас землю покорной. Ступайте же по свету и вкушайте из Его удела, и к Нему вы явитесь после воскрешения.","en":"It is He who made the earth tame for you - so walk among its slopes and eat of His provision - and to Him is the resurrection."},{"n":16,"g":5257,"ar":"ءَأَمِنتُم مَّن فِى ٱلسَّمَآءِ أَن يَخْسِفَ بِكُمُ ٱلْأَرْضَ فَإِذَا هِىَ تَمُورُ","ru":"Неужели вы уверены, что Тот, Кто на небе, не заставит землю поглотить вас? Ведь тогда она заколеблется.","en":"Do you feel secure that He who [holds authority] in the heaven would not cause the earth to swallow you and suddenly it would sway?"},{"n":17,"g":5258,"ar":"أَمْ أَمِنتُم مَّن فِى ٱلسَّمَآءِ أَن يُرْسِلَ عَلَيْكُمْ حَاصِبًۭا ۖ فَسَتَعْلَمُونَ كَيْفَ نَذِيرِ","ru":"Неужели вы уверены, что Тот, Кто на небе, не нашлет на вас ураган с камнями? Скоро вы узнаете, каково Мое предостережение!","en":"Or do you feel secure that He who [holds authority] in the heaven would not send against you a storm of stones? Then you would know how [severe] was My warning."},{"n":18,"g":5259,"ar":"وَلَقَدْ كَذَّبَ ٱلَّذِينَ مِن قَبْلِهِمْ فَكَيْفَ كَانَ نَكِيرِ","ru":"Жившие до них сочли это ложью. Каким же было Мое обличение!","en":"And already had those before them denied, and how [terrible] was My reproach."},{"n":19,"g":5260,"ar":"أَوَلَمْ يَرَوْا۟ إِلَى ٱلطَّيْرِ فَوْقَهُمْ صَٰٓفَّٰتٍۢ وَيَقْبِضْنَ ۚ مَا يُمْسِكُهُنَّ إِلَّا ٱلرَّحْمَٰنُ ۚ إِنَّهُۥ بِكُلِّ شَىْءٍۭ بَصِيرٌ","ru":"Неужели они не видели над собой птиц, которые простирают и складывают крылья? Никто не удерживает их, кроме Милостивого. Воистину, Он види�� всякую вещь.","en":"Do they not see the birds above them with wings outspread and [sometimes] folded in? None holds them [aloft] except the Most Merciful. Indeed He is, of all things, Seeing."},{"n":20,"g":5261,"ar":"أَمَّنْ هَٰذَا ٱلَّذِى هُوَ جُندٌۭ لَّكُمْ يَنصُرُكُم مِّن دُونِ ٱلرَّحْمَٰنِ ۚ إِنِ ٱلْكَٰفِرُونَ إِلَّا فِى غُرُورٍ","ru":"Кто может стать вашим войском и помочь вам без Милостивого? Воистину, нев��рующие обольщены!","en":"Or who is it that could be an army for you to aid you other than the Most Merciful? The disbelievers are not but in delusion."},{"n":21,"g":5262,"ar":"أَمَّنْ هَٰذَا ٱلَّذِى يَرْزُقُكُمْ إِنْ أَمْسَكَ رِزْقَهُۥ ۚ بَل لَّجُّوا۟ فِى عُتُوٍّۢ وَنُفُورٍ","ru":"Кто может наделить вас уделом, если Он перестанет наделять вас Своим уделом? Но они продолжают ослушаться и убегать.","en":"Or who is it that could provide for you if He withheld His provision? But they have persisted in insolence and aversion."},{"n":22,"g":5263,"ar":"أَفَمَن يَمْشِى مُكِبًّا عَلَىٰ وَجْهِهِۦٓ أَهْدَىٰٓ أَمَّن يَمْشِى سَوِيًّا عَلَىٰ صِرَٰطٍۢ مُّسْتَقِيمٍۢ","ru":"Кто же следует более правильным путем: блуждающий с опущенным лицом или идущий по прямому пути, выпрямившись?","en":"Then is one who walks fallen on his face better guided or one who walks erect on a straight path?"},{"n":23,"g":5264,"ar":"قُلْ هُوَ ٱلَّذِىٓ أَنشَأَكُمْ وَجَعَلَ لَكُمُ ٱلسَّمْعَ وَٱلْأَبْصَٰرَ وَٱلْأَفْـِٔدَةَ ۖ قَلِيلًۭا مَّا تَشْكُرُونَ","ru":"Скажи: «Он - Тот, Кто создал вас и наделил вас слухом, зрением и сердцами. Как же мала ваша благодарность!».","en":"Say, \"It is He who has produced you and made for you hearing and vision and hearts; little are you grateful.\""},{"n":24,"g":5265,"ar":"قُلْ هُوَ ٱلَّذِى ذَرَأَكُمْ فِى ٱلْأَرْضِ وَإِلَيْهِ تُحْشَرُونَ","ru":"Скажи: «Он - Тот, Кто расселил вас по земле, и к Нему вы будете собраны».","en":"Say, \"It is He who has multiplied you throughout the earth, and to Him you will be gathered.\""},{"n":25,"g":5266,"ar":"وَيَقُولُونَ مَتَىٰ هَٰذَا ٱلْوَعْدُ إِن كُنتُمْ صَٰدِقِينَ","ru":"Они говорят: «Когда же наступит обещанное, если вы говорите правду?».","en":"And they say, \"When is this promise, if you should be truthful?\""},{"n":26,"g":5267,"ar":"قُلْ إِنَّمَا ٱلْعِلْمُ عِندَ ٱللَّهِ وَإِنَّمَآ أَنَا۠ نَذِيرٌۭ مُّبِينٌۭ","ru":"Скажи: «Знание об этом - у Аллаха, а я - всего лишь предостерегающий и разъясняющий увещеватель».","en":"Say, \"The knowledge is only with Allah, and I am only a clear warner.\""},{"n":27,"g":5268,"ar":"فَلَمَّا رَأَوْهُ زُلْفَةًۭ سِيٓـَٔتْ وُجُوهُ ٱلَّذِينَ كَفَرُوا۟ وَقِيلَ هَٰذَا ٱلَّذِى كُنتُم بِهِۦ تَدَّعُونَ","ru":"Когда они увидят его (наказание в День воскресения) вблизи от себя, лица неверующих опечалятся, и тогда им скажут: «Вот то, что вы призывали!».","en":"But when they see it approaching, the faces of those who disbelieve will be distressed, and it will be said, \"This is that for which you used to call.\""},{"n":28,"g":5269,"ar":"قُلْ أَرَءَيْتُمْ إِنْ أَهْلَكَنِىَ ٱللَّهُ وَمَن مَّعِىَ أَوْ رَحِمَنَا فَمَن يُجِيرُ ٱلْكَٰفِرِينَ مِنْ عَذَابٍ أَلِيمٍۢ","ru":"Скажи: «Как вы думаете, кто защитит от мучительных страданий неверующих, если Аллах погубит меня и тех, кто со мной, или помилует нас?».","en":"Say, [O Muhammad], \"Have you considered: whether Allah should cause my death and those with me or have mercy upon us, who can protect the disbelievers from a painful punishment?\""},{"n":29,"g":5270,"ar":"قُلْ هُوَ ٱلرَّحْمَٰنُ ءَامَنَّا بِهِۦ وَعَلَيْهِ تَوَكَّلْنَا ۖ فَسَتَعْلَمُونَ مَنْ هُوَ فِى ضَلَٰلٍۢ مُّبِينٍۢ","ru":"Скажи: «Он - Милостивый! Мы уверовали в Него и уповаем только на Него, и вы узнаете, кто пребывает в очевидном заблуждении».","en":"Say, \"He is the Most Merciful; we have believed in Him, and upon Him we have relied. And you will [come to] know who it is that is in clear error.\""},{"n":30,"g":5271,"ar":"قُلْ أَرَءَيْتُمْ إِنْ أَصْبَحَ مَآؤُكُمْ غَوْرًۭا فَمَن يَأْتِيكُم بِمَآءٍۢ مَّعِينٍۭ","ru":"Скажи: «Как вы думаете, кто одарит вас родниковой водой, если ваша вода уйдет под землю?».","en":"Say, \"Have you considered: if your water was to become sunken [into the earth], then who could bring you flowing water?\""}],"112":[{"n":1,"g":6222,"ar":"بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ قُلْ هُوَ ٱللَّهُ أَحَدٌ","ru":"Скажи: «Он - Аллах Единый,","en":"Say, \"He is Allah, [who is] One,","tt":"Әйт: «Ул — Аллаһ Бер!","tr":"Куль хуваллаху ахад"},{"n":2,"g":6223,"ar":"ٱللَّهُ ٱلصَّمَدُ","ru":"Аллах Самодостаточный.","en":"Allah, the Eternal Refuge.","tt":"Аллаһ Мәңгелек, бернәрсәгә дә мохтаҗ түгел (һәркем Аңа мохтаҗ).","tr":"Аллахус-самад"},{"n":3,"g":6224,"ar":"لَمْ يَلِدْ وَلَمْ يُولَدْ","ru":"Он не родил и не был рожден,","en":"He neither begets nor is born,","tt":"Ул тудырмады да һәм тудырылмады да.","tr":"Лям ялид ва лям юляд"},{"n":4,"g":6225,"ar":"وَلَمْ يَكُن لَّهُۥ كُفُوًا أَحَدٌۢ","ru":"и нет никого равного Ему».","en":"Nor is there to Him any equivalent.\"","tt":"Һәм беркем дә Аңа тиң булмады».","tr":"Ва лям йакул-ляху куфуван ахад"}],"113":[{"n":1,"g":6226,"ar":"بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ قُلْ أَعُوذُ بِرَبِّ ٱلْفَلَقِ","ru":"Скажи: «Прибегаю к защите Господа рассвета","en":"Say, \"I seek refuge in the Lord of daybreak","tt":"Әйт: «Таңның Раббысына сыенам,","tr":"Куль агузу би-Раббиль-фаляк"},{"n":2,"g":6227,"ar":"مِن شَرِّ مَا خَلَقَ","ru":"от зла того, что Он сотворил,","en":"From the evil of that which He created","tt":"Ул бар иткән нәрсәләрнең явызлыгыннан,","tr":"Мин шарри ма халяк"},{"n":3,"g":6228,"ar":"وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ","ru":"от зла мрака, когда он наступает,","en":"And from the evil of darkness when it settles","tt":"Һәм караңгылыгы баскан вакытта төннең явызлыгыннан,","tr":"Ва мин шарри гасикин иза вакаб"},{"n":4,"g":6229,"ar":"وَمِن شَرِّ ٱلنَّفَّٰثَٰتِ فِى ٱلْعُقَدِ","ru":"от зла колдуний, поплевывающих на узлы,","en":"And from the evil of the blowers in knots","tt":"Һәм төеннәргә өрүчеләрнең явызлыгыннан,","tr":"Ва мин шаррин-наффасати филь-укад"},{"n":5,"g":6230,"ar":"وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ","ru":"от зла завистника, когда он завидует».","en":"And from the evil of an envier when he envies.\"","tt":"Һәм көнләшүче көнләшкән вакытта аның явызлыгыннан».","tr":"Ва мин шарри хасидин иза хасад"}],"114":[{"n":1,"g":6231,"ar":"بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ قُلْ أَعُوذُ بِرَبِّ ٱلنَّاسِ","ru":"Скажи: «Прибегаю к защите Господа людей,","en":"Say, \"I seek refuge in the Lord of mankind,","tt":"Әйт: «Кешеләрнең Раббысына сыенам,","tr":"Куль агузу би-Раббин-нас"},{"n":2,"g":6232,"ar":"مَلِكِ ٱلنَّاسِ","ru":"Царя людей,","en":"The Sovereign of mankind.","tt":"Кешеләрнең Патшасына,","tr":"Маликин-нас"},{"n":3,"g":6233,"ar":"إِلَٰهِ ٱلنَّاسِ","ru":"Бога людей,","en":"The God of mankind,","tt":"Кешеләрнең Илаһына,","tr":"Иляхин-нас"},{"n":4,"g":6234,"ar":"مِن شَرِّ ٱلْوَسْوَاسِ ٱلْخَنَّاسِ","ru":"от зла искусителя отступающего (или сжимающегося) при поминании Аллаха,","en":"From the evil of the retreating whisperer -","tt":"Вәсвәсә салучы, качучы шайтанның явызлыгыннан,","tr":"Мин шарриль-васвасиль-ханнас"},{"n":5,"g":6235,"ar":"ٱلَّذِى يُوَسْوِسُ فِى صُدُورِ ٱلنَّاسِ","ru":"который наущает в груди людей","en":"Who whispers [evil] into the breasts of mankind -","tt":"Ул кешеләрнең күкрәкләренә вәсвәсә сала,","tr":"Аллязи йувасвису фи судурин-нас"},{"n":6,"g":6236,"ar":"مِنَ ٱلْجِنَّةِ وَٱلنَّاسِ","ru":"и бывает из джиннов и людей».","en":"From among the jinn and mankind.\"","tt":"Җеннәрдән дә, кешеләрдән дә булган шайтаннардан».","tr":"Миналь-джиннати ван-нас"}]};
+
+let currentQuranSurah = 1;
+let currentQuranAyahs = [];
+let quranFontSize = parseInt(store.get('quran_font_size'), 10) || 24;
+let quranShowTranslit = store.get('quran_show_translit') !== 'false';
+let quranShowTrans = store.get('quran_show_trans') !== 'false';
+let activeQuranAyah = null;
+let quranAudio = null;
+let isSurahPlaying = false;
+const quranCache = {};
+
+function renderQuranSurahOptions(list) {
+  const select = document.getElementById('quranSurahSelect');
+  if (!select) return;
+  const items = list || QURAN_SURAHS_INDEX;
+  const dict = I18N[currentLang] || I18N.ru;
+
+  select.innerHTML = items.map(s => {
+    const sName = (currentLang === 'en') ? s[2] : s[1];
+    const totalLabel = (dict.quranTotalAyahs || '{n} аятов').replace('{n}', s[4]);
+    return '<option value="' + s[0] + '">' + s[0] + '. ' + sName + ' (' + s[2] + ') • ' + totalLabel + '</option>';
+  }).join('');
+
+  select.value = String(currentQuranSurah);
+}
+
+function filterQuranSurahs(query) {
+  if (!query || !query.trim()) {
+    renderQuranSurahOptions(QURAN_SURAHS_INDEX);
+    return;
+  }
+  const q = query.trim().toLowerCase();
+  const filtered = QURAN_SURAHS_INDEX.filter(s => {
+    return String(s[0]) === q ||
+      s[1].toLowerCase().includes(q) ||
+      s[2].toLowerCase().includes(q) ||
+      s[3].includes(q);
+  });
+  renderQuranSurahOptions(filtered.length ? filtered : QURAN_SURAHS_INDEX);
+}
+
+async function fetchOnlineSurah(surahNum) {
+  if (quranCache[surahNum]) return quranCache[surahNum];
+
+  const res = await fetch('https://api.alquran.cloud/v1/surah/' + surahNum + '/editions/quran-uthmani,ru.kuliev,en.sahih');
+  if (!res.ok) throw new Error('HTTP error ' + res.status);
+  const data = await res.json();
+  if (!data || !data.data || data.data.length < 3) throw new Error('Malformed API response');
+
+  const arEdition = data.data[0].ayahs;
+  const ruEdition = data.data[1].ayahs;
+  const enEdition = data.data[2].ayahs;
+
+  const surahInfo = QURAN_SURAHS_INDEX.find(s => s[0] === surahNum);
+  const offset = surahInfo ? surahInfo[5] : 0;
+
+  const ayahs = arEdition.map((item, idx) => ({
+    n: item.numberInSurah,
+    g: offset + item.numberInSurah,
+    ar: item.text,
+    ru: ruEdition[idx] ? ruEdition[idx].text : '',
+    en: enEdition[idx] ? enEdition[idx].text : ''
+  }));
+
+  quranCache[surahNum] = ayahs;
+  return ayahs;
+}
+
+function highlightActiveAyah(ayahNum) {
+  document.querySelectorAll('.quran-ayah-item').forEach(el => {
+    el.classList.remove('active-ayah');
+  });
+  if (ayahNum) {
+    const el = document.getElementById('ayah-' + ayahNum);
+    if (el) {
+      el.classList.add('active-ayah');
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+}
+
+function stopQuranAudio() {
+  if (quranAudio) {
+    try { quranAudio.pause(); } catch(e) {}
+    quranAudio = null;
+  }
+  isSurahPlaying = false;
+  activeQuranAyah = null;
+  highlightActiveAyah(null);
+  const audioBar = document.getElementById('quranAudioBar');
+  if (audioBar) audioBar.style.display = 'none';
+  const dict = I18N[currentLang] || I18N.ru;
+  const playBtn = document.getElementById('btnQuranPlayAll');
+  if (playBtn) playBtn.innerHTML = '▶ <span id="lblQuranPlayAll">' + (dict.quranPlayAll || 'Слушать суру') + '</span>';
+}
+
+function playAyahAudio(surahNum, ayahNum, gNum) {
+  const surah = QURAN_SURAHS_INDEX.find(s => s[0] === surahNum);
+  if (!surah) return;
+  if (!gNum) gNum = surah[5] + ayahNum;
+
+  activeQuranAyah = ayahNum;
+  highlightActiveAyah(ayahNum);
+
+  const audioBar = document.getElementById('quranAudioBar');
+  const audioInfo = document.getElementById('quranAudioInfo');
+  if (audioBar) audioBar.style.display = 'flex';
+
+  const dict = I18N[currentLang] || I18N.ru;
+  const sTitle = (currentLang === 'en' ? surah[2] : surah[1]);
+  const playLabel = (dict.quranPlayingSurah || 'Воспроизведение: Сура {s}, аят {a}')
+    .replace('{s}', surahNum + ' (' + sTitle + ')')
+    .replace('{a}', ayahNum);
+  if (audioInfo) audioInfo.textContent = playLabel;
+
+  const playBtn = document.getElementById('btnQuranPlayAll');
+  if (playBtn) playBtn.innerHTML = '⏹ <span>' + (dict.quranStop || 'Стоп') + '</span>';
+
+  if (quranAudio) {
+    try { quranAudio.pause(); } catch(e) {}
+    quranAudio = null;
+  }
+
+  const audioUrl = 'https://cdn.islamic.network/quran/audio/128/ar.alafasy/' + gNum + '.mp3';
+  quranAudio = new Audio(audioUrl);
+
+  let hasEnded = false;
+  const onAyahEnd = () => {
+    if (hasEnded) return;
+    hasEnded = true;
+    if (isSurahPlaying && ayahNum < surah[4]) {
+      playAyahAudio(surahNum, ayahNum + 1);
+    } else {
+      stopQuranAudio();
+    }
+  };
+
+  quranAudio.onended = onAyahEnd;
+  quranAudio.onerror = () => {
+    console.warn('Quran audio CDN failed, using SpeechSynthesis fallback for ayah', ayahNum);
+    const curAyah = currentQuranAyahs.find(a => a.n === ayahNum);
+    if (curAyah && curAyah.ar && typeof speakArabic === 'function') {
+      speakArabic(curAyah.ar);
+      setTimeout(onAyahEnd, 4000);
+    } else {
+      onAyahEnd();
+    }
+  };
+
+  quranAudio.play().catch(e => {
+    console.warn('Audio play prevented or offline:', e);
+    const curAyah = currentQuranAyahs.find(a => a.n === ayahNum);
+    if (curAyah && curAyah.ar && typeof speakArabic === 'function') {
+      speakArabic(curAyah.ar);
+      setTimeout(onAyahEnd, 4000);
+    } else {
+      onAyahEnd();
+    }
+  });
+}
+
+function toggleSurahPlayback() {
+  if (isSurahPlaying) {
+    stopQuranAudio();
+  } else {
+    isSurahPlaying = true;
+    const startAyah = activeQuranAyah || 1;
+    playAyahAudio(currentQuranSurah, startAyah);
+  }
+}
+
+function renderQuranAyahs() {
+  const container = document.getElementById('quranAyahsList');
+  if (!container) return;
+
+  const dict = I18N[currentLang] || I18N.ru;
+  const numPattern = dict.quranAyahNumLabel || 'Аят {n}';
+  const listenLabel = dict.quranAyahListen || 'Слушать';
+
+  container.innerHTML = currentQuranAyahs.map(a => {
+    const numLabel = numPattern.replace('{n}', a.n);
+    const transText = (currentLang === 'en')
+      ? (a.en || a.ru || '')
+      : ((currentLang === 'tt') ? (a.tt || a.ru || '') : (a.ru || a.en || ''));
+
+    const trText = a.tr || '';
+
+    return '<div class="quran-ayah-item' + (activeQuranAyah === a.n ? ' active-ayah' : '') + '" id="ayah-' + a.n + '">' +
+      '<div class="quran-ayah-header">' +
+        '<span class="quran-ayah-num">' + numLabel + '</span>' +
+        '<div class="quran-ayah-actions">' +
+          '<button class="btn btn-ghost" style="padding:2px 8px; font-size:11px;" onclick="playAyahAudio(' + currentQuranSurah + ', ' + a.n + ', ' + a.g + ')" title="' + listenLabel + '">▶ ' + listenLabel + '</button>' +
+          '<button class="btn btn-ghost" style="padding:2px 8px; font-size:11px;" onclick="saveQuranBookmark(' + currentQuranSurah + ', ' + a.n + ')" title="Закладка">🔖</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="quran-ayah-ar" style="font-size:' + quranFontSize + 'px;">' + a.ar + '</div>' +
+      ((quranShowTranslit && trText) ? '<div class="quran-ayah-tr">' + trText + '</div>' : '') +
+      (quranShowTrans ? '<div class="quran-ayah-trans">' + transText + '</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+async function openQuranSurah(surahNum, targetAyah = 1) {
+  if (surahNum < 1 || surahNum > 114) surahNum = 1;
+  currentQuranSurah = surahNum;
+
+  const surahInfo = QURAN_SURAHS_INDEX.find(s => s[0] === surahNum) || QURAN_SURAHS_INDEX[0];
+  const dict = I18N[currentLang] || I18N.ru;
+
+  const select = document.getElementById('quranSurahSelect');
+  if (select && select.value !== String(surahNum)) {
+    select.value = String(surahNum);
+  }
+
+  const sName = (currentLang === 'en') ? surahInfo[2] : surahInfo[1];
+  const totalLabel = (dict.quranTotalAyahs || '{n} аятов').replace('{n}', surahInfo[4]);
+  const typeLabel = surahInfo[6] ? 'Мекканская' : 'Мединская';
+
+  const arEl = document.getElementById('quranSurahAr');
+  const titleEl = document.getElementById('quranSurahTitle');
+  const metaEl = document.getElementById('quranSurahMeta');
+  const badgeEl = document.getElementById('quranModeBadge');
+  const bismillahEl = document.getElementById('quranBismillah');
+
+  if (arEl) arEl.textContent = surahInfo[3];
+  if (titleEl) titleEl.textContent = surahNum + '. ' + sName + ' (' + surahInfo[2] + ')';
+  if (metaEl) metaEl.textContent = totalLabel + ' • ' + typeLabel;
+
+  if (bismillahEl) {
+    bismillahEl.style.display = (surahNum === 9 || surahNum === 1) ? 'none' : 'block';
+  }
+
+  stopQuranAudio();
+
+  const container = document.getElementById('quranAyahsList');
+
+  if (OFFLINE_QURAN_DATA[String(surahNum)]) {
+    currentQuranAyahs = OFFLINE_QURAN_DATA[String(surahNum)];
+    if (badgeEl) {
+      badgeEl.textContent = 'Офлайн (встроено)';
+      badgeEl.style.color = '#4ade80';
+      badgeEl.style.borderColor = '#22c55e';
+    }
+    renderQuranAyahs();
+    if (targetAyah > 1) {
+      setTimeout(() => highlightActiveAyah(targetAyah), 150);
+    }
+    return;
+  }
+
+  if (quranCache[surahNum]) {
+    currentQuranAyahs = quranCache[surahNum];
+    if (badgeEl) {
+      badgeEl.textContent = 'Кэш';
+      badgeEl.style.color = '#60a5fa';
+      badgeEl.style.borderColor = '#3b82f6';
+    }
+    renderQuranAyahs();
+    if (targetAyah > 1) {
+      setTimeout(() => highlightActiveAyah(targetAyah), 150);
+    }
+    return;
+  }
+
+  if (badgeEl) {
+    badgeEl.textContent = 'Загрузка…';
+    badgeEl.style.color = 'var(--gold)';
+    badgeEl.style.borderColor = 'var(--gold)';
+  }
+  if (container) {
+    container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--muted);"><span class="badge" style="background:rgba(212,175,55,0.15); color:var(--gold);">Загрузка аятов… ⏳</span></div>';
+  }
+
+  try {
+    currentQuranAyahs = await fetchOnlineSurah(surahNum);
+    if (badgeEl) {
+      badgeEl.textContent = 'Онлайн';
+      badgeEl.style.color = '#4ade80';
+      badgeEl.style.borderColor = '#22c55e';
+    }
+    renderQuranAyahs();
+    if (targetAyah > 1) {
+      setTimeout(() => highlightActiveAyah(targetAyah), 150);
+    }
+  } catch (err) {
+    console.warn('Failed to load surah online, fallback:', err);
+    showToast(dict.quranOfflineNotice || '⚠️ Нет подключения к интернету. Показана доступная офлайн-сура.', 'error');
+    if (badgeEl) {
+      badgeEl.textContent = 'Офлайн (ошибка сети)';
+      badgeEl.style.color = '#f87171';
+      badgeEl.style.borderColor = '#ef4444';
+    }
+    currentQuranSurah = 1;
+    currentQuranAyahs = OFFLINE_QURAN_DATA['1'];
+    openQuranSurah(1);
+  }
+}
+
+function renderQuranReader() {
+  const dict = I18N[currentLang] || I18N.ru;
+  renderQuranSurahOptions();
+  const surahInfo = QURAN_SURAHS_INDEX.find(s => s[0] === currentQuranSurah) || QURAN_SURAHS_INDEX[0];
+  const sName = (currentLang === 'en') ? surahInfo[2] : surahInfo[1];
+  const totalLabel = (dict.quranTotalAyahs || '{n} аятов').replace('{n}', surahInfo[4]);
+  const typeLabel = surahInfo[6] ? 'Мекканская' : 'Мединская';
+
+  const arEl = document.getElementById('quranSurahAr');
+  const titleEl = document.getElementById('quranSurahTitle');
+  const metaEl = document.getElementById('quranSurahMeta');
+  if (arEl) arEl.textContent = surahInfo[3];
+  if (titleEl) titleEl.textContent = currentQuranSurah + '. ' + sName + ' (' + surahInfo[2] + ')';
+  if (metaEl) metaEl.textContent = totalLabel + ' • ' + typeLabel;
+
+  renderQuranAyahs();
+  checkQuranResume();
+}
+
+function saveQuranBookmark(surahNum, ayahNum) {
+  const data = { surah: surahNum, ayah: ayahNum, timestamp: Date.now() };
+  store.set('quran_bookmark', JSON.stringify(data));
+  const dict = I18N[currentLang] || I18N.ru;
+  showToast(dict.quranBookmarkSaved || 'Аят сохранён в закладках');
+  checkQuranResume();
+}
+
+function checkQuranResume() {
+  const card = document.getElementById('quranResumeCard');
+  const txt = document.getElementById('quranResumeText');
+  if (!card) return;
+
+  const raw = store.get('quran_bookmark');
+  if (!raw) {
+    card.style.display = 'none';
+    return;
+  }
+  try {
+    const bm = JSON.parse(raw);
+    const surah = QURAN_SURAHS_INDEX.find(s => s[0] === bm.surah);
+    if (!surah) { card.style.display = 'none'; return; }
+
+    const dict = I18N[currentLang] || I18N.ru;
+    const sTitle = (currentLang === 'en') ? surah[2] : surah[1];
+    const ayahLabel = (dict.quranAyahNumLabel || 'Аят {n}').replace('{n}', bm.ayah);
+    if (txt) txt.textContent = 'Сура ' + bm.surah + ' (' + sTitle + '), ' + ayahLabel;
+    card.style.display = 'block';
+  } catch (e) {
+    card.style.display = 'none';
+  }
+}
+
+function resumeQuranBookmark() {
+  const raw = store.get('quran_bookmark');
+  if (!raw) return;
+  try {
+    const bm = JSON.parse(raw);
+    openQuranSurah(bm.surah, bm.ayah);
+  } catch(e) {}
+}
+
+function changeQuranFontSize(delta) {
+  quranFontSize = Math.max(18, Math.min(38, quranFontSize + delta));
+  store.set('quran_font_size', String(quranFontSize));
+  document.querySelectorAll('.quran-ayah-ar').forEach(el => {
+    el.style.fontSize = quranFontSize + 'px';
+  });
+}
+
+function toggleQuranTranslit(show) {
+  quranShowTranslit = !!show;
+  store.set('quran_show_translit', String(quranShowTranslit));
+  renderQuranAyahs();
+}
+
+function toggleQuranTranslation(show) {
+  quranShowTrans = !!show;
+  store.set('quran_show_trans', String(quranShowTrans));
+  renderQuranAyahs();
+}
+
+function initQuranReader() {
+  isQuranReady = true;
+  const chkTr = document.getElementById('chkQuranTranslit');
+  if (chkTr) chkTr.checked = quranShowTranslit;
+
+  const chkTrans = document.getElementById('chkQuranTranslation');
+  if (chkTrans) chkTrans.checked = quranShowTrans;
+
+  renderQuranSurahOptions();
+  checkQuranResume();
+  openQuranSurah(1);
+}
+
+initQuranReader();
+
 
 window.addEventListener('beforeprint', () => {
   const container = document.getElementById('printScheduleContainer');
