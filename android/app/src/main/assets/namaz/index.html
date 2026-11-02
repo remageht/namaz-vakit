@@ -869,7 +869,7 @@
       <b style="font-size:15px;">📊 <span data-i18n="prayersToday">Молитвы сегодня</span></b>
       <span id="streakBadge" style="background:rgba(212,175,55,0.2); color:var(--gold); border:1px solid rgba(212,175,55,0.4); padding:2px 8px; border-radius:12px; font-size:12px; font-weight:700;">🔥 Серия: 0 дн.</span>
     </div>
-    <div class="sub" style="margin:4px 0 10px;">Отмечайте выполненные молитвы. Прогресс сохраняется в памяти.</div>
+    <div class="sub" style="margin:4px 0 10px;" data-i18n="statsHint">Отмечайте выполненные молитвы. Прогресс сохраняется в памяти.</div>
     <div style="background:#082f25; border-radius:10px; height:8px; overflow:hidden; margin-bottom:12px;">
       <div id="prayerProgressBar" style="background:var(--accent); height:100%; width:0%; transition:width .3s ease;"></div>
     </div>
@@ -883,24 +883,24 @@
     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
       <span id="prayerProgressText" class="sub" style="font-size:12px;">Выполнено: 0 из 5</span>
       <div style="display:flex; align-items:center; gap:6px;">
-        <span class="sub" style="font-size:11px;">Неделя:</span>
+        <span class="sub" style="font-size:11px;" data-i18n="weekLabel">Неделя:</span>
         <div id="weekStreakDots" style="display:flex; gap:4px;"></div>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <b>🔔 Уведомления о намазе</b>
-    <div class="sub" style="margin: 6px 0 10px;">
+    <b>🔔 <span data-i18n="notifTitle">Уведомления о намазе</span></b>
+    <div class="sub" style="margin: 6px 0 10px;" data-i18n="notifDesc">
       • За 10 минут — напоминание совершить омовение (вуду).<br>
       • В начале намаза — сигнал о наступлении времени молитвы.
     </div>
-    <button class="btn btn-gold" id="btnNotif">🔔 Включить уведомления</button>
+    <button class="btn btn-gold" id="btnNotif" data-i18n="btnNotifOn">🔔 Включить уведомления</button>
     <div class="row2">
-      <button class="btn btn-ghost" id="btnTest10">Тест: за 10 мин</button>
-      <button class="btn btn-ghost" id="btnTest0">Тест: начало (00:00)</button>
+      <button class="btn btn-ghost" id="btnTest10" data-i18n="btnTest10">Тест: за 10 мин</button>
+      <button class="btn btn-ghost" id="btnTest0" data-i18n="btnTest0">Тест: начало (00:00)</button>
     </div>
-    <div id="notifStatus" class="sub" style="margin-top:6px;">Статус: проверяется...</div>
+    <div id="notifStatus" class="sub" style="margin-top:6px;" data-i18n="notifStatus">Статус: проверяется...</div>
     <div id="panelRow" style="display:none; margin-top:10px;">
       <button class="btn btn-ghost" id="btnPanel">📌 …</button>
     </div>
@@ -908,10 +908,10 @@
 
   <div class="card" id="cardDailyInspiration">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <b style="font-size:15px;">📖 Мудрость дня</b>
+      <b style="font-size:15px;">📖 <span data-i18n="inspireTitle">Мудрость дня</span></b>
       <div style="display:flex; gap:4px;">
-        <button class="btn btn-ghost active" id="btnInspireAyah" onclick="switchInspireMode('ayah')" style="padding:4px 10px; font-size:12px;">Аят дня</button>
-        <button class="btn btn-ghost" id="btnInspireHadith" onclick="switchInspireMode('hadith')" style="padding:4px 10px; font-size:12px;">Хадис дня</button>
+        <button class="btn btn-ghost active" id="btnInspireAyah" onclick="switchInspireMode('ayah')" style="padding:4px 10px; font-size:12px;" data-i18n="inspireAyahBtn">Аят дня</button>
+        <button class="btn btn-ghost" id="btnInspireHadith" onclick="switchInspireMode('hadith')" style="padding:4px 10px; font-size:12px;" data-i18n="inspireHadithBtn">Хадис дня</button>
       </div>
     </div>
     <div id="inspireContent" style="padding:4px 0;">
@@ -926,7 +926,7 @@
     </div>
   </div>
 
-  <div class="install-tip">
+  <div class="install-tip" data-i18n="installPwaTip">
     📲 <b>Установка как мобильное приложение (PWA):</b><br>
     • <b>Android Chrome:</b> меню ⋮ → «Установить приложение» / «Добавить на главный экран»<br>
     • <b>iPhone Safari:</b> кнопка «Поделиться» ⬆ → «На экран „Домой“»<br>
@@ -937,8 +937,8 @@
 <!-- КИБЛА -->
 <section id="p-qibla" class="page">
   <div class="card compass-wrap">
-    <h3 style="margin:0 0 6px;">🧭 Компас Киблы (Кааба)</h3>
-    <div class="sub">Золотая стрелка указывает точное направление на Каабу. Держите устройство горизонтально.</div>
+    <h3 style="margin:0 0 6px;">🧭 <span data-i18n="compassTitle">Компас Киблы (Кааба)</span></h3>
+    <div class="sub" data-i18n="compassSub">Золотая стрелка указывает точное направление на Каабу. Держите устройство горизонтально.</div>
 
     <div id="compass">
       <div id="dial">
@@ -951,23 +951,23 @@
       <div id="centerDot"></div>
     </div>
 
-    <div id="qiblaStatusBox" class="qibla-status">Поворачивайте устройство к стрелке</div>
+    <div id="qiblaStatusBox" class="qibla-status" data-i18n="compassTurnHint">Поворачивайте устройство к стрелке</div>
 
     <div class="qibla-grid">
       <div class="qibla-metric">
-        <div class="sub">Направление Киблы:</div>
+        <div class="sub" data-i18n="qiblaBearingLabel">Направление Киблы:</div>
         <div class="num" id="qiblaDeg">—°</div>
       </div>
       <div class="qibla-metric">
-        <div class="sub">Курс устройства:</div>
+        <div class="sub" data-i18n="qiblaHeadingLabel">Курс устройства:</div>
         <div class="num" id="headingVal">0°</div>
       </div>
       <div class="qibla-metric">
-        <div class="sub">Отклонение (дельта):</div>
+        <div class="sub" data-i18n="qiblaDeltaLabel">Отклонение (дельта):</div>
         <div class="num" id="deltaVal">—°</div>
       </div>
       <div class="qibla-metric">
-        <div class="sub">Дистанция до Каабы:</div>
+        <div class="sub" data-i18n="qiblaDistanceLabel">Дистанция до Каабы:</div>
         <div class="num" id="qiblaDistKm">—</div>
       </div>
     </div>
@@ -984,20 +984,20 @@
 
   <div class="card" id="cardArQibla">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-      <b style="font-size:15px;">📷 Дополненная реальность (AR-Кибла)</b>
-      <button class="btn btn-gold" id="btnToggleAr" style="padding:6px 14px; font-size:12px;">📷 Включить камеру</button>
+      <b style="font-size:15px;">📷 <span data-i18n="arTitle">Дополненная реальность (AR-Кибла)</span></b>
+      <button class="btn btn-gold" id="btnToggleAr" style="padding:6px 14px; font-size:12px;" data-i18n="arTurnOn">📷 Включить камеру</button>
     </div>
-    <div class="sub" style="margin:4px 0 10px;">Наведите камеру смартфона перед собой, чтобы увидеть направление на Каабу в реальном мире.</div>
+    <div class="sub" style="margin:4px 0 10px;" data-i18n="arSub">Наведите камеру смартфона перед собой, чтобы увидеть направление на Каабу в реальном мире.</div>
     <div id="arContainer" style="display:none; position:relative; width:100%; height:300px; border-radius:12px; overflow:hidden; background:#000; border:1px solid var(--gold); margin-top:8px;">
       <video id="arVideo" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover;"></video>
       <div id="arOverlay" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; display:flex; flex-direction:column; justify-content:center; align-items:center;">
         <div id="arReticle" style="width:130px; height:130px; border:2px dashed rgba(212,175,55,0.7); border-radius:50%; display:flex; justify-content:center; align-items:center; position:relative;">
           <div id="arArrow" style="width:0; height:0; border-left:14px solid transparent; border-right:14px solid transparent; border-bottom:48px solid var(--gold); transform-origin:50% 90%; transition:transform .1s linear;"></div>
         </div>
-        <div id="arBadge" style="margin-top:14px; background:rgba(6,40,31,0.85); color:var(--text); border:1px solid var(--gold); padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700;">Поворачивайтесь к стрелке</div>
+        <div id="arBadge" style="margin-top:14px; background:rgba(6,40,31,0.85); color:var(--text); border:1px solid var(--gold); padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700;" data-i18n="arBadgeTurn">Поворачивайтесь к стрелке</div>
       </div>
     </div>
-    <div id="arFallbackNotice" class="sub" style="text-align:center; padding:10px; display:none; background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.25); border-radius:8px; margin-top:8px;">
+    <div id="arFallbackNotice" class="sub" style="text-align:center; padding:10px; display:none; background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.25); border-radius:8px; margin-top:8px;" data-i18n="arNotice">
       📱 Камера недоступна (требуется HTTPS / мобильное устройство). Доступен стандартный компас с датчиком ориентации выше.
     </div>
   </div>
@@ -1006,17 +1006,17 @@
 <!-- ОБУЧЕНИЕ И УРОКИ -->
 <section id="p-learn" class="page">
   <div class="card">
-    <h3 style="margin:0 0 6px;">📖 Обучение намазу: все 5 молитв и вуду</h3>
-    <div class="sub">Порядок обязательных (фард) молитв, схема ракаатов, правила громкого/тихого чтения, арабские тексты и транскрипция.</div>
+    <h3 style="margin:0 0 6px;">📖 <span data-i18n="learnTitle">Обучение намазу: все 5 молитв и вуду</span></h3>
+    <div class="sub" data-i18n="learnSub">Порядок обязательных (фард) молитв, схема ракаатов, правила громкого/тихого чтения, арабские тексты и транскрипция.</div>
 
     <div class="lesson-tabs" id="lessonTabs">
-      <button class="active" data-l="wudu">💧 Вуду</button>
-      <button data-l="fajr">🌅 Фаджр (2)</button>
-      <button data-l="dhuhr">☀️ Зухр (4)</button>
-      <button data-l="asr">🌤 Аср (4)</button>
-      <button data-l="maghrib">🌇 Магриб (3)</button>
-      <button data-l="isha">🌙 Иша (4)</button>
-      <button data-l="texts">🕋 Тексты и суры</button>
+      <button class="active" data-l="wudu" data-i18n="lessonTabWudu">💧 Вуду</button>
+      <button data-l="fajr" data-i18n="lessonTabFajr">🌅 Фаджр (2)</button>
+      <button data-l="dhuhr" data-i18n="lessonTabDhuhr">☀️ Зухр (4)</button>
+      <button data-l="asr" data-i18n="lessonTabAsr">🌤 Аср (4)</button>
+      <button data-l="maghrib" data-i18n="lessonTabMaghrib">🌇 Магриб (3)</button>
+      <button data-l="isha" data-i18n="lessonTabIsha">🌙 Иша (4)</button>
+      <button data-l="texts" data-i18n="lessonTabTexts">🕋 Тексты и суры</button>
     </div>
 
     <div id="lessons"></div>
@@ -1032,7 +1032,7 @@
   </div>
 
   <div class="card">
-    <h3 style="margin:0 0 8px;">⚙️ Местоположение и метод расчёта</h3>
+    <h3 style="margin:0 0 8px;">⚙️ <span data-i18n="settingsTitle">Местоположение и метод расчёта</span></h3>
 
     <label data-i18n="lblLang">Язык интерфейса:</label>
     <div style="display:flex; gap:6px; margin:6px 0 14px;">
@@ -1043,15 +1043,15 @@
 
     <label data-i18n="lblTheme">Тема оформления:</label>
     <div style="display:flex; gap:6px; margin:6px 0 14px;">
-      <button class="btn btn-ghost" id="btnThemeGold" onclick="setAppTheme('gold')" style="flex:1;">Золотая</button>
-      <button class="btn btn-ghost" id="btnThemeGreen" onclick="setAppTheme('green')" style="flex:1;">Изумруд</button>
-      <button class="btn btn-ghost" id="btnThemeMono" onclick="setAppTheme('mono')" style="flex:1;">Монохром</button>
+      <button class="btn btn-ghost" id="btnThemeGold" onclick="setAppTheme('gold')" style="flex:1;" data-i18n="themeGold">Золотая</button>
+      <button class="btn btn-ghost" id="btnThemeGreen" onclick="setAppTheme('green')" style="flex:1;" data-i18n="themeGreen">Изумруд</button>
+      <button class="btn btn-ghost" id="btnThemeMono" onclick="setAppTheme('mono')" style="flex:1;" data-i18n="themeMono">Монохром</button>
     </div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
       <label style="margin:0;" data-i18n="lblCity">Выбор города:</label>
       <select id="selectQuickCity" onchange="onSelectCityChange(this.value)" style="width:auto; margin:0; padding:4px 8px; font-size:12px;">
-        <option value="">— Все города —</option>
+        <option value="" data-i18n="allCitiesOpt">— Все города —</option>
         <option value="45.1342,33.60,Саки">Саки (Крым)</option>
         <option value="55.7558,37.6173,Москва">Москва</option>
         <option value="59.9343,30.3351,СПб">Санкт-Петербург</option>
@@ -1079,16 +1079,16 @@
 
     <div class="row2">
       <div>
-        <label>Широта (latitude):</label>
+        <label data-i18n="lblLat">Широта (latitude):</label>
         <input id="inLat" type="number" step="any" placeholder="55.7558">
       </div>
       <div>
-        <label>Долгота (longitude):</label>
+        <label data-i18n="lblLon">Долгота (longitude):</label>
         <input id="inLon" type="number" step="any" placeholder="37.6173">
       </div>
     </div>
 
-    <label>Метод расчёта времени:</label>
+    <label data-i18n="lblMethod">Метод расчёта времени:</label>
     <select id="inMethod">
       <option value="2">2: Muslim World League (MWL) — стандарт по умолчанию</option>
       <option value="14">14: Духовное управление мусульман РФ (ДУМ РФ)</option>
@@ -1097,24 +1097,24 @@
       <option value="1">1: University of Islamic Sciences, Karachi</option>
     </select>
 
-    <label>Мазхаб времени Аср:</label>
+    <label data-i18n="lblSchool">Мазхаб времени Аср:</label>
     <select id="inSchool">
-      <option value="1">1: Ханафи (двойная тень) — стандарт РФ/СНГ</option>
-      <option value="0">0: Шафии / стандартный (одинарная тень)</option>
+      <option value="1" data-i18n="schoolHanafi">1: Ханафи (двойная тень) — стандарт РФ/СНГ</option>
+      <option value="0" data-i18n="schoolShafi">0: Шафии / стандартный (одинарная тень)</option>
     </select>
 
     <label data-i18n="lblSound">Звуковой сигнал намаза:</label>
     <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
       <select id="inSound" style="flex:1; margin:0;">
-        <option value="adhan">🕌 Мелодичный перезвон (Азан)</option>
-        <option value="beep">🔔 Короткий сигнал</option>
-        <option value="off">🔇 Без звука</option>
+        <option value="adhan" data-i18n="soundAdhan">🕌 Мелодичный перезвон (Азан)</option>
+        <option value="beep" data-i18n="soundBeep">🔔 Короткий сигнал</option>
+        <option value="off" data-i18n="soundOff">🔇 Без звука</option>
       </select>
       <button type="button" class="btn btn-ghost" id="btnTestSound" style="padding:7px 12px; font-size:13px;" title="Прослушать">▶ <span data-i18n="btnTest">Тест</span></button>
     </div>
 
     <button class="btn btn-gold" id="btnSave">💾 <span data-i18n="saveSettings">Сохранить и обновить расписание</span></button>
-    <div class="sub" style="margin-top:8px;">
+    <div class="sub" style="margin-top:8px;" data-i18n="settingsNote">
       Координаты сохраняются локально в памяти браузера. Расчёт времени выполняется через надёжный Aladhan API.
     </div>
   </div>
@@ -1131,7 +1131,7 @@
       <button class="btn btn-ghost" id="btnCalNext" style="padding:6px 12px; font-weight:bold;">→</button>
     </div>
     <div style="text-align:center; margin-bottom:8px;">
-      <button class="btn btn-ghost" id="btnCalToday" style="padding:4px 10px; font-size:11px;">Сегодня</button>
+      <button class="btn btn-ghost" id="btnCalToday" style="padding:4px 10px; font-size:11px;" data-i18n="calTodayBtn">Сегодня</button>
     </div>
     <div class="cal-grid" id="calWeekdays">
       <div class="cal-head">Пн</div><div class="cal-head">Вт</div><div class="cal-head">Ср</div>
@@ -1139,12 +1139,12 @@
     </div>
     <div class="cal-grid" id="calDaysGrid"></div>
     <div style="display:flex; gap:8px; margin-top:12px;">
-      <button class="btn btn-gold" id="btnExportCsv" onclick="exportMonthlyCsv()" style="flex:1;">📥 Скачать CSV</button>
-      <button class="btn btn-ghost" id="btnPrintSchedule" onclick="printSchedule()" style="flex:1;">🖨 Печать расписания</button>
+      <button class="btn btn-gold" id="btnExportCsv" onclick="exportMonthlyCsv()" style="flex:1;" data-i18n="btnExportCsv">📥 Скачать CSV</button>
+      <button class="btn btn-ghost" id="btnPrintSchedule" onclick="printSchedule()" style="flex:1;" data-i18n="btnPrintSchedule">🖨 Печать расписания</button>
     </div>
   </div>
   <div class="card" id="calDayDetails" style="text-align:center;">
-    <div class="label">Выбранный день</div>
+    <div class="label" data-i18n="calSelectedDay">Выбранный день</div>
     <div id="calDetailGreg" style="font-size:16px; font-weight:700; margin-top:4px;">—</div>
     <div id="calDetailHijri" style="font-size:14px; color:var(--gold-light); margin-top:2px;">—</div>
     <div id="calDetailEvent" style="margin-top:6px; font-size:13px; color:var(--accent); font-weight:600;"></div>
@@ -1160,32 +1160,32 @@
       <div class="more-card" onclick="openPage('p-mosques')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPage('p-mosques')">
         <div class="more-icon">🕌</div>
         <div class="more-title" data-i18n="tabMosques">Мечети</div>
-        <div class="more-desc">Поиск ближайших мечетей на карте OSM с дистанцией</div>
+        <div class="more-desc" data-i18n="descMosques">Поиск ближайших мечетей на карте OSM с дистанцией</div>
       </div>
       <div class="more-card" onclick="openPage('p-names')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPage('p-names')">
         <div class="more-icon">☝️</div>
         <div class="more-title" data-i18n="tabNames">99 Имён</div>
-        <div class="more-desc">Имя дня, счётчик зикра и тренажёр заучивания</div>
+        <div class="more-desc" data-i18n="descNames">Имя дня, счётчик зикра и тренажёр заучивания</div>
       </div>
       <div class="more-card" onclick="openPage('p-qada')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPage('p-qada')">
         <div class="more-icon">🤲</div>
         <div class="more-title" data-i18n="tabQada">Каза</div>
-        <div class="more-desc">Учёт и калькулятор пропущенных молитв</div>
+        <div class="more-desc" data-i18n="descQada">Учёт и калькулятор пропущенных молитв</div>
       </div>
       <div class="more-card" onclick="openPage('p-settings')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPage('p-settings')">
         <div class="more-icon">⚙️</div>
         <div class="more-title" data-i18n="tabSettings">Настройки</div>
-        <div class="more-desc">Город, мазхаб, метод расчёта, тема и язык</div>
+        <div class="more-desc" data-i18n="descSettings">Город, мазхаб, метод расчёта, тема и язык</div>
       </div>
     </div>
   </div>
 
   <div class="card" style="margin-top:12px;">
     <b>📥 <span data-i18n="dataExportTitle">Данные и расписание</span></b>
-    <div class="sub" style="margin:6px 0 12px;">Выгрузка расписания молитв на текущий месяц</div>
+    <div class="sub" style="margin:6px 0 12px;" data-i18n="dataExportSub">Выгрузка расписания молитв на текущий месяц</div>
     <div style="display:flex; gap:8px;">
-      <button class="btn btn-gold" onclick="exportMonthlyCsv()" style="flex:1;">📥 Скачать CSV</button>
-      <button class="btn btn-ghost" onclick="printSchedule()" style="flex:1;">🖨 Печать</button>
+      <button class="btn btn-gold" onclick="exportMonthlyCsv()" style="flex:1;" data-i18n="btnExportCsv">📥 Скачать CSV</button>
+      <button class="btn btn-ghost" onclick="printSchedule()" style="flex:1;" data-i18n="btnPrintBtn">🖨 Печать</button>
     </div>
   </div>
 </section>
@@ -1198,18 +1198,18 @@
     </button>
   </div>
   <div class="card">
-    <div class="label">Поиск мечетей</div>
+    <div class="label" data-i18n="mosquesSearchLabel">Поиск мечетей</div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
-      <b style="font-size:16px;">🕌 Мечети рядом (до 25 км)</b>
-      <button class="btn btn-gold" id="btnFindMosques" style="padding:6px 14px; font-size:12px;">🔍 Найти</button>
+      <b style="font-size:16px;">🕌 <span data-i18n="mosquesTitle">Мечети рядом (до 25 км)</span></b>
+      <button class="btn btn-gold" id="btnFindMosques" style="padding:6px 14px; font-size:12px;" data-i18n="btnFind">🔍 Найти</button>
     </div>
-    <div class="sub" id="mosquesStatus" style="margin-top:6px;">Нажмите «Найти» для загрузки мечетей вокруг текущих координат.</div>
+    <div class="sub" id="mosquesStatus" style="margin-top:6px;" data-i18n="mosquesStatusInit">Нажмите «Найти» для загрузки мечетей вокруг текущих координат.</div>
     <div id="mosquesMap"></div>
   </div>
   <div class="card">
-    <div class="label">Список мечетей</div>
+    <div class="label" data-i18n="mosquesListLabel">Список мечетей</div>
     <div id="mosquesList" style="margin-top:8px;">
-      <div class="sub" style="text-align:center; padding:15px;">Список загрузится при поиске…</div>
+      <div class="sub" style="text-align:center; padding:15px;" data-i18n="mosquesListEmpty">Список загрузится при поиске…</div>
     </div>
   </div>
 </section>
@@ -1222,7 +1222,7 @@
     </button>
   </div>
   <div class="card next">
-    <div class="label" id="nameDayLabel">Имя дня</div>
+    <div class="label" id="nameDayLabel" data-i18n="nameDayLabelToday">Имя сегодняшнего дня</div>
     <div class="ar" id="nameAr" style="font-size:34px; text-align:center;">—</div>
     <div class="tr" id="nameTr" style="text-align:center;">—</div>
     <div class="ru" id="nameRu" style="text-align:center;">—</div>
@@ -1235,29 +1235,29 @@
     </div>
   </div>
   <div class="card" style="text-align:center;">
-    <b>📿 Зикр: повторение имени</b>
+    <b>📿 <span data-i18n="dhikrTitle">Зикр: повторение имени</span></b>
     <div class="countdown" id="dhikrCount" style="font-size:36px;">0</div>
-    <div class="sub">цель — 99 раз</div>
+    <div class="sub" data-i18n="dhikrGoal">цель — 99 раз</div>
     <div style="background:#082f25; border-radius:10px; height:10px; overflow:hidden; margin:8px 0;">
       <div id="dhikrBar" style="background:var(--gold); height:100%; width:0%;"></div>
     </div>
     <button class="btn btn-gold" id="btnDhikr">+1</button>
-    <button class="btn btn-ghost" id="btnDhikrReset">Сбросить</button>
+    <button class="btn btn-ghost" id="btnDhikrReset" data-i18n="btnDhikrReset">Сбросить</button>
   </div>
   <div class="card" id="quizCard">
-    <b>🧠 Режим заучивания</b>
-    <div class="sub" style="margin-bottom:10px;">Угадай перевод по арабскому написанию</div>
+    <b>🧠 <span data-i18n="quizTitle">Режим заучивания</span></b>
+    <div class="sub" style="margin-bottom:10px;" data-i18n="quizSub">Угадай перевод по арабскому написанию</div>
     <div id="quizAr" style="font-size:40px; text-align:center; direction:rtl; margin:10px 0; color:var(--gold-light);">—</div>
     <div id="quizOptions" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0;"></div>
     <div id="quizResult" style="text-align:center; font-size:15px; min-height:22px;"></div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
       <div id="quizScore" style="color:var(--muted); font-size:13px;">Счёт: 0 / 0</div>
-      <button class="btn btn-ghost" id="btnQuizReset" style="padding:4px 10px; font-size:12px;">Сбросить</button>
+      <button class="btn btn-ghost" id="btnQuizReset" style="padding:4px 10px; font-size:12px;" data-i18n="btnQuizReset">Сбросить</button>
     </div>
   </div>
   <div class="card">
-    <b>Все 99 имён</b>
-    <div class="sub">Нажми, чтобы открыть в карточке дня</div>
+    <b><span data-i18n="allNamesTitle">Все 99 имён</span></b>
+    <div class="sub" data-i18n="allNamesSub">Нажми, чтобы открыть в карточке дня</div>
     <div id="namesGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px;"></div>
   </div>
 </section>
@@ -1270,34 +1270,34 @@
     </button>
   </div>
   <div class="card">
-    <b>🤲 Возмещение пропущенных намазов (каза)</b>
-    <div class="sub" style="margin:6px 0 10px;">Отмечайте возмещённые намазы — счётчик покажет, сколько осталось.</div>
+    <b>🤲 <span data-i18n="qadaTitle">Возмещение пропущенных намазов (каза)</span></b>
+    <div class="sub" style="margin:6px 0 10px;" data-i18n="qadaSub">Отмечайте возмещённые намазы — счётчик покажет, сколько осталось.</div>
     <div id="qadaList"></div>
     <div class="sub" id="qadaTotal" style="margin-top:10px; font-weight:700; color:var(--gold);">—</div>
   </div>
 
   <div class="card">
-    <b>🧮 Калькулятор каза</b>
-    <div class="sub" style="margin:6px 0 10px;">Посчитайте долг за период, когда намазы не совершались.</div>
+    <b>🧮 <span data-i18n="qadaCalcTitle">Калькулятор каза</span></b>
+    <div class="sub" style="margin:6px 0 10px;" data-i18n="qadaCalcSub">Посчитайте долг за период, когда намазы не совершались.</div>
     <div class="row2">
       <div>
-        <label for="qadaFrom">С даты (начало периода):</label>
+        <label for="qadaFrom" data-i18n="qadaFromLabel">С даты (начало периода):</label>
         <input type="date" id="qadaFrom">
       </div>
       <div>
-        <label for="qadaTo">По дату (начало регулярного совершения):</label>
+        <label for="qadaTo" data-i18n="qadaToLabel">По дату (начало регулярного совершения):</label>
         <input type="date" id="qadaTo">
       </div>
     </div>
     <div id="qadaPicks" style="display:flex; flex-wrap:wrap; gap:10px; margin:10px 0;"></div>
-    <button class="btn btn-gold" id="btnQadaCalc">Рассчитать</button>
+    <button class="btn btn-gold" id="btnQadaCalc" data-i18n="btnQadaCalc">Рассчитать</button>
     <div id="qadaCalcResult" class="sub" style="margin:8px 0; line-height:1.7;"></div>
-    <button class="btn btn-gold" id="btnQadaAdd" disabled style="margin-top:8px;">➕ Добавить к счётчику</button>
+    <button class="btn btn-gold" id="btnQadaAdd" disabled style="margin-top:8px;" data-i18n="btnQadaAdd">➕ Добавить к счётчику</button>
   </div>
 
   <div class="card">
-    <b>💡 Как возмещать</b>
-    <div class="sub" style="line-height:1.7;">
+    <b>💡 <span data-i18n="qadaGuideTitle">Как возмещать</span></b>
+    <div class="sub" style="line-height:1.7;" data-i18n="qadaGuideContent">
       • Каза совершается так же, как обычный намаз, в любое дозволенное время.<br>
       • Удобный порядок: возмещать вместе с обязательными — один пропущенный после каждого совершённого.<br>
       • Желательно идти по дням подряд: Фаджр → Зухр → Аср → Магриб → Иша.
@@ -1307,7 +1307,7 @@
 
 </main>
 
-<footer>
+<footer data-i18n="footerText">
   Намаз PWA • Время: Aladhan API • Кааба: 21.4225° N, 39.8262° E • Сверяйте время с местной мечетью
 </footer>
 
@@ -1453,6 +1453,8 @@ const PRAYERS_EN = {
   Isha: 'Isha 🌙'
 };
 const ORDER = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+const TRACKER_PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+const QADA_PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 
 const I18N = {
   ru: {
@@ -1464,14 +1466,19 @@ const I18N = {
     tabCal: 'Календарь',
     tabMore: 'Ещё',
     tabMosques: 'Мечети',
-    tabNames: 'Имена',
+    tabNames: '99 Имён',
     tabQada: 'Каза',
     tabSettings: 'Настройки',
     moreTitle: 'Дополнительные разделы',
     moreSub: 'Полезные исламские инструменты и настройки приложения',
     backToMore: 'Все разделы',
     lblCity: 'Выбор города:',
+    allCitiesOpt: '— Все города —',
     dataExportTitle: 'Данные и расписание',
+    dataExportSub: 'Выгрузка расписания молитв на текущий месяц',
+    btnExportCsv: '📥 Скачать CSV',
+    btnPrintSchedule: '🖨 Печать расписания',
+    btnPrintBtn: '🖨 Печать',
     nextPrayer: 'Следующий намаз',
     locAutoBtn: 'Определить автоматически (GPS)',
     gpsDetecting: '📍 Определение положения…',
@@ -1486,7 +1493,8 @@ const I18N = {
     locSourceIp: 'примерно по IP',
     locSourceManual: 'вручную',
     locSourceDefault: 'по умолчанию (Саки)',
-    compassTitle: '🧭 Компас Киблы (Кааба)',
+    compassTitle: 'Компас Киблы (Кааба)',
+    compassSub: 'Золотая стрелка указывает точное направление на Каабу. Держите устройство горизонтально.',
     compassOff: 'Компас выключен',
     compassDetecting: 'Определение курса…',
     compassNoSensor: 'Датчик ориентации недоступен на этом устройстве',
@@ -1500,19 +1508,110 @@ const I18N = {
     compassTrueNorthNote: 'Север истинный (поправка WMM2025: {decl}°)',
     compassBtnTurnOn: '🧭 Включить компас (датчик устройства)',
     compassBtnTurnOff: '⏹ Выключить компас',
+    compassTurnHint: 'Поворачивайте устройство к стрелке',
+    qiblaBearingLabel: 'Направление Киблы:',
+    qiblaHeadingLabel: 'Курс устройства:',
+    qiblaDeltaLabel: 'Отклонение (дельта):',
+    qiblaDistanceLabel: 'Дистанция до Каабы:',
     compassSimLabel: 'Симуляция курса (0° - 360°):',
     compassSimHint: 'Если датчик ориентации недоступен на компьютере, используйте ползунок для проверки направления.',
+    arTitle: 'Дополненная реальность (AR-Кибла)',
     arTurnOn: '📷 Включить камеру',
     arTurnOff: '⏹ Отключить камеру',
     arAligned: '✅ <b>На Кибле!</b> Вы смотрите прямо на Каабу',
     arTurnRight: 'Поверните вправо на {n}°',
     arTurnLeft: 'Поверните влево на {n}°',
+    arSub: 'Наведите камеру смартфона перед собой, чтобы увидеть направление на Каабу в реальном мире.',
+    arBadgeTurn: 'Поворачивайтесь к стрелке',
     arNotice: '📱 Камера недоступна (требуется HTTPS / мобильное устройство). Доступен стандартный компас с датчиком ориентации выше.',
     prayersToday: 'Молитвы сегодня',
+    statsHint: 'Отмечайте выполненные молитвы. Прогресс сохраняется в памяти.',
+    completedOf: 'Выполнено: {c} из 5',
+    weekLabel: 'Неделя:',
     streak: 'Серия',
     days: 'дн.',
-    saveSettings: 'Сохранить и обновить расписание',
+    notifTitle: 'Уведомления о намазе',
+    notifDesc: '• За 10 минут — напоминание совершить омовение (вуду).<br>• В начале намаза — сигнал о наступлении времени молитвы.',
+    btnNotifOn: '🔔 Включить уведомления',
+    btnTest10: 'Тест: за 10 мин',
+    btnTest0: 'Тест: начало (00:00)',
+    notifStatus: 'Статус: проверяется...',
+    inspireTitle: 'Мудрость дня',
+    inspireAyahBtn: 'Аят дня',
+    inspireHadithBtn: 'Хадис дня',
+    dayOfYear: 'День года: {n}',
+    installPwaTip: '📲 <b>Установка как мобильное приложение (PWA):</b><br>• <b>Android Chrome:</b> меню ⋮ → «Установить приложение» / «Добавить на главный экран»<br>• <b>iPhone Safari:</b> кнопка «Поделиться» ⬆ → «На экран „Домой“»<br>• <b>Компьютер:</b> иконка установки ⬇ в адресной строке браузера',
+    learnTitle: 'Обучение намазу: все 5 молитв и вуду',
+    learnSub: 'Порядок обязательных (фард) молитв, схема ракаатов, правила громкого/тихого чтения, арабские тексты и транскрипция.',
+    lessonTabWudu: '💧 Вуду',
+    lessonTabFajr: '🌅 Фаджр (2)',
+    lessonTabDhuhr: '☀️ Зухр (4)',
+    lessonTabAsr: '🌤 Аср (4)',
+    lessonTabMaghrib: '🌇 Магриб (3)',
+    lessonTabIsha: '🌙 Иша (4)',
+    lessonTabTexts: '🕋 Тексты и суры',
+    calTodayBtn: 'Сегодня',
+    calSelectedDay: 'Выбранный день',
+    ramadanFastDay: '🌙 День поста Рамадана',
+    regularDay: 'Обычный день',
+    hijriPrefix: 'Хиджра:',
+    descMosques: 'Поиск ближайших мечетей на карте OSM с дистанцией',
+    descNames: 'Имя дня, счётчик зикра и тренажёр заучивания',
+    descQada: 'Учёт и калькулятор пропущенных молитв',
+    descSettings: 'Город, мазхаб, метод расчёта, тема и язык',
+    mosquesSearchLabel: 'Поиск мечетей',
+    mosquesTitle: 'Мечети рядом (до 25 км)',
+    btnFind: '🔍 Найти',
+    mosquesStatusInit: 'Нажмите «Найти» для загрузки мечетей вокруг текущих координат.',
+    mosquesListLabel: 'Список мечетей',
+    mosquesListEmpty: 'Список загрузится при поиске…',
+    mosquesSearching: '🔍 Поиск мечетей через Overpass API (25 км)…',
+    mosquesFound: '✅ Найдено мечетей рядом: {n}',
+    mosquesFallbackNotice: '⚠️ Показаны известные ориентиры мечетей (офлайн/заглушка):',
+    routeLink: 'Построить маршрут ↗',
+    youAreHere: 'Вы здесь',
+    nameDayLabelToday: 'Имя сегодняшнего дня',
+    nameDayLabelSelected: 'Выбранное имя',
+    nameNumOf: '№ {n} из 99',
+    dhikrTitle: 'Зикр: повторение имени',
+    dhikrGoal: 'цель — 99 раз',
+    btnDhikrReset: 'Сбросить',
+    quizTitle: 'Режим заучивания',
+    quizSub: 'Угадай перевод по арабскому написанию',
+    quizScoreLabel: 'Счёт:',
+    btnQuizReset: 'Сбросить',
+    allNamesTitle: 'Все 99 имён',
+    allNamesSub: 'Нажми, чтобы открыть в карточке дня',
+    qadaTitle: 'Возмещение пропущенных намазов (каза)',
+    qadaSub: 'Отмечайте возмещённые намазы — счётчик покажет, сколько осталось.',
+    qadaLeftToRepay: 'Осталось возместить: {n}',
+    qadaNoDebt: 'Долгов нет — альхамдулиллях!',
+    qadaCalcTitle: 'Калькулятор каза',
+    qadaCalcSub: 'Посчитайте долг за период, когда намазы не совершались.',
+    qadaFromLabel: 'С даты (начало периода):',
+    qadaToLabel: 'По дату (начало регулярного совершения):',
+    btnQadaCalc: 'Рассчитать',
+    btnQadaAdd: '➕ Добавить к счётчику',
+    qadaGuideTitle: 'Как возмещать',
+    qadaGuideContent: '• Каза совершается так же, как обычный намаз, в любое дозволенное время.<br>• Удобный порядок: возмещать вместе с обязательными — один пропущенный после каждого совершённого.<br>• Желательно идти по дням подряд: Фаджр → Зухр → Аср → Магриб → Иша.',
+    settingsTitle: 'Местоположение и метод расчёта',
     lblTheme: 'Тема оформления:',
+    themeGold: 'Золотая',
+    themeGreen: 'Изумруд',
+    themeMono: 'Монохром',
+    lblLat: 'Широта (latitude):',
+    lblLon: 'Долгота (longitude):',
+    lblMethod: 'Метод расчёта времени:',
+    lblSchool: 'Мазхаб времени Аср:',
+    schoolHanafi: '1: Ханафи (двойная тень) — стандарт РФ/СНГ',
+    schoolShafi: '0: Шафии / стандартный (одинарная тень)',
+    lblSound: 'Звуковой сигнал намаза:',
+    soundAdhan: '🕌 Мелодичный перезвон (Азан)',
+    soundBeep: '🔔 Короткий сигнал',
+    soundOff: '🔇 Без звука',
+    saveSettings: 'Сохранить и обновить расписание',
+    settingsNote: 'Координаты сохраняются локально в памяти браузера. Расчёт времени выполняется через надёжный Aladhan API.',
+    footerText: 'Намаз PWA • Время: Aladhan API • Кааба: 21.4225° N, 39.8262° E • Сверяйте время с местной мечетью',
     lblLang: 'Язык интерфейса:',
     remaining: 'Осталось',
     hours: 'ч',
@@ -1522,7 +1621,6 @@ const I18N = {
     badgeNext: 'следующий',
     panelOn: 'Плашка в шторке: ВКЛ',
     panelOff: 'Плашка в шторке: выключена',
-    lblSound: 'Звуковой сигнал намаза:',
     btnTest: 'Тест',
     notifPrepTitle: 'Подготовка к молитве ⏳',
     notifPrepBody: 'Осталось 10 минут до {p}. Совершите омовение (вуду).',
@@ -1535,7 +1633,26 @@ const I18N = {
       Asr: 'Аср 🌤',
       Maghrib: 'Магриб 🌇',
       Isha: 'Иша 🌙'
-    }
+    },
+    prayersShort: {
+      Fajr: 'Фаджр',
+      Sunrise: 'Восход',
+      Dhuhr: 'Зухр',
+      Asr: 'Аср',
+      Maghrib: 'Магриб',
+      Isha: 'Иша'
+    },
+    qadaDaysCount: 'Дней: <b>{n}</b>',
+    qadaTotalMissed: 'Всего пропущено: <b>{n}</b>',
+    qadaAddedSuccess: '✔ Добавлено к счётчику',
+    offlineTag: 'Офлайн',
+    quizCorrect: '✅ Верно!',
+    quizIncorrect: '❌ Нет.',
+    kmUnit: 'км',
+    inspireAyahLabel: 'Аят',
+    inspireHadithLabel: 'Хадис',
+    inspireOf: 'из',
+    inspireDay: 'день'
   },
   tt: {
     appTitle: 'Намаз',
@@ -1546,14 +1663,19 @@ const I18N = {
     tabCal: 'Календарь',
     tabMore: 'Тагын',
     tabMosques: 'Мәчетләр',
-    tabNames: 'Исемнәр',
+    tabNames: '99 Исем',
     tabQada: 'Каза',
     tabSettings: 'Көйләүләр',
     moreTitle: 'Өстәмә бүлекләр',
     moreSub: 'Файдалы ислам кораллары һәм көйләүләр',
     backToMore: 'Барлык бүлекләр',
     lblCity: 'Шәһәр сайлау:',
+    allCitiesOpt: '— Барлык шәһәрләр —',
     dataExportTitle: 'Мәгълүмат һәм вакытлар',
+    dataExportSub: 'Агымдагы айга намаз вакытларын йөкләү',
+    btnExportCsv: '📥 CSV йөкләү',
+    btnPrintSchedule: '🖨 Бастыру',
+    btnPrintBtn: '🖨 Бастыру',
     nextPrayer: 'Чираттагы намаз',
     locAutoBtn: 'Автоматик билгеләү (GPS)',
     gpsDetecting: '📍 Урнашуны билгеләү…',
@@ -1568,7 +1690,8 @@ const I18N = {
     locSourceIp: 'якынча IP буенча',
     locSourceManual: 'кулдан',
     locSourceDefault: 'гадәттәгечә (Саки)',
-    compassTitle: '🧭 Кыбла компасы (Кәгъбә)',
+    compassTitle: 'Кыбла компасы (Кәгъбә)',
+    compassSub: 'Алтын ук туры Кәгъбәгә юнәлешне күрсәтә. Җайланманы ятма тотыгыз.',
     compassOff: 'Компас сүндерелгән',
     compassDetecting: 'Курсны билгеләү…',
     compassNoSensor: 'Ориентация датчигы бу җайланмада юк',
@@ -1582,19 +1705,110 @@ const I18N = {
     compassTrueNorthNote: 'Төньяк чын (WMM2025 төзәтмәсе: {decl}°)',
     compassBtnTurnOn: '🧭 Компасны кабызу (җайланма датчигы)',
     compassBtnTurnOff: '⏹ Компасны сүндерү',
+    compassTurnHint: 'Җайланманы укка таба борыгыз',
+    qiblaBearingLabel: 'Кыбла юнәлеше:',
+    qiblaHeadingLabel: 'Җайланма курсы:',
+    qiblaDeltaLabel: 'Авышу (дельта):',
+    qiblaDistanceLabel: 'Кәгъбәгә кадәр ара:',
     compassSimLabel: 'Курс симуляциясе (0° - 360°):',
     compassSimHint: 'Датчик булмаса, юнәлешне тикшерү өчен шудыргычны кулланыгыз.',
+    arTitle: 'Өстәлмә чынбарлык (AR-Кыбла)',
     arTurnOn: '📷 Камераны кабызу',
     arTurnOff: '⏹ Камераны сүндерү',
     arAligned: '✅ <b>Кыблада!</b> Сез туп-туры Кәгъбәгә карыйсыз',
     arTurnRight: 'Уңга {n}° борыгыз',
     arTurnLeft: 'Сулга {n}° борыгыз',
+    arSub: 'Кәгъбә юнәлешен чын дөньяда күрү өчен камераны алдыгызга каратыгыз.',
+    arBadgeTurn: 'Укка таба борылыгыз',
     arNotice: '📱 Камера мөмкин түгел. Югарыдагы стандарт компасны кулланыгыз.',
-    prayersToday: 'Бүген намазлар',
+    prayersToday: 'Бүгенге намазлар',
+    statsHint: 'Укылган намазларны билгеләгез. Прогресс хәтердә саклана.',
+    completedOf: 'Үтәлде: {c} / 5',
+    weekLabel: 'Атна:',
     streak: 'Серия',
     days: 'көн',
-    saveSettings: 'Сакларга һәм яңартырга',
+    notifTitle: 'Намаз белдерүләре',
+    notifDesc: '• 10 минут кала — тәһарәт алу турында искәртү.<br>• Намаз вакыты кергәндә — вакыт җитү турында сигнал.',
+    btnNotifOn: '🔔 Белдерүләрне кабызу',
+    btnTest10: 'Сынау: 10 мин кала',
+    btnTest0: 'Сынау: вакыт кергәч',
+    notifStatus: 'Статус: тикшерелә...',
+    inspireTitle: 'Көн хикмәте',
+    inspireAyahBtn: 'Көн аяте',
+    inspireHadithBtn: 'Көн хәдисе',
+    dayOfYear: 'Ел көне: {n}',
+    installPwaTip: '📲 <b>Мобиль кушымта буларак урнаштыру (PWA):</b><br>• <b>Android Chrome:</b> меню ⋮ → «Кушымтаны урнаштыру» / «Баш экранга өстәү»<br>• <b>iPhone Safari:</b> төймә «Уртаклашу» ⬆ → «„Баш“ экранга»<br>• <b>Компьютер:</b> браузер адресы юлында урнаштыру иконкасы ⬇',
+    learnTitle: 'Намаз уку тәртибе: 5 фарыз намаз һәм тәһарәт',
+    learnSub: 'Фарыз намазлар тәртибе, рәкәгатьләр схемасы, кыйрәт кагыйдәләре, гарәпчә текстлар һәм транскрипция.',
+    lessonTabWudu: '💧 Тәһарәт',
+    lessonTabFajr: '🌅 Иртәнге (2)',
+    lessonTabDhuhr: '☀️ Өйлә (4)',
+    lessonTabAsr: '🌤 Икенде (4)',
+    lessonTabMaghrib: '🌇 Ахшам (3)',
+    lessonTabIsha: '🌙 Ястү (4)',
+    lessonTabTexts: '🕋 Текстлар һәм сүрәләр',
+    calTodayBtn: 'Бүген',
+    calSelectedDay: 'Сайланган көн',
+    ramadanFastDay: '🌙 Рамазан уразасы көне',
+    regularDay: 'Гадәти көн',
+    hijriPrefix: 'Һиҗри:',
+    descMosques: 'OSM картасында якындагы мәчетләрне һәм араны табу',
+    descNames: 'Көн исеме, зикер исәпләгеч һәм өйрәнү тренажеры',
+    descQada: 'Каза намазларын исәпләү һәм калькулятор',
+    descSettings: 'Шәһәр, мәзһәб, исәпләү ысулы, тема һәм тел',
+    mosquesSearchLabel: 'Мәчетләрне эзләү',
+    mosquesTitle: 'Якын тирәдәге мәчетләр (25 км кадәр)',
+    btnFind: '🔍 Табу',
+    mosquesStatusInit: 'Агымдагы координатлар тирәсендә мәчетләрне табу өчен «Табу»га басыгыз.',
+    mosquesListLabel: 'Мәчетләр исемлеге',
+    mosquesListEmpty: 'Исемлек эзләгәндә йөкләнер…',
+    mosquesSearching: '🔍 Overpass API аша мәчетләрне эзләү (25 км)…',
+    mosquesFound: '✅ Якында табылган мәчетләр: {n}',
+    mosquesFallbackNotice: '⚠️ Танылган мәчетләр күрсәтелде (офлайн):',
+    routeLink: 'Маршрут сызу ↗',
+    youAreHere: 'Сез монда',
+    nameDayLabelToday: 'Бүгенге көн исеме',
+    nameDayLabelSelected: 'Сайланган исем',
+    nameNumOf: '99 дан № {n}',
+    dhikrTitle: 'Зикер: исемне кабатлау',
+    dhikrGoal: 'максат — 99 тапкыр',
+    btnDhikrReset: 'Яңарту',
+    quizTitle: 'Өйрәнү режимы',
+    quizSub: 'Гарәпчә язылышы буенча тәрҗемәне тап',
+    quizScoreLabel: 'Исәп:',
+    btnQuizReset: 'Яңарту',
+    allNamesTitle: 'Барлык 99 исем',
+    allNamesSub: 'Көн карточкасында ачу өчен басыгыз',
+    qadaTitle: 'Каза намазларын үтәү',
+    qadaSub: 'Үтәлгән каза намазларын билгеләгез — исәпләгеч калганын күрсәтер.',
+    qadaLeftToRepay: 'Үтисе калды: {n}',
+    qadaNoDebt: 'Каза бурычлары юк — әлхәмдүлилләһ!',
+    qadaCalcTitle: 'Каза калькуляторы',
+    qadaCalcSub: 'Намаз укылмаган вакыт өчен бурычны исәпләгез.',
+    qadaFromLabel: 'Башлангыч дата:',
+    qadaToLabel: 'Ахыргы дата:',
+    btnQadaCalc: 'Исәпләргә',
+    btnQadaAdd: '➕ Исәпләгечкә өстәү',
+    qadaGuideTitle: 'Казаны ничек үтәргә',
+    qadaGuideContent: '• Каза гадәти намаз кебек үк, теләсә кайсы рөхсәт ителгән вакытта укыла.<br>• Уңайлы тәртип: һәр фарыз намазыннан соң бер каза намазын уку.<br>• Көннәр буенча рәтләп бару яхшырак: Иртәнге → Өйлә → Икенде → Ахшам → Ястү.',
+    settingsTitle: 'Урнашу һәм исәпләү ысулы',
     lblTheme: 'Бизәлеш темасы:',
+    themeGold: 'Алтын',
+    themeGreen: 'Зөбәрҗәт',
+    themeMono: 'Монохром',
+    lblLat: 'Киңлек (latitude):',
+    lblLon: 'Озынлык (longitude):',
+    lblMethod: 'Вакытны исәпләү кагыйдәсе:',
+    lblSchool: 'Икенде вакыты мәзһәбе:',
+    schoolHanafi: '1: Хәнәфи (икеләтә күләгә) — РФ/БДБ стандарты',
+    schoolShafi: '0: Шәфигый / стандарт (берләтә күләгә)',
+    lblSound: 'Намаз вакытында тавыш:',
+    soundAdhan: '🕌 Азан көе',
+    soundBeep: '🔔 Кыска сигнал',
+    soundOff: '🔇 Тавышсыз',
+    saveSettings: 'Сакларга һәм яңартырга',
+    settingsNote: 'Координатлар браузер хәтерендә саклана. Вакыт ышанычлы Aladhan API аша исәпләнә.',
+    footerText: 'Намаз PWA • Вакыт: Aladhan API • Кәгъбә: 21.4225° N, 39.8262° E • Вакытны мәчет белән чагыштырыгыз',
     lblLang: 'Интерфейс теле:',
     remaining: 'Калды',
     hours: 'сәг',
@@ -1604,7 +1818,6 @@ const I18N = {
     badgeNext: 'чираттагы',
     panelOn: 'Шторда плашка: кабынган',
     panelOff: 'Шторда плашка: сүнгән',
-    lblSound: 'Намаз вакытында тавыш:',
     btnTest: 'Сынау',
     notifPrepTitle: 'Намазга әзерлек ⏳',
     notifPrepBody: '{p} намазына 10 минут калды. Тәһарәт алыгыз.',
@@ -1617,7 +1830,26 @@ const I18N = {
       Asr: 'Икенде 🌤',
       Maghrib: 'Ахшам 🌇',
       Isha: 'Ястү 🌙'
-    }
+    },
+    prayersShort: {
+      Fajr: 'Иртәнге',
+      Sunrise: 'Кояш',
+      Dhuhr: 'Өйлә',
+      Asr: 'Икенде',
+      Maghrib: 'Ахшам',
+      Isha: 'Ястү'
+    },
+    qadaDaysCount: 'Көннәр: <b>{n}</b>',
+    qadaTotalMissed: 'Барлыгы калдырылган: <b>{n}</b>',
+    qadaAddedSuccess: '✔ Исәпләгечкә өстәлде',
+    offlineTag: 'Офлайн',
+    quizCorrect: '✅ Дөрес!',
+    quizIncorrect: '❌ Юк.',
+    kmUnit: 'км',
+    inspireAyahLabel: 'Аять',
+    inspireHadithLabel: 'Хәдис',
+    inspireOf: '/',
+    inspireDay: 'көн'
   },
   en: {
     appTitle: 'Namaz',
@@ -1628,14 +1860,19 @@ const I18N = {
     tabCal: 'Calendar',
     tabMore: 'More',
     tabMosques: 'Mosques',
-    tabNames: 'Names',
+    tabNames: '99 Names',
     tabQada: 'Qada',
     tabSettings: 'Settings',
     moreTitle: 'More Services',
     moreSub: 'Islamic tools and application settings',
     backToMore: 'All Sections',
     lblCity: 'Select city:',
+    allCitiesOpt: '— All cities —',
     dataExportTitle: 'Data & Schedule',
+    dataExportSub: 'Export prayer timetable for the current month',
+    btnExportCsv: '📥 Download CSV',
+    btnPrintSchedule: '🖨 Print Schedule',
+    btnPrintBtn: '🖨 Print',
     nextPrayer: 'Next Prayer',
     locAutoBtn: 'Auto-detect location (GPS)',
     gpsDetecting: '📍 Detecting location…',
@@ -1650,7 +1887,8 @@ const I18N = {
     locSourceIp: 'estimated via IP',
     locSourceManual: 'manual',
     locSourceDefault: 'default (Saki)',
-    compassTitle: '🧭 Qibla Compass (Kaaba)',
+    compassTitle: 'Qibla Compass (Kaaba)',
+    compassSub: 'The golden arrow points directly toward the Kaaba. Keep your device flat.',
     compassOff: 'Compass is off',
     compassDetecting: 'Determining heading…',
     compassNoSensor: 'Orientation sensor not available on this device',
@@ -1664,19 +1902,110 @@ const I18N = {
     compassTrueNorthNote: 'True North (WMM2025 declination: {decl}°)',
     compassBtnTurnOn: '🧭 Turn on compass (device sensor)',
     compassBtnTurnOff: '⏹ Turn off compass',
+    compassTurnHint: 'Turn device towards the arrow',
+    qiblaBearingLabel: 'Qibla Bearing:',
+    qiblaHeadingLabel: 'Device Heading:',
+    qiblaDeltaLabel: 'Offset (Delta):',
+    qiblaDistanceLabel: 'Distance to Kaaba:',
     compassSimLabel: 'Heading simulation (0° - 360°):',
     compassSimHint: 'If orientation sensor is unavailable on computer, use the slider to check direction.',
+    arTitle: 'Augmented Reality (AR Qibla)',
     arTurnOn: '📷 Start camera',
     arTurnOff: '⏹ Stop camera',
     arAligned: '✅ <b>On Qibla!</b> You are facing the Kaaba',
     arTurnRight: 'Turn right by {n}°',
     arTurnLeft: 'Turn left by {n}°',
+    arSub: 'Point your smartphone camera ahead to see the Kaaba direction in the real world.',
+    arBadgeTurn: 'Turn towards the arrow',
     arNotice: '📱 Camera not available. Standard compass with orientation sensor is available above.',
     prayersToday: 'Today\'s Prayers',
+    statsHint: 'Check off completed prayers. Progress is saved locally.',
+    completedOf: 'Completed: {c} of 5',
+    weekLabel: 'Week:',
     streak: 'Streak',
     days: 'days',
-    saveSettings: 'Save and update schedule',
+    notifTitle: 'Prayer Notifications',
+    notifDesc: '• 10 minutes before — reminder to perform wudu.<br>• At prayer time — alert for the prayer entrance.',
+    btnNotifOn: '🔔 Enable Notifications',
+    btnTest10: 'Test: 10m before',
+    btnTest0: 'Test: prayer time',
+    notifStatus: 'Status: checking...',
+    inspireTitle: 'Daily Inspiration',
+    inspireAyahBtn: 'Ayah of Day',
+    inspireHadithBtn: 'Hadith of Day',
+    dayOfYear: 'Day of year: {n}',
+    installPwaTip: '📲 <b>Install as Mobile App (PWA):</b><br>• <b>Android Chrome:</b> menu ⋮ → "Install app" / "Add to Home screen"<br>• <b>iPhone Safari:</b> "Share" ⬆ → "Add to Home Screen"<br>• <b>Desktop:</b> install icon ⬇ in address bar',
+    learnTitle: 'Prayer Guide: 5 daily prayers and wudu',
+    learnSub: 'Order of obligatory (fard) prayers, rak\'ah structure, recitation rules, Arabic texts and transliteration.',
+    lessonTabWudu: '💧 Wudu',
+    lessonTabFajr: '🌅 Fajr (2)',
+    lessonTabDhuhr: '☀️ Dhuhr (4)',
+    lessonTabAsr: '🌤 Asr (4)',
+    lessonTabMaghrib: '🌇 Maghrib (3)',
+    lessonTabIsha: '🌙 Isha (4)',
+    lessonTabTexts: '🕋 Texts & Surahs',
+    calTodayBtn: 'Today',
+    calSelectedDay: 'Selected Day',
+    ramadanFastDay: '🌙 Ramadan Fasting Day',
+    regularDay: 'Regular Day',
+    hijriPrefix: 'Hijri:',
+    descMosques: 'Find nearby mosques on OSM map with distances',
+    descNames: 'Name of the day, dhikr counter and learning quiz',
+    descQada: 'Tracker and calculator for missed prayers',
+    descSettings: 'City, school, calculation method, theme and language',
+    mosquesSearchLabel: 'Search Mosques',
+    mosquesTitle: 'Nearby Mosques (up to 25 km)',
+    btnFind: '🔍 Find',
+    mosquesStatusInit: 'Tap "Find" to search for mosques around current coordinates.',
+    mosquesListLabel: 'Mosque List',
+    mosquesListEmpty: 'List will appear after search…',
+    mosquesSearching: '🔍 Searching mosques via Overpass API (25 km)…',
+    mosquesFound: '✅ Found nearby mosques: {n}',
+    mosquesFallbackNotice: '⚠️ Showing known mosque landmarks (offline):',
+    routeLink: 'Get Directions ↗',
+    youAreHere: 'You are here',
+    nameDayLabelToday: 'Name of the Day',
+    nameDayLabelSelected: 'Selected Name',
+    nameNumOf: '#{n} of 99',
+    dhikrTitle: 'Dhikr: Reciting Name',
+    dhikrGoal: 'goal: 99 times',
+    btnDhikrReset: 'Reset',
+    quizTitle: 'Learning Mode',
+    quizSub: 'Guess the meaning from Arabic script',
+    quizScoreLabel: 'Score:',
+    btnQuizReset: 'Reset',
+    allNamesTitle: 'All 99 Names',
+    allNamesSub: 'Tap to view in day card',
+    qadaTitle: 'Missed Prayers (Qada)',
+    qadaSub: 'Track fulfilled prayers — the counter shows remaining debts.',
+    qadaLeftToRepay: 'Remaining to repay: {n}',
+    qadaNoDebt: 'No prayer debts — Alhamdulillah!',
+    qadaCalcTitle: 'Qada Calculator',
+    qadaCalcSub: 'Calculate prayer debt for missed period.',
+    qadaFromLabel: 'From date (start):',
+    qadaToLabel: 'To date (end):',
+    btnQadaCalc: 'Calculate',
+    btnQadaAdd: '➕ Add to Counter',
+    qadaGuideTitle: 'How to Repay',
+    qadaGuideContent: '• Qada is performed like regular prayer at any permissible time.<br>• Convenient order: pray one missed prayer after each obligatory prayer.<br>• Recommended sequence: Fajr → Dhuhr → Asr → Maghrib → Isha.',
+    settingsTitle: 'Location & Calculation Method',
     lblTheme: 'Theme:',
+    themeGold: 'Gold',
+    themeGreen: 'Emerald',
+    themeMono: 'Monochrome',
+    lblLat: 'Latitude:',
+    lblLon: 'Longitude:',
+    lblMethod: 'Calculation method:',
+    lblSchool: 'Asr school (Juristic):',
+    schoolHanafi: '1: Hanafi (shadow x2) — standard in CIS',
+    schoolShafi: '0: Shafi / standard (shadow x1)',
+    lblSound: 'Prayer sound alert:',
+    soundAdhan: '🕌 Melodic Adhan chime',
+    soundBeep: '🔔 Short beep',
+    soundOff: '🔇 Mute (Off)',
+    saveSettings: 'Save and update schedule',
+    settingsNote: 'Coordinates are saved locally. Time calculations use the reliable Aladhan API.',
+    footerText: 'Namaz PWA • Time: Aladhan API • Kaaba: 21.4225° N, 39.8262° E • Check times with your local mosque',
     lblLang: 'Language:',
     remaining: 'Remaining',
     hours: 'h',
@@ -1686,7 +2015,6 @@ const I18N = {
     badgeNext: 'next',
     panelOn: 'Panel in shade: ON',
     panelOff: 'Panel in shade: OFF',
-    lblSound: 'Prayer sound alert:',
     btnTest: 'Test',
     notifPrepTitle: 'Prayer reminder ⏳',
     notifPrepBody: '10 minutes left until {p}. Make wudu.',
@@ -1699,20 +2027,61 @@ const I18N = {
       Asr: 'Asr 🌤',
       Maghrib: 'Maghrib 🌇',
       Isha: 'Isha 🌙'
-    }
+    },
+    prayersShort: {
+      Fajr: 'Fajr',
+      Sunrise: 'Sunrise',
+      Dhuhr: 'Dhuhr',
+      Asr: 'Asr',
+      Maghrib: 'Maghrib',
+      Isha: 'Isha'
+    },
+    qadaDaysCount: 'Days: <b>{n}</b>',
+    qadaTotalMissed: 'Total missed: <b>{n}</b>',
+    qadaAddedSuccess: '✔ Added to counter',
+    offlineTag: 'Offline',
+    quizCorrect: '✅ Correct!',
+    quizIncorrect: '❌ Incorrect.',
+    kmUnit: 'km',
+    inspireAyahLabel: 'Ayah',
+    inspireHadithLabel: 'Hadith',
+    inspireOf: 'of',
+    inspireDay: 'day'
   }
 };
 
-let currentLang = store.get('app_lang') || 'ru';
+let currentLang = store.get('app_lang') || store.get('lang') || 'ru';
 
 function getPrayerName(k, lang = currentLang) {
   return (I18N[lang] && I18N[lang].prayers && I18N[lang].prayers[k]) || PRAYERS_RU[k] || k;
+}
+
+function getPrayerShortName(k, lang = currentLang) {
+  return (I18N[lang] && I18N[lang].prayersShort && I18N[lang].prayersShort[k]) || (getPrayerName(k, lang).split(' ')[0]) || k;
+}
+
+function renderLessonTabs() {
+  const dict = I18N[currentLang] || I18N.ru;
+  const tabDefs = {
+    wudu: dict.lessonTabWudu || '💧 Вуду',
+    fajr: dict.lessonTabFajr || '🌅 Фаджр (2)',
+    dhuhr: dict.lessonTabDhuhr || '☀️ Зухр (4)',
+    asr: dict.lessonTabAsr || '🌤 Аср (4)',
+    maghrib: dict.lessonTabMaghrib || '🌇 Магриб (3)',
+    isha: dict.lessonTabIsha || '🌙 Иша (4)',
+    texts: dict.lessonTabTexts || '🕋 Тексты и суры'
+  };
+  document.querySelectorAll('#lessonTabs button').forEach(b => {
+    const key = b.dataset.l;
+    if (tabDefs[key]) b.textContent = tabDefs[key];
+  });
 }
 
 function setAppLang(lang) {
   if (!I18N[lang]) lang = 'ru';
   currentLang = lang;
   store.set('app_lang', lang);
+  store.set('lang', lang);
 
   ['Ru', 'Tt', 'En'].forEach(l => {
     const b1 = document.getElementById('btnLang' + l);
@@ -1724,15 +2093,52 @@ function setAppLang(lang) {
   const dict = I18N[lang];
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const k = el.getAttribute('data-i18n');
-    if (dict[k]) el.textContent = dict[k];
+    if (dict && dict[k] !== undefined) {
+      if (typeof dict[k] === 'string' && dict[k].includes('<')) {
+        el.innerHTML = dict[k];
+      } else {
+        el.textContent = dict[k];
+      }
+    }
   });
+
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const k = el.getAttribute('data-i18n-title');
+    if (dict && dict[k] !== undefined) el.setAttribute('title', dict[k]);
+  });
+
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const k = el.getAttribute('data-i18n-placeholder');
+    if (dict && dict[k] !== undefined) el.setAttribute('placeholder', dict[k]);
+  });
+
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    const k = el.getAttribute('data-i18n-aria');
+    if (dict && dict[k] !== undefined) el.setAttribute('aria-label', dict[k]);
+  });
+
+  const hijriEl = document.getElementById('hijriTag');
+  if (hijriEl) {
+    const now = new Date();
+    const hDate = (typeof getHijriDate === 'function') ? getHijriDate(now) : { day: 1, month: 1, year: 1448 };
+    const loc = (typeof CAL_LOCALES !== 'undefined' && (CAL_LOCALES[lang] || CAL_LOCALES.ru)) || null;
+    const hMonth = (loc && loc.hijriMonths && loc.hijriMonths[hDate.month]) ? loc.hijriMonths[hDate.month] : hDate.month;
+    const hSuffix = (loc && loc.yearSuffix) ? loc.yearSuffix : 'AH';
+    hijriEl.textContent = `${dict.hijriPrefix || 'Хиджра:'} ${hDate.day} ${hMonth} ${hDate.year} ${hSuffix}`;
+  }
 
   if (typeof updateLocInfoDisplay === 'function') updateLocInfoDisplay();
   if (typeof renderCompass === 'function') renderCompass();
   if (nextPrayer) calcNext();
   if (timings) renderPrayerList();
   if (typeof renderPrayerStats === 'function') renderPrayerStats();
+  if (typeof renderLessonTabs === 'function') renderLessonTabs();
+  if (typeof renderName === 'function') renderName();
+  if (typeof renderQuizScore === 'function') renderQuizScore();
+  if (typeof renderQada === 'function') renderQada();
+  if (typeof renderQadaPicks === 'function') renderQadaPicks();
   if (typeof renderPanelBtn === 'function') renderPanelBtn();
+  if (typeof renderDailyInspiration === 'function') renderDailyInspiration();
   if (typeof renderHijriCalendar === 'function') {
     try {
       renderHijriCalendar(calYear, calMonth);
@@ -1770,13 +2176,14 @@ async function loadTimings() {
   const hMonth = (loc && loc.hijriMonths && loc.hijriMonths[hDate.month]) ? loc.hijriMonths[hDate.month] : hDate.month;
   const hSuffix = (loc && loc.yearSuffix) ? loc.yearSuffix : 'AH';
 
+  const dict = I18N[currentLang] || I18N.ru;
   const gregEl = document.getElementById('gregDate');
   const hijriEl = document.getElementById('hijriTag');
   if (gregEl && (!gregEl.textContent || gregEl.textContent.includes('Загрузка'))) {
     gregEl.textContent = dStr;
   }
   if (hijriEl && (!hijriEl.textContent || hijriEl.textContent.includes('...'))) {
-    hijriEl.textContent = `Хиджра: ${hDate.day} ${hMonth} ${hDate.year} ${hSuffix}`;
+    hijriEl.textContent = `${dict.hijriPrefix || 'Хиджра:'} ${hDate.day} ${hMonth} ${hDate.year} ${hSuffix}`;
   }
 
   // Мгновенный расчёт расписания через офлайн-модуль, если данные ещё не загружены
@@ -1810,7 +2217,7 @@ async function loadTimings() {
 
     // Отображение дат
     if (gregEl) document.getElementById('gregDate').textContent = `${timingsDate.gregorian.date} (${timingsDate.gregorian.weekday.en})`;
-    if (hijriEl) document.getElementById('hijriTag').textContent = `Хиджра: ${timingsDate.hijri.day} ${timingsDate.hijri.month.en} ${timingsDate.hijri.year} AH`;
+    if (hijriEl) document.getElementById('hijriTag').textContent = `${dict.hijriPrefix || 'Хиджра:'} ${timingsDate.hijri.day} ${hMonth} ${timingsDate.hijri.year} ${hSuffix}`;
 
     calcNext();
     renderPrayerList();
@@ -1832,8 +2239,8 @@ async function loadTimings() {
           Isha: off.Isha
         };
         const hDateOff = (typeof getHijriDate === 'function') ? getHijriDate(new Date()) : { day: 1, month: 1, year: 1448 };
-        if (gregEl) gregEl.textContent = `${todayStr()} (Офлайн)`;
-        if (hijriEl) hijriEl.textContent = `Хиджра: ${hDateOff.day}.${hDateOff.month}.${hDateOff.year} AH`;
+        if (gregEl) gregEl.textContent = `${todayStr()} (${dict.offlineTag || 'Офлайн'})`;
+        if (hijriEl) hijriEl.textContent = `${dict.hijriPrefix || 'Хиджра:'} ${hDateOff.day} ${hMonth} ${hDateOff.year} ${hSuffix}`;
         calcNext();
         renderPrayerList();
         updateQiblaInfo();
@@ -2135,10 +2542,20 @@ function renderPanelBtn() {
 })();
 
 document.getElementById('btnTest10').onclick = () => {
-  triggerNotification('Подготовка к молитве (тест) ⏳', 'Осталось 10 минут до молитвы. Совершите вуду.');
+  const dict = I18N[currentLang] || I18N.ru;
+  const pName = (nextPrayer && getPrayerName(nextPrayer.key)) || getPrayerName('Fajr');
+  triggerNotification(
+    dict.notifPrepTitle || 'Подготовка к молитве ⏳',
+    (dict.notifPrepBody || 'Осталось 10 минут до {p}. Совершите омовение (вуду).').replace('{p}', pName)
+  );
 };
 document.getElementById('btnTest0').onclick = () => {
-  triggerNotification('Время намаза (тест) 🕌', 'Наступило время намаза.');
+  const dict = I18N[currentLang] || I18N.ru;
+  const pName = (nextPrayer && getPrayerName(nextPrayer.key)) || getPrayerName('Fajr');
+  triggerNotification(
+    dict.notifNowTitle || 'Время намаза 🕌',
+    (dict.notifNowBody || 'Наступило время молитвы: {p}').replace('{p}', pName)
+  );
 };
 
 // ==========================================
@@ -3409,11 +3826,14 @@ let nameIdx = dayIdx();
 
 function renderName() {
   const [ar, tr, ru] = ALLAH_NAMES[nameIdx];
+  const dict = I18N[currentLang] || I18N.ru;
   document.getElementById('nameAr').textContent = ar;
   document.getElementById('nameTr').textContent = tr;
   document.getElementById('nameRu').textContent = ru;
-  document.getElementById('nameNum').textContent = `№ ${nameIdx + 1} из 99`;
-  document.getElementById('nameDayLabel').textContent = (nameIdx === dayIdx()) ? 'Имя сегодняшнего дня' : 'Выбранное имя';
+  document.getElementById('nameNum').textContent = (dict.nameNumOf || '№ {n} из 99').replace('{n}', nameIdx + 1);
+  document.getElementById('nameDayLabel').textContent = (nameIdx === dayIdx())
+    ? (dict.nameDayLabelToday || 'Имя сегодняшнего дня')
+    : (dict.nameDayLabelSelected || 'Выбранное имя');
 }
 document.getElementById('btnNamePrev').onclick = () => { nameIdx = (nameIdx + ALLAH_NAMES.length - 1) % ALLAH_NAMES.length; renderName(); };
 document.getElementById('btnNameNext').onclick = () => { nameIdx = (nameIdx + 1) % ALLAH_NAMES.length; renderName(); };
@@ -3471,7 +3891,8 @@ function quizScore() {
 function quizScoreSave(s) { store.set('asma_score', JSON.stringify(s)); }
 function renderQuizScore() {
   const s = quizScore();
-  document.getElementById('quizScore').textContent = `Счёт: ${s.c} / ${s.t}`;
+  const dict = I18N[currentLang] || I18N.ru;
+  document.getElementById('quizScore').textContent = `${dict.quizScoreLabel || 'Счёт:'} ${s.c} / ${s.t}`;
 }
 
 function shuffle(arr) {
@@ -3512,9 +3933,10 @@ function startQuiz(idx) {
       else { btn.style.background = '#7f1d1d'; btn.style.color = '#fff'; }
       quizScoreSave(s);
       renderQuizScore();
+      const dict = I18N[currentLang] || I18N.ru;
       document.getElementById('quizResult').innerHTML = correct
-        ? `✅ Верно! <b>${tr}</b>`
-        : `❌ Нет. <b>${tr}</b> — ${ru}`;
+        ? `${dict.quizCorrect || '✅ Верно!'} <b>${tr}</b>`
+        : `${dict.quizIncorrect || '❌ Нет.'} <b>${tr}</b> — ${ru}`;
       // Следующий вопрос через 1.5 сек
       setTimeout(() => startQuiz((quizIdx + 1) % ALLAH_NAMES.length), 1500);
     };
@@ -3577,21 +3999,61 @@ function getHijriDate(date) {
   }
 }
 
-function getIslamicEvent(hd, hm) {
+const ISLAMIC_EVENTS = {
+  ru: {
+    qadr: 'Ляйлятуль-кадр (Ночь Могущества) ⭐',
+    ramadan: 'Священный месяц Рамадан (Пост) 🌙',
+    eidFitr: 'Ураза-байрам (Ид аль-Фитр) 🎉',
+    arafa: 'День Арафа 🕋',
+    eidAdha: 'Курбан-байрам (Ид аль-Адха) 🐑',
+    newYear: 'Мусульманский Новый Год 🌙',
+    ashura: 'День Ашура 🤲',
+    mawlid: 'Мавлид ан-Наби (Рождение Пророка ﷺ) 🌸',
+    isra: 'Исра и Мирадж 🌌',
+    baraat: 'Ночь Бараат 🕊️'
+  },
+  tt: {
+    qadr: 'Кадер кичәсе ⭐',
+    ramadan: 'Изге Рамазан ае (Ураза) 🌙',
+    eidFitr: 'Ураза гаете (Гайдел-фитыр) 🎉',
+    arafa: 'Гарәфә көне 🕋',
+    eidAdha: 'Корбан гаете (Гайдел-әдха) 🐑',
+    newYear: 'Мөселманнарның Яңа елы 🌙',
+    ashura: 'Гайшүрә көне 🤲',
+    mawlid: 'Мәүлид бәйрәме 🌸',
+    isra: 'Исра вә Мигъраҗ 🌌',
+    baraat: 'Бәраәт кичәсе 🕊️'
+  },
+  en: {
+    qadr: 'Laylat al-Qadr (Night of Power) ⭐',
+    ramadan: 'Holy Month of Ramadan (Fasting) 🌙',
+    eidFitr: 'Eid al-Fitr 🎉',
+    arafa: 'Day of Arafah 🕋',
+    eidAdha: 'Eid al-Adha 🐑',
+    newYear: 'Islamic New Year 🌙',
+    ashura: 'Day of Ashura 🤲',
+    mawlid: 'Mawlid an-Nabi (Prophet\'s Birthday) 🌸',
+    isra: 'Isra and Mi\'raj 🌌',
+    baraat: 'Mid-Sha\'ban (Laylat al-Bara\'at) 🕊️'
+  }
+};
+
+function getIslamicEvent(hd, hm, lang = currentLang) {
+  const evs = ISLAMIC_EVENTS[lang] || ISLAMIC_EVENTS.ru;
   if (hm === 9) {
-    if (hd === 27) return 'Ляйлятуль-кадр (Ночь Могущества) ⭐';
-    return 'Священный месяц Рамадан (Пост) 🌙';
+    if (hd === 27) return evs.qadr;
+    return evs.ramadan;
   }
-  if (hm === 10 && hd === 1) return 'Ураза-байрам (Ид аль-Фитр) 🎉';
+  if (hm === 10 && hd === 1) return evs.eidFitr;
   if (hm === 12) {
-    if (hd === 9) return 'День Арафа 🕋';
-    if (hd >= 10 && hd <= 13) return 'Курбан-байрам (Ид аль-Адха) 🐑';
+    if (hd === 9) return evs.arafa;
+    if (hd >= 10 && hd <= 13) return evs.eidAdha;
   }
-  if (hm === 1 && hd === 1) return 'Мусульманский Новый Год 🌙';
-  if (hm === 1 && hd === 10) return 'День Ашура 🤲';
-  if (hm === 3 && hd === 12) return 'Мавлид ан-Наби (Рождение Пророка ﷺ) 🌸';
-  if (hm === 7 && hd === 27) return 'Исра и Мирадж 🌌';
-  if (hm === 8 && hd === 15) return 'Ночь Бараат 🕊️';
+  if (hm === 1 && hd === 1) return evs.newYear;
+  if (hm === 1 && hd === 10) return evs.ashura;
+  if (hm === 3 && hd === 12) return evs.mawlid;
+  if (hm === 7 && hd === 27) return evs.isra;
+  if (hm === 8 && hd === 15) return evs.baraat;
   return null;
 }
 
@@ -3647,21 +4109,22 @@ function renderHijriCalendar(year, month) {
     let cls = 'cal-day';
     if (isCurrentMonth && today.getDate() === day) cls += ' today';
     if (h.month === 9) cls += ' ramadan';
-    if (ev && (ev.includes('байрам') || ev.includes('Ляйлятуль-кадр') || ev.includes('Арафа'))) cls += ' holiday';
+    if ((h.month === 9 && h.day === 27) || (h.month === 10 && h.day === 1) || (h.month === 12 && h.day >= 9 && h.day <= 13)) cls += ' holiday';
     el.className = cls;
 
     let badge = '';
     if (h.month === 9 && h.day === 27) badge = '<span class="cal-badge">⭐</span>';
     else if (h.month === 9) badge = '<span class="cal-badge">🌙</span>';
-    else if (ev && ev.includes('Ураза-байрам')) badge = '<span class="cal-badge">🎉</span>';
-    else if (ev && ev.includes('Курбан-байрам')) badge = '<span class="cal-badge">🐑</span>';
+    else if (h.month === 10 && h.day === 1) badge = '<span class="cal-badge">🎉</span>';
+    else if (h.month === 12 && h.day >= 10 && h.day <= 13) badge = '<span class="cal-badge">🐑</span>';
 
     el.innerHTML = `<div>${day}</div><div class="cal-hijri-num">${h.day}</div>${badge}`;
     el.onclick = () => {
-      document.getElementById('calDetailGreg').textContent = `${day} ${GREG_MONTHS_RU[month]} ${year}`;
-      document.getElementById('calDetailHijri').textContent = `${h.day} ${HIJRI_MONTHS_RU[h.month]} ${h.year} г.х.`;
+      const d = I18N[currentLang] || I18N.ru;
+      document.getElementById('calDetailGreg').textContent = `${day} ${loc.gregMonths[month]} ${year}`;
+      document.getElementById('calDetailHijri').textContent = `${h.day} ${loc.hijriMonths[h.month]} ${h.year} ${loc.yearSuffix}`;
       const evEl = document.getElementById('calDetailEvent');
-      evEl.textContent = ev ? `✨ ${ev}` : (h.month === 9 ? '🌙 День поста Рамадана' : 'Обычный день');
+      evEl.textContent = ev ? `✨ ${ev}` : (h.month === 9 ? (d.ramadanFastDay || '🌙 День поста Рамадана') : (d.regularDay || 'Обычный день'));
     };
     grid.appendChild(el);
   }
@@ -3670,9 +4133,10 @@ function renderHijriCalendar(year, month) {
   const initDate = new Date(year, month, selectDay);
   const initH = getHijriDate(initDate);
   const initEv = getIslamicEvent(initH.day, initH.month);
-  document.getElementById('calDetailGreg').textContent = `${selectDay} ${GREG_MONTHS_RU[month]} ${year}`;
-  document.getElementById('calDetailHijri').textContent = `${initH.day} ${HIJRI_MONTHS_RU[initH.month]} ${initH.year} г.х.`;
-  document.getElementById('calDetailEvent').textContent = initEv ? `✨ ${initEv}` : (initH.month === 9 ? '🌙 День поста Рамадана' : 'Обычный день');
+  const d = I18N[currentLang] || I18N.ru;
+  document.getElementById('calDetailGreg').textContent = `${selectDay} ${loc.gregMonths[month]} ${year}`;
+  document.getElementById('calDetailHijri').textContent = `${initH.day} ${loc.hijriMonths[initH.month]} ${initH.year} ${loc.yearSuffix}`;
+  document.getElementById('calDetailEvent').textContent = initEv ? `✨ ${initEv}` : (initH.month === 9 ? (d.ramadanFastDay || '🌙 День поста Рамадана') : (d.regularDay || 'Обычный день'));
 }
 
 document.getElementById('btnCalPrev').onclick = () => {
@@ -3749,9 +4213,10 @@ function initMosquesMap(centerLat, centerLon) {
 }
 
 async function searchNearbyMosques() {
+  const dict = I18N[currentLang] || I18N.ru;
   const statusEl = document.getElementById('mosquesStatus');
   const listEl = document.getElementById('mosquesList');
-  statusEl.textContent = '🔍 Поиск мечетей через Overpass API (25 км)…';
+  statusEl.textContent = dict.mosquesSearching || '🔍 Поиск мечетей через Overpass API (25 км)…';
 
   const userLat = S.lat;
   const userLon = S.lon;
@@ -3778,10 +4243,10 @@ async function searchNearbyMosques() {
 
   // Fallback if 0 found or offline
   if (mosques.length === 0) {
-    statusEl.innerHTML = '⚠️ Показаны известные ориентиры мечетей (офлайн/заглушка):';
+    statusEl.innerHTML = dict.mosquesFallbackNotice || '⚠️ Показаны известные ориентиры мечетей (офлайн/заглушка):';
     mosques = FALLBACK_MOSQUES;
   } else {
-    statusEl.textContent = `✅ Найдено мечетей рядом: ${mosques.length}`;
+    statusEl.textContent = (dict.mosquesFound || '✅ Найдено мечетей рядом: {n}').replace('{n}', mosques.length);
   }
 
   // Calculate distance & sort
@@ -3796,12 +4261,12 @@ async function searchNearbyMosques() {
     try {
       L.circleMarker([userLat, userLon], { radius: 8, color: '#d4af37', fillColor: '#22c55e', fillOpacity: 0.9 })
         .addTo(mosquesLayerGroup)
-        .bindPopup('<b>Вы здесь</b>');
+        .bindPopup(`<b>${dict.youAreHere || 'Вы здесь'}</b>`);
 
       mosques.slice(0, 15).forEach(m => {
         L.marker([m.lat, m.lon])
           .addTo(mosquesLayerGroup)
-          .bindPopup(`<b>${m.name}</b><br>${m.dist.toFixed(1)} км<br><a href="https://maps.google.com/?q=${m.lat},${m.lon}" target="_blank" rel="noopener">Маршрут</a>`);
+          .bindPopup(`<b>${m.name}</b><br>${m.dist.toFixed(1)} ${dict.kmUnit || 'км'}<br><a href="https://maps.google.com/?q=${m.lat},${m.lon}" target="_blank" rel="noopener">${dict.routeLink || 'Маршрут'}</a>`);
       });
     } catch(e) {}
   }
@@ -3815,9 +4280,9 @@ async function searchNearbyMosques() {
     item.innerHTML = `
       <div>
         <div class="mosque-name">🕌 ${m.name}</div>
-        <div class="sub" style="margin-top:2px;">${m.addr ? m.addr + ' • ' : ''}<a href="${mapUrl}" target="_blank" rel="noopener" style="color:var(--gold); text-decoration:none;">Построить маршрут ↗</a></div>
+        <div class="sub" style="margin-top:2px;">${m.addr ? m.addr + ' • ' : ''}<a href="${mapUrl}" target="_blank" rel="noopener" style="color:var(--gold); text-decoration:none;">${dict.routeLink || 'Построить маршрут ↗'}</a></div>
       </div>
-      <div class="mosque-dist">${m.dist.toFixed(1)} км</div>
+      <div class="mosque-dist">${m.dist.toFixed(1)} ${dict.kmUnit || 'км'}</div>
     `;
     listEl.appendChild(item);
   });
@@ -3828,7 +4293,7 @@ document.getElementById('btnFindMosques').onclick = searchNearbyMosques;
 // ==========================================
 // 8e. СТАТИСТИКА И ТРЕКЕР НАМАЗОВ (STREAK)
 // ==========================================
-const TRACKER_PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+// TRACKER_PRAYERS is defined globally above
 
 function getTodayTrackerKey(offsetDays = 0) {
   const d = new Date();
@@ -3859,17 +4324,17 @@ function togglePrayerCheck(key) {
 function renderPrayerStats() {
   const data = loadTodayPrayers();
   let completed = 0;
+  const dict = I18N[currentLang] || I18N.ru;
 
   TRACKER_PRAYERS.forEach(k => {
     const btn = document.getElementById(`chk_${k}`);
-    const icon = document.getElementById(`chkIcon_${k}`);
-    if (data[k]) {
-      completed++;
-      if (btn) btn.classList.add('checked');
-      if (icon) icon.textContent = '✓';
-    } else {
-      if (btn) btn.classList.remove('checked');
-      if (icon) icon.textContent = '○';
+    const shortName = getPrayerShortName(k, currentLang);
+    const isDone = !!data[k];
+    if (isDone) completed++;
+    if (btn) {
+      btn.innerHTML = `${shortName}<br><span id="chkIcon_${k}">${isDone ? '✓' : '○'}</span>`;
+      btn.setAttribute('aria-label', shortName);
+      btn.classList.toggle('checked', isDone);
     }
   });
 
@@ -3877,7 +4342,10 @@ function renderPrayerStats() {
   if (bar) bar.style.width = `${(completed / 5) * 100}%`;
 
   const txt = document.getElementById('prayerProgressText');
-  if (txt) txt.textContent = `Выполнено: ${completed} из 5`;
+  if (txt) {
+    const tpl = dict.completedOf || 'Выполнено: {c} из 5';
+    txt.textContent = tpl.replace('{c}', completed);
+  }
 
   let streak = 0;
   let d = 0;
@@ -4015,11 +4483,17 @@ function renderDailyInspiration() {
   const ruEl = document.getElementById('inspireRu');
   const srcEl = document.getElementById('inspireSource');
   const numEl = document.getElementById('inspireNum');
+  const dict = I18N[currentLang] || I18N.ru;
 
   if (arEl) arEl.textContent = item.ar;
   if (ruEl) ruEl.textContent = item.ru;
   if (srcEl) srcEl.textContent = item.src;
-  if (numEl) numEl.textContent = `${inspireMode === 'ayah' ? 'Аят' : 'Хадис'} ${idx + 1} из 30 (день ${dayOfYear})`;
+  if (numEl) {
+    const typeLabel = (inspireMode === 'ayah') ? (dict.inspireAyahLabel || 'Аят') : (dict.inspireHadithLabel || 'Хадис');
+    const ofLabel = dict.inspireOf || 'из';
+    const dayLabel = dict.inspireDay || 'день';
+    numEl.textContent = `${typeLabel} ${idx + 1} ${ofLabel} 30 (${dayLabel} ${dayOfYear})`;
+  }
 
   const btnA = document.getElementById('btnInspireAyah');
   const btnH = document.getElementById('btnInspireHadith');
@@ -4271,7 +4745,7 @@ if (navigator.permissions && navigator.permissions.query) {
 // ==========================================
 // 11. КАЗА: ТРЕКЕР И КАЛЬКУЛЯТОР
 // ==========================================
-const QADA_PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+// QADA_PRAYERS is defined globally above
 let qadaCalcTotals = null;
 
 function qadaGet(k) {
@@ -4292,12 +4766,13 @@ function renderQada() {
   if (!box) return;
   box.innerHTML = '';
   let total = 0;
+  const dict = I18N[currentLang] || I18N.ru;
   QADA_PRAYERS.forEach(k => {
     const n = qadaGet(k);
     total += n;
     const row = document.createElement('div');
     row.style.cssText = 'display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #0d3b30;';
-    row.innerHTML = `<span style="flex:1; font-size:14px;">${PRAYERS_RU[k]}</span>
+    row.innerHTML = `<span style="flex:1; font-size:14px;">${getPrayerName(k, currentLang)}</span>
       <b style="min-width:56px; text-align:right; color:${n > 0 ? 'var(--gold)' : 'var(--muted)'}; font-size:15px;">${n}</b>
       <button class="btn btn-ghost" style="padding:2px 12px;" onclick="qadaStep('${k}',-1)">−1</button>
       <button class="btn btn-ghost" style="padding:2px 12px;" onclick="qadaStep('${k}',1)">+1</button>`;
@@ -4306,18 +4781,21 @@ function renderQada() {
   const txt = document.getElementById('qadaTotal');
   if (txt) {
     txt.textContent = total > 0
-      ? `Осталось возместить: ${total}`
-      : 'Долгов нет — альхамдулиллях!';
+      ? (dict.qadaLeftToRepay || 'Осталось возместить: {n}').replace('{n}', total)
+      : (dict.qadaNoDebt || 'Долгов нет — альхамдулиллях!');
   }
 }
 
 function renderQadaPicks() {
   const box = document.getElementById('qadaPicks');
   if (!box) return;
-  box.innerHTML = QADA_PRAYERS.map(k =>
-    `<label style="display:flex; align-items:center; gap:6px; font-size:13px;">
-      <input type="checkbox" id="qp_${k}" checked> ${PRAYERS_RU[k]}
-    </label>`).join('');
+  box.innerHTML = QADA_PRAYERS.map(k => {
+    const prevCb = document.getElementById('qp_' + k);
+    const checked = prevCb ? prevCb.checked : true;
+    return `<label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+      <input type="checkbox" id="qp_${k}" ${checked ? 'checked' : ''}> ${getPrayerName(k, currentLang)}
+    </label>`;
+  }).join('');
 }
 
 const btnQadaCalc = document.getElementById('btnQadaCalc');
@@ -4342,9 +4820,12 @@ if (btnQadaCalc) {
     });
     if (!picked.length) { showToast('Выберите хотя бы один намаз', 'error'); return; }
     qadaCalcTotals = { days, picked };
-    res.innerHTML = `Дней: <b>${days}</b><br>` +
-      picked.map(k => `${getPrayerName(k)}: <b>${days}</b>`).join('<br>') +
-      `<br>Всего пропущено: <b>${days * picked.length}</b>`;
+    const dict = I18N[currentLang] || I18N.ru;
+    const daysStr = (dict.qadaDaysCount || 'Дней: <b>{n}</b>').replace('{n}', days);
+    const totalStr = (dict.qadaTotalMissed || 'Всего пропущено: <b>{n}</b>').replace('{n}', days * picked.length);
+    res.innerHTML = `${daysStr}<br>` +
+      picked.map(k => `${getPrayerName(k, currentLang)}: <b>${days}</b>`).join('<br>') +
+      `<br>${totalStr}`;
     document.getElementById('btnQadaAdd').disabled = false;
   };
 
@@ -4353,9 +4834,10 @@ if (btnQadaCalc) {
     const { days, picked } = qadaCalcTotals;
     picked.forEach(k => qadaSet(k, qadaGet(k) + days));
     qadaCalcTotals = null;
+    const dict = I18N[currentLang] || I18N.ru;
     document.getElementById('btnQadaAdd').disabled = true;
-    document.getElementById('qadaCalcResult').textContent = '✔ Добавлено к счётчику';
-    showToast('✔ Добавлено к счётчику каза');
+    document.getElementById('qadaCalcResult').textContent = dict.qadaAddedSuccess || '✔ Добавлено к счётчику';
+    showToast(dict.qadaAddedSuccess || '✔ Добавлено к счётчику каза');
   };
 }
 
