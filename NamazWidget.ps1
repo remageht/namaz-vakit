@@ -1,4 +1,4 @@
-# NamazWidget.ps1 — виджет времени намаза в трее Windows (рядом с часами)
+﻿# NamazWidget.ps1 — виджет времени намаза в трее Windows (рядом с часами)
 # Показывает следующий намаз + обратный отсчёт, балуны за 10 мин и в начале.
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
