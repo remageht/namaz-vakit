@@ -3,7 +3,15 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } elseif ($MyInvocation.MyCommand.Path) { Split-Path -Parent $MyInvocation.MyCommand.Path } else { "C:\dev\namaz-app" }
+if (-not $ScriptDir) { $ScriptDir = "C:\dev\namaz-app" }
+
+# Защита от запуска нескольких копий через Mutex
+$script:mutexCreated = $false
+$script:mutex = New-Object System.Threading.Mutex($true, "Local\NamazWidgetSingleInstanceMutex", [ref]$script:mutexCreated)
+if (-not $script:mutexCreated) {
+  exit 0
+}
 $ConfigFile = Join-Path $ScriptDir "config.json"
 $Lat = 45.1342; $Lon = 33.60; $Method = 3; $School = 1; $Place = "Саки"
 $Lang = "ru"; $StartupOn = $true; $ShowCD = $true; $ShowSec = $false; $Compact = $false; $RemMin = 10; $Theme = "gold"
@@ -41,6 +49,9 @@ Update-Lang
 $AppUrl = "https://remageht.github.io/namaz-vakit/"
 
 function Get-NamazAppExe {
+  # 0) распакованное приложение в desktop/dist/win-unpacked
+  $unpacked = Join-Path $ScriptDir "desktop\dist\win-unpacked\Namaz.exe"
+  if (Test-Path -LiteralPath $unpacked) { return $unpacked }
   # 1) ярлык на рабочем столе от установщика
   try {
     $desk = [Environment]::GetFolderPath("Desktop")
@@ -94,7 +105,6 @@ function Open-NamazApp {
   }
   Start-Process $AppUrl
 }
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $LogFile = Join-Path $ScriptDir "widget.log"
 $CacheFile = Join-Path $env:TEMP "namaz_timings.json"
 $RU = @{ Fajr="Фаджр"; Sunrise="Восход"; Dhuhr="Зухр"; Asr="Аср"; Maghrib="Магриб"; Isha="Иша" }
@@ -277,7 +287,7 @@ $panel.Controls.Add($pic)
 $panel.Controls.Add($lblMain)
 $panel.Controls.Add($lblSub)
 $wa = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
-$panel.Location = New-Object System.Drawing.Point(($wa.Left + 140), $wa.Bottom)
+$panel.Location = New-Object System.Drawing.Point(($wa.Right - $panel.Width - 16), ($wa.Bottom - $panel.Height - 10))
 $lblMain.Text = "Загрузка..."
 $panel.Show()
 $openApp = { $sched.Hide(); Open-NamazApp }
@@ -506,12 +516,53 @@ $dayClick = {
   }
   $ayah.Top = $y2 + 180 + 8
   $sched.Height = $ayah.Bottom + 12
-  $sched.Location = New-Object System.Drawing.Point($panel.Left, ($panel.Top - $sched.Height - 10))
+  $schedX = [Math]::Min([Math]::Max($w.Left + 10, ($panel.Right - $sched.Width)), ($w.Right - $sched.Width - 10))
+  $schedY = [Math]::Max($w.Top + 10, ($panel.Top - $sched.Height - 10))
+  $sched.Location = New-Object System.Drawing.Point($schedX, $schedY)
   if ($sched.Visible) { $sched.Hide() } else { $sched.Show() }
 }
-foreach ($c in @($panel, $pic, $lblMain, $lblSub)) { $c.Add_Click($dayClick); $c.Add_DoubleClick($openApp) }
+$ni.Add_Click({
+  param($s, $e)
+  if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left) { & $dayClick }
+})
+$script:userMoved = $false
+$script:isDragging = $false
+$script:dragStart = New-Object System.Drawing.Point(0, 0)
+$onMouseDown = {
+  param($sender, $e)
+  if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
+    $script:isDragging = $true
+    $script:dragStart = [System.Windows.Forms.Cursor]::Position
+    $script:dragOrigin = $panel.Location
+  }
+}
+$onMouseMove = {
+  param($sender, $e)
+  if ($script:isDragging) {
+    $cur = [System.Windows.Forms.Cursor]::Position
+    $dx = $cur.X - $script:dragStart.X
+    $dy = $cur.Y - $script:dragStart.Y
+    if ([Math]::Abs($dx) -gt 2 -or [Math]::Abs($dy) -gt 2) {
+      $panel.Location = New-Object System.Drawing.Point(($script:dragOrigin.X + $dx), ($script:dragOrigin.Y + $dy))
+      $script:userMoved = $true
+    }
+  }
+}
+$onMouseUp = {
+  param($sender, $e)
+  if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
+    $script:isDragging = $false
+  }
+}
+$panel.ContextMenuStrip = $menu
+foreach ($c in @($panel, $pic, $lblMain, $lblSub)) {
+  $c.Add_MouseDown($onMouseDown)
+  $c.Add_MouseMove($onMouseMove)
+  $c.Add_MouseUp($onMouseUp)
+  $c.Add_Click($dayClick)
+  $c.Add_DoubleClick($openApp)
+}
 $sched.Add_Deactivate({ $sched.Hide() })
-# Плашка зафиксирована: перетаскивание отключено, позиция только рядом с погодой
 
 function Apply-Compact {
   if ($Compact) {
@@ -683,31 +734,27 @@ try {
   $cd = "{0:00}:{1:00}:{2:00}" -f ($s/3600), (($s%3600)/60), ($s%60)
   $scr = [System.Windows.Forms.Screen]::PrimaryScreen
   $b = $scr.Bounds; $w = $scr.WorkingArea
-  if ($w.Bottom -lt $b.Bottom) { $panel.Location = New-Object System.Drawing.Point(($w.Left + 140), $w.Bottom) }
-  elseif ($w.Top -gt $b.Top) { $panel.Location = New-Object System.Drawing.Point(($w.Left + 140), ($w.Top - 48)) }
-  elseif ($w.Left -gt $b.Left) { $panel.Location = New-Object System.Drawing.Point($w.Left, ($w.Bottom - 58)) }
-  else { $panel.Location = New-Object System.Drawing.Point(($w.Right - 220), ($w.Bottom - 58)) }
+  if (-not $script:userMoved) {
+    $defX = $w.Right - $panel.Width - 16
+    $defY = $w.Bottom - $panel.Height - 10
+    if ($panel.Left -ne $defX -or $panel.Top -ne $defY) {
+      $panel.Location = New-Object System.Drawing.Point($defX, $defY)
+    }
+  }
   $show = $true
-  if ($b.Equals($w)) { $show = $false }
-  else {
-    $fg = [WinApi]::GetForegroundWindow()
+  $fg = [WinApi]::GetForegroundWindow()
+  if ($fg -ne [IntPtr]::Zero -and $fg -ne $panel.Handle -and $fg -ne $sched.Handle) {
     $rc = New-Object WinApi+RECT
     if ([WinApi]::GetWindowRect($fg, [ref]$rc)) {
-      if (($rc.Right - $rc.Left) -ge $b.Width -and ($rc.Bottom - $rc.Top) -ge $b.Height) { $show = $false }
+      if ($rc.Left -le 0 -and $rc.Top -le 0 -and ($rc.Right - $rc.Left) -ge $b.Width -and ($rc.Bottom - $rc.Top) -ge $b.Height) {
+        $show = $false
+      }
     }
   }
   $vis = ($show -and -not $script:userHidden)
   if ($panel.Visible -ne $vis) { $panel.Visible = $vis; Log ("panel visible -> " + $vis) }
   if ($panel.WindowState -eq [System.Windows.Forms.FormWindowState]::Minimized) { try { $panel.WindowState = [System.Windows.Forms.FormWindowState]::Normal; Log "panel restored from minimized" } catch {} }
   if ($vis) { try { [void][WinApi]::SetWindowPos($panel.Handle, [IntPtr](-1), 0, 0, 0, 0, 0x0033) } catch {} }
-  try {
-    $tb = [WinApi]::FindWindow("Shell_TrayWnd", $null)
-    if ($tb -ne [IntPtr]::Zero -and $tb.ToInt64() -ne $script:tbOwner) {
-      [void][WinApi]::SetWindowLongPtr($panel.Handle, -8, $tb)
-      $script:tbOwner = $tb.ToInt64()
-      Log "panel attached to taskbar"
-    }
-  } catch {}
   $nidx = Get-NameIdx
   $ni.Text = "{0} {1} -{2} · {3}" -f $Names[$next.key], $next.date.ToString("HH:mm"), $cd, $AN[$nidx][1]
   $short = if ($s -ge 3600) { "{0}ч" -f [int]($s/3600) } else { "{0}м" -f [int]($s/60) }
@@ -756,7 +803,8 @@ try {
   Log "acrylic on"
 } catch { Log "acrylic off" }
 Log "Виджет запущен"
-$ni.ShowBalloonTip(5000, "Намаз-виджет", "Виджет запущен. Наведи на значок в трее.", [System.Windows.Forms.ToolTipIcon]::Info)
+$ni.ShowBalloonTip(6000, "Намаз — Время молитвы", "Виджет запущен. Плашка на рабочем столе и значок в трее.", [System.Windows.Forms.ToolTipIcon]::Info)
+try { & $dayClick } catch {}
 [System.Windows.Forms.Application]::Run($ctx)
 $timer.Stop(); $ni.Dispose()
 Log "Виджет остановлен"

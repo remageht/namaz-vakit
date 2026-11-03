@@ -4,10 +4,10 @@ const { execSync } = require('child_process');
 
 const appDir = 'C:\\dev\\namaz-app';
 const vbsPath = path.join(appDir, 'Start-NamazWidget.vbs');
+const exePath = path.join(appDir, 'desktop', 'dist', 'win-unpacked', 'Namaz.exe');
 
-console.log('1. Configuring Windows Autostart...');
+console.log('1. Configuring Windows Autostart and Shortcuts...');
 
-// Get paths from environment
 const appData = process.env.APPDATA || path.join(process.env.USERPROFILE, 'AppData', 'Roaming');
 const startupFolder = path.join(appData, 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup');
 const desktopFolder = path.join(process.env.USERPROFILE, 'Desktop');
@@ -16,38 +16,57 @@ if (!fs.existsSync(startupFolder)) {
   fs.mkdirSync(startupFolder, { recursive: true });
 }
 
-// PowerShell script to create proper COM WScript.Shell .lnk shortcuts
 const psScript = `
 $ws = New-Object -ComObject WScript.Shell
 
-# 1. Startup shortcut
+# 1. Startup shortcut (widget in tray + floating panel)
 $startupPath = [Environment]::GetFolderPath('Startup')
 $scStartup = $ws.CreateShortcut("$startupPath\\Namaz Widget.lnk")
 $scStartup.TargetPath = 'wscript.exe'
 $scStartup.Arguments = '"${vbsPath}"'
 $scStartup.WorkingDirectory = '${appDir}'
-$scStartup.Description = 'Namaz Widget - Prayer times in Windows Tray'
+$scStartup.Description = 'Виджет времени намаза в трее Windows'
 $scStartup.Save()
-Write-Host "Startup shortcut created at: $startupPath\\Namaz Widget.lnk"
+Write-Host "Startup shortcut created: $startupPath\\Namaz Widget.lnk"
 
-# 2. Desktop shortcut
+# 2. Desktop shortcuts
 $desktopPath = [Environment]::GetFolderPath('Desktop')
-$scDesktop = $ws.CreateShortcut("$desktopPath\\Namaz Vakit.lnk")
-$scDesktop.TargetPath = 'wscript.exe'
-$scDesktop.Arguments = '"${vbsPath}"'
-$scDesktop.WorkingDirectory = '${appDir}'
-$scDesktop.Description = 'Namaz Widget - Prayer times in Windows Tray'
-$scDesktop.Save()
-Write-Host "Desktop shortcut created at: $desktopPath\\Namaz Vakit.lnk"
+
+# Widget shortcut
+$scWidget = $ws.CreateShortcut("$desktopPath\\Namaz Widget.lnk")
+$scWidget.TargetPath = 'wscript.exe'
+$scWidget.Arguments = '"${vbsPath}"'
+$scWidget.WorkingDirectory = '${appDir}'
+$scWidget.Description = 'Виджет времени намаза (плашка и трей)'
+$scWidget.Save()
+Write-Host "Desktop shortcut created: $desktopPath\\Namaz Widget.lnk"
+
+# Namaz Vakit shortcut (compatibility)
+$scOld = $ws.CreateShortcut("$desktopPath\\Namaz Vakit.lnk")
+$scOld.TargetPath = 'wscript.exe'
+$scOld.Arguments = '"${vbsPath}"'
+$scOld.WorkingDirectory = '${appDir}'
+$scOld.Description = 'Виджет времени намаза (плашка и трей)'
+$scOld.Save()
+
+# Full App shortcut (if Namaz.exe exists)
+if (Test-Path -LiteralPath '${exePath}') {
+  $scApp = $ws.CreateShortcut("$desktopPath\\Намаз (Приложение).lnk")
+  $scApp.TargetPath = '${exePath}'
+  $scApp.WorkingDirectory = [System.IO.Path]::GetDirectoryName('${exePath}')
+  $scApp.Description = 'Намаз — Полное Windows приложение'
+  $scApp.Save()
+  Write-Host "Desktop app shortcut created: $desktopPath\\Намаз (Приложение).lnk"
+}
 
 # 3. Registry Run key
 $regPath = 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'
 Set-ItemProperty -Path $regPath -Name 'NamazWidget' -Value 'wscript.exe "${vbsPath}"' -Force
-Write-Host "Registry autostart key set at HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run -> NamazWidget"
+Write-Host "Registry autostart key set."
 `;
 
 const psFile = path.join(appDir, '_create_shortcuts.ps1');
-fs.writeFileSync(psFile, psScript, 'utf8');
+fs.writeFileSync(psFile, '\uFEFF' + psScript, 'utf8');
 
 try {
   const out = execSync(`powershell -ExecutionPolicy Bypass -File "${psFile}"`, { encoding: 'utf8' });
@@ -58,29 +77,24 @@ try {
   if (fs.existsSync(psFile)) fs.unlinkSync(psFile);
 }
 
-// Fix Install.bat so that running it manually also uses the correct COM shortcut creation
+// 4. Update Install.bat
 const installBatContent = `@echo off
-rem Install Namaz Widget
-echo Setting up Namaz Widget in Startup and Desktop...
+rem Install Namaz Widget & App
+echo Setting up Namaz in Startup and Desktop...
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut([Environment]::GetFolderPath('Startup') + '\\Namaz Widget.lnk'); $sc.TargetPath = 'wscript.exe'; $sc.Arguments = '\"C:\\dev\\namaz-app\\Start-NamazWidget.vbs\"'; $sc.WorkingDirectory = 'C:\\dev\\namaz-app'; $sc.Save()"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\\Namaz Vakit.lnk'); $sc.TargetPath = 'wscript.exe'; $sc.Arguments = '\"C:\\dev\\namaz-app\\Start-NamazWidget.vbs\"'; $sc.WorkingDirectory = 'C:\\dev\\namaz-app'; $sc.Save()"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name 'NamazWidget' -Value 'wscript.exe \"C:\\dev\\namaz-app\\Start-NamazWidget.vbs\"' -Force"
-
+node "%~dp0setup-autostart.js"
 echo Install complete. Starting widget...
-wscript.exe "C:\\dev\\namaz-app\\Start-NamazWidget.vbs"
+wscript.exe "%~dp0Start-NamazWidget.vbs"
 pause
 `;
 fs.writeFileSync(path.join(appDir, 'Install.bat'), installBatContent, 'utf8');
-console.log('2. Updated Install.bat with robust autostart setup.');
+console.log('2. Updated Install.bat.');
 
-// 3. Launch Namaz Widget right now
-console.log('3. Launching Namaz Widget on the computer...');
+// 5. Terminate old instances & launch widget cleanly
+console.log('3. Launching widget...');
 try {
-  // Check if already running and restart cleanly
-  execSync('powershell -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like \'*NamazWidget.ps1*\' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"', { stdio: 'ignore' });
-} catch (e) {}
-
-// Launch hidden via wscript
-execSync(`wscript.exe "${vbsPath}"`);
-console.log('Widget launched via wscript.exe!');
+  execSync(`wscript.exe "${vbsPath}"`);
+  console.log('Widget launched successfully via wscript.exe!');
+} catch (e) {
+  console.error('Launch error:', e.message);
+}
