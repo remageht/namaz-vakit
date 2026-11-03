@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Намаз">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'">
 
 <style>
   :root {
@@ -804,6 +804,364 @@
     border-top: 1px dashed rgba(255, 255, 255, 0.08);
   }
 
+  /* ==========================================
+     ТАСБИХ И ХИСН АЛЬ-МУСЛИМ
+     ========================================== */
+  .tasbih-presets {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 4px 2px 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tasbih-presets::-webkit-scrollbar { display: none; }
+  .tasbih-chip {
+    background: rgba(9, 51, 39, 0.7);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.18s ease;
+  }
+  .tasbih-chip:hover {
+    border-color: var(--gold);
+    background: rgba(12, 65, 50, 0.9);
+  }
+  .tasbih-chip.active {
+    background: var(--gold);
+    color: #06281f;
+    border-color: var(--gold);
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(212,175,55,0.3);
+  }
+
+  .tasbih-stages-bar {
+    display: flex;
+    gap: 6px;
+    margin: 8px 0 14px;
+  }
+  .tasbih-stage-step {
+    flex: 1;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    transition: all 0.2s ease;
+  }
+  .tasbih-stage-step.active {
+    border-color: var(--gold);
+    background: rgba(212, 175, 55, 0.15);
+    color: var(--gold-light);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+  }
+  .tasbih-stage-step.done {
+    border-color: #22c55e;
+    background: rgba(34, 197, 94, 0.12);
+    color: #4ade80;
+  }
+
+  .tasbih-card {
+    position: relative;
+    background: linear-gradient(145deg, rgba(12, 59, 46, 0.95), rgba(6, 40, 31, 0.95));
+    border: 2px solid var(--border);
+    border-radius: 24px;
+    padding: 24px 16px 20px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    transition: transform 0.12s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+  }
+  .tasbih-card:hover {
+    border-color: rgba(212, 175, 55, 0.6);
+  }
+  .tasbih-card:active, .tasbih-card.pulse {
+    transform: scale(0.982);
+    border-color: var(--gold);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 20px rgba(212, 175, 55, 0.25);
+  }
+
+  .tasbih-ring-wrap {
+    position: relative;
+    width: 230px;
+    height: 230px;
+    margin: 0 auto 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tasbih-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+  .tasbih-ring-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 12;
+  }
+  .tasbih-ring-fill {
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 12;
+    stroke-linecap: round;
+    stroke-dasharray: 722.57;
+    stroke-dashoffset: 722.57;
+    transition: stroke-dashoffset 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .tasbih-ring-inner {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .tasbih-count-num {
+    font-size: 54px;
+    font-weight: 800;
+    color: var(--gold-light);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  }
+  .tasbih-target-num {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .tasbih-ar {
+    font-family: 'Amiri', serif;
+    font-size: 26px;
+    line-height: 1.5;
+    color: var(--gold-light);
+    margin: 8px 0 4px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  }
+  .tasbih-tr {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .tasbih-ru {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .tasbih-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .tasbih-ctrl-btn {
+    background: rgba(9, 51, 39, 0.85);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.18s ease;
+  }
+  .tasbih-ctrl-btn:hover {
+    border-color: var(--gold);
+    background: rgba(12, 65, 50, 0.95);
+  }
+  .tasbih-ctrl-btn.active {
+    border-color: var(--gold);
+    color: var(--gold-light);
+  }
+
+  /* Дуа Хаб (Хисн аль-Муслим) */
+  .dua-cats {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 4px 2px 10px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dua-cats::-webkit-scrollbar { display: none; }
+  .dua-cat-btn {
+    background: rgba(9, 51, 39, 0.7);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.18s ease;
+  }
+  .dua-cat-btn:hover {
+    border-color: var(--gold);
+    background: rgba(12, 65, 50, 0.9);
+  }
+  .dua-cat-btn.active {
+    background: var(--gold);
+    color: #06281f;
+    border-color: var(--gold);
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(212,175,55,0.3);
+  }
+
+  .dua-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .dua-card:hover {
+    border-color: rgba(212, 175, 55, 0.5);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  }
+  .dua-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .dua-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .dua-badge {
+    background: rgba(212, 175, 55, 0.15);
+    color: var(--gold);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .dua-source {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .dua-star-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    transition: color 0.18s ease, transform 0.18s ease;
+  }
+  .dua-star-btn:hover {
+    transform: scale(1.15);
+  }
+  .dua-star-btn.active {
+    color: #facc15;
+  }
+  .dua-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.35;
+  }
+  .dua-arabic-box {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin: 8px 0;
+    text-align: right;
+    direction: rtl;
+    font-family: 'Amiri', serif;
+    font-size: 22px;
+    line-height: 1.85;
+    color: var(--gold-light);
+  }
+  .dua-translit {
+    font-size: 13px;
+    color: #cbd5e1;
+    font-style: italic;
+    line-height: 1.5;
+    margin-bottom: 6px;
+  }
+  .dua-trans {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .dua-benefit {
+    background: rgba(34, 197, 94, 0.08);
+    border-left: 3px solid #22c55e;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.45;
+    margin-bottom: 12px;
+  }
+  .dua-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    flex-wrap: wrap;
+  }
+  .dua-count-btn {
+    background: rgba(212, 175, 55, 0.15);
+    border: 1px solid var(--gold);
+    color: var(--gold-light);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.18s ease;
+  }
+  .dua-count-btn.done {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: #22c55e;
+    color: #4ade80;
+  }
+  .dua-act-group {
+    display: flex;
+    gap: 6px;
+  }
   footer {
     text-align: center;
     color: var(--muted);
@@ -895,6 +1253,8 @@
   <button data-page="p-names" id="tabNamesBtn"></button>
   <button data-page="p-qada" id="tabQadaBtn"></button>
   <button data-page="p-settings" id="tabSettingsBtn"></button>
+  <button data-page="p-tasbih" id="tabTasbihBtn"></button>
+  <button data-page="p-dua" id="tabDuaBtn"></button>
 </div>
 
 <main>
@@ -1215,6 +1575,16 @@
     <div class="label" data-i18n="moreTitle">Дополнительные разделы</div>
     <div class="sub" style="margin:4px 0 12px;" data-i18n="moreSub">Полезные исламские инструменты и настройки приложения</div>
     <div class="more-grid">
+      <div class="more-card" onclick="openPage('p-tasbih')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPage('p-tasbih')">
+        <div class="more-icon">📿</div>
+        <div class="more-title" data-i18n="tabTasbih">Тасбих</div>
+        <div class="more-desc" data-i18n="descTasbih">Электронные чётки, вирд после намаза и счётчик зикра</div>
+      </div>
+      <div class="more-card" onclick="openPage('p-dua')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPage('p-dua')">
+        <div class="more-icon">🛡️</div>
+        <div class="more-title" data-i18n="tabDua">Дуа (Хисн)</div>
+        <div class="more-desc" data-i18n="descDua">Крепость мусульманина: ежедневные дуа с переводом и аудио</div>
+      </div>
       <div class="more-card" onclick="openPage('p-quran')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPage('p-quran')">
         <div class="more-icon">📖</div>
         <div class="more-title" data-i18n="tabQuran">Коран</div>
@@ -1470,13 +1840,134 @@
   </div>
 </section>
 
+<!-- ТАСБИХ (ЭЛЕКТРОННЫЕ ЧЁТКИ) -->
+<section id="p-tasbih" class="page">
+  <div class="subpage-nav">
+    <button class="btn btn-ghost" onclick="openPage('p-more')" style="padding:4px 12px; font-size:13px; font-weight:600;">
+      ← <span data-i18n="backToMore">Все разделы</span>
+    </button>
+  </div>
+
+  <div class="card" style="margin-bottom:12px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <b style="font-size:16px;">📿 <span data-i18n="tasbihTitle">Электронный Тасбих</span></b>
+      <span class="badge" id="tasbihActivePresetBadge" style="background:rgba(212,175,55,0.15); color:var(--gold); border:1px solid rgba(212,175,55,0.3);">После намаза</span>
+    </div>
+    <div class="sub" style="margin:4px 0 10px;" data-i18n="tasbihSub">Поминание Аллаха с тактильным откликом и звуком</div>
+
+    <!-- Выбор пресета -->
+    <div class="label" style="font-size:11px; margin-bottom:4px;" data-i18n="tasbihPresetLabel">Выберите вирд / зикр:</div>
+    <div class="tasbih-presets" id="tasbihPresetsContainer">
+      <button type="button" class="tasbih-chip active" onclick="selectTasbihPreset('post_prayer')" id="chipPreset_post_prayer" data-i18n="tasbihPresetPostPrayer">🤲 После намаза (33×3 + 1)</button>
+      <button type="button" class="tasbih-chip" onclick="selectTasbihPreset('tahlil')" id="chipPreset_tahlil" data-i18n="tasbihPresetTahlil">☝️ Тахлиль (100)</button>
+      <button type="button" class="tasbih-chip" onclick="selectTasbihPreset('istighfar')" id="chipPreset_istighfar" data-i18n="tasbihPresetIstighfar">📿 Истигфар (100)</button>
+      <button type="button" class="tasbih-chip" onclick="selectTasbihPreset('salawat')" id="chipPreset_salawat" data-i18n="tasbihPresetSalawat">💚 Салават (100)</button>
+      <button type="button" class="tasbih-chip" onclick="selectTasbihPreset('hawqala')" id="chipPreset_hawqala" data-i18n="tasbihPresetHawqala">✨ Хаукаля (100)</button>
+      <button type="button" class="tasbih-chip" onclick="selectTasbihPreset('free')" id="chipPreset_free" data-i18n="tasbihPresetFree">🔄 Свободный счёт</button>
+    </div>
+
+    <!-- Индикаторы этапов вирда (для многошагового вирда) -->
+    <div class="tasbih-stages-bar" id="tasbihStagesBar"></div>
+
+    <!-- Интерактивная карточка тасбиха (тап-зона) -->
+    <div class="tasbih-card" id="tasbihTapCard" onclick="handleTasbihTap(event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')handleTasbihTap(event)">
+      <!-- Круговой SVG индикатор прогресса -->
+      <div class="tasbih-ring-wrap">
+        <svg class="tasbih-svg" viewBox="0 0 260 260">
+          <circle class="tasbih-ring-bg" cx="130" cy="130" r="115" />
+          <circle class="tasbih-ring-fill" id="tasbihProgressCircle" cx="130" cy="130" r="115" />
+        </svg>
+        <div class="tasbih-ring-inner">
+          <div id="tasbihStageText" class="sub" style="font-size:12px; font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">1/4 Субханаллах</div>
+          <div class="tasbih-count-num" id="tasbihCountDisplay">0</div>
+          <div class="tasbih-target-num" id="tasbihTargetDisplay">/ 33</div>
+        </div>
+      </div>
+
+      <!-- Арабский текст, транскрипция и перевод -->
+      <div class="tasbih-ar" id="tasbihArabicText">سُبْحَانَ اللَّهِ</div>
+      <div class="tasbih-tr" id="tasbihTranslitText">Субханаллах</div>
+      <div class="tasbih-ru" id="tasbihMeaningText">Пречист Аллах от всех недостатков</div>
+      <div class="sub" style="font-size:11px; margin-top:8px; opacity:0.7;" data-i18n="tasbihTapHint">Коснитесь карточки для счёта</div>
+    </div>
+
+    <!-- Панель управления -->
+    <div class="tasbih-controls">
+      <button type="button" class="tasbih-ctrl-btn" onclick="undoTasbihCount()" title="Шаг назад" data-i18n-title="tasbihUndo">
+        <span>↩️</span> <span data-i18n="tasbihUndo">Назад</span>
+      </button>
+      <button type="button" class="tasbih-ctrl-btn" onclick="resetTasbihCount()" title="Сбросить счётчик" data-i18n-title="tasbihReset">
+        <span>↺</span> <span data-i18n="tasbihReset">Сброс</span>
+      </button>
+      <button type="button" class="tasbih-ctrl-btn" id="btnTasbihSound" onclick="toggleTasbihSound()" title="Переключить звук">
+        <span id="tasbihSoundIcon">🔊</span>
+      </button>
+      <button type="button" class="tasbih-ctrl-btn" id="btnTasbihVibrate" onclick="toggleTasbihVibrate()" title="Переключить вибрацию">
+        <span id="tasbihVibrateIcon">📳</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Баннер статистики за сегодня -->
+  <div class="card" style="background:linear-gradient(135deg, rgba(212,175,55,0.1), rgba(6,40,31,0.6)); border:1px solid rgba(212,175,55,0.25);">
+    <div class="label" style="color:var(--gold);" data-i18n="tasbihTodayStats">Статистика за сегодня</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; text-align:center;">
+      <div style="background:rgba(0,0,0,0.25); border-radius:12px; padding:10px;">
+        <div style="font-size:24px; font-weight:800; color:var(--gold-light);" id="tasbihStatTodayCount">0</div>
+        <div class="sub" style="font-size:11px; margin-top:2px;" data-i18n="tasbihTodayCount">Зикров сегодня</div>
+      </div>
+      <div style="background:rgba(0,0,0,0.25); border-radius:12px; padding:10px;">
+        <div style="font-size:24px; font-weight:800; color:#4ade80;" id="tasbihStatTodayCycles">0</div>
+        <div class="sub" style="font-size:11px; margin-top:2px;" data-i18n="tasbihCyclesDone">Полных кругов</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ДУА ХАБ (ХИСН АЛЬ-МУСЛИМ) -->
+<section id="p-dua" class="page">
+  <div class="subpage-nav">
+    <button class="btn btn-ghost" onclick="openPage('p-more')" style="padding:4px 12px; font-size:13px; font-weight:600;">
+      ← <span data-i18n="backToMore">Все разделы</span>
+    </button>
+  </div>
+
+  <div class="card" style="margin-bottom:12px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <b style="font-size:16px;">🛡️ <span data-i18n="duaTitle">Дуа — Крепость мусульманина</span></b>
+      <span class="badge" id="duaTotalBadge" style="background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid #22c55e;">16 дуа</span>
+    </div>
+    <div class="sub" style="margin:4px 0 12px;" data-i18n="duaSub">Аутентичные пророческие мольбы на каждый день с аудио и транскрипцией</div>
+
+    <!-- Поиск дуа -->
+    <div style="position:relative; margin-bottom:10px;">
+      <input type="text" id="duaSearch" placeholder="Поиск по названию, тексту или переводу…" data-i18n-placeholder="duaSearchPlaceholder" oninput="filterDuas(this.value)" style="margin:0; padding-right:32px;">
+      <button type="button" id="btnDuaSearchClear" onclick="clearDuaSearch()" style="display:none; position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer; padding:4px;">×</button>
+    </div>
+
+    <!-- Горизонтальные чипы категорий -->
+    <div class="dua-cats" id="duaCatsContainer">
+      <button type="button" class="dua-cat-btn active" onclick="setDuaCategory('all')" id="duaCat_all" data-i18n="duaCatAll">Все</button>
+      <button type="button" class="dua-cat-btn" onclick="setDuaCategory('morning')" id="duaCat_morning" data-i18n="duaCatMorning">🌅 Утро</button>
+      <button type="button" class="dua-cat-btn" onclick="setDuaCategory('evening')" id="duaCat_evening" data-i18n="duaCatEvening">🌇 Вечер</button>
+      <button type="button" class="dua-cat-btn" onclick="setDuaCategory('after_prayer')" id="duaCat_after_prayer" data-i18n="duaCatAfterPrayer">🤲 После намаза</button>
+      <button type="button" class="dua-cat-btn" onclick="setDuaCategory('sleep')" id="duaCat_sleep" data-i18n="duaCatSleep">🌙 Сон</button>
+      <button type="button" class="dua-cat-btn" onclick="setDuaCategory('home_mosque')" id="duaCat_home_mosque" data-i18n="duaCatHomeMosque">🕌 Дом и Мечеть</button>
+      <button type="button" class="dua-cat-btn" onclick="setDuaCategory('distress')" id="duaCat_distress" data-i18n="duaCatDistress">🛡️ Защита</button>
+      <button type="button" class="dua-cat-btn" onclick="setDuaCategory('favorites')" id="duaCat_favorites" data-i18n="duaCatFavs">⭐ Избранное</button>
+    </div>
+  </div>
+
+  <!-- Контейнер карточек дуа -->
+  <div id="duaListContainer"></div>
+</section>
 </main>
 
 <footer data-i18n="footerText">
   Намаз PWA • Время: Aladhan API • Кааба: 21.4225° N, 39.8262° E • Сверяйте время с местной мечетью
 </footer>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ==========================================
 // 1. НАВИГАЦИЯ ПО РАЗДЕЛАМ (С МЯГКИМ ПЕРЕКЛЮЧЕНИЕМ)
@@ -1495,7 +1986,7 @@ function openPage(pageId) {
   // Обновление состояния вкладок навигации
   document.querySelectorAll('nav.tabs button').forEach(b => {
     const isTarget = (b.dataset.page === pageId) || 
-      (b.dataset.page === 'p-more' && ['p-mosques', 'p-names', 'p-qada', 'p-settings', 'p-quran', 'p-more'].includes(pageId));
+      (b.dataset.page === 'p-more' && ['p-mosques', 'p-names', 'p-qada', 'p-settings', 'p-quran', 'p-tasbih', 'p-dua', 'p-more'].includes(pageId));
     b.classList.toggle('active', isTarget);
     b.setAttribute('aria-selected', isTarget ? 'true' : 'false');
   });
@@ -1514,6 +2005,12 @@ function openPage(pageId) {
   }
   if (pageId === 'p-quran' && typeof checkQuranResume === 'function') {
     checkQuranResume();
+  }
+  if (pageId === 'p-tasbih' && typeof renderTasbih === 'function') {
+    renderTasbih();
+  }
+  if (pageId === 'p-dua' && typeof renderDuaHub === 'function') {
+    renderDuaHub();
   }
 }
 
@@ -1577,6 +2074,69 @@ const store = {
   set(k, v) { try { window['localStorage'].setItem(k, v); } catch (e) {} try { this.m[k] = String(v); } catch (e2) {} }
 };
 
+function calcOfflinePrayerTimes(lat, lon, date, method = 3, school = 1) {
+  const pi = Math.PI, dr = pi / 180.0;
+  let yr = date.getFullYear(), mo = date.getMonth() + 1, dy = date.getDate();
+  if (mo <= 2) { yr -= 1; mo += 12; }
+  const A = Math.floor(yr / 100), B = 2 - A + Math.floor(A / 4);
+  const jd = Math.floor(365.25 * (yr + 4716)) + Math.floor(30.6001 * (mo + 1)) + dy + B - 1524.5;
+  const D = jd - 2451545.0;
+  let g = (357.529 + 0.98560028 * D) % 360; if (g < 0) g += 360;
+  let q = (280.459 + 0.98564736 * D) % 360; if (q < 0) q += 360;
+  let L = (q + 1.915 * Math.sin(g * dr) + 0.020 * Math.sin(2 * g * dr)) % 360; if (L < 0) L += 360;
+  const e = 23.439 - 0.00000036 * D;
+  const dec = Math.asin(Math.sin(e * dr) * Math.sin(L * dr)) / dr;
+  let RA = Math.atan2(Math.cos(e * dr) * Math.sin(L * dr), Math.cos(L * dr)) / dr;
+  RA = (RA % 360 + 360) % 360;
+  let EqT = (q - RA) / 15.0;
+  while (EqT > 12) EqT -= 24; while (EqT < -12) EqT += 24;
+
+  const tz = -date.getTimezoneOffset() / 60.0;
+  const noon = 12 + tz - (lon / 15.0) - EqT;
+
+  const sunAngleTime = (angle, dir) => {
+    const phi = lat * dr, delta = dec * dr;
+    const cosH = (-Math.sin(angle * dr) - Math.sin(phi) * Math.sin(delta)) / (Math.cos(phi) * Math.cos(delta));
+    if (cosH > 1 || cosH < -1) return null;
+    const H = Math.acos(cosH) / dr / 15.0;
+    return dir ? (noon - H) : (noon + H);
+  };
+
+  const asrTime = (factor) => {
+    const phi = lat * dr, delta = dec * dr;
+    const acot = factor + Math.tan(Math.abs(phi - delta));
+    const alt = Math.atan(1.0 / acot) / dr;
+    return sunAngleTime(-alt, false);
+  };
+
+  const toHM = (decHours) => {
+    if (decHours == null) return '--:--';
+    let dh = (decHours % 24 + 24) % 24;
+    const h = Math.floor(dh);
+    const m = Math.round((dh - h) * 60);
+    const rh = (m === 60) ? (h + 1) % 24 : h;
+    const rm = (m === 60) ? 0 : m;
+    return `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`;
+  };
+
+  let fajrDeg = 18.0, ishaDeg = 17.0;
+  const mNum = parseInt(method, 10);
+  if (mNum === 3) { fajrDeg = 19.5; ishaDeg = 17.5; }
+  else if (mNum === 14) { fajrDeg = 16.0; ishaDeg = 15.0; }
+  else if (mNum === 1) { fajrDeg = 18.0; ishaDeg = 18.0; }
+  else if (mNum === 2 || mNum === 13) { fajrDeg = 18.0; ishaDeg = 17.0; }
+  const asrFactor = (school === 1 || school === '1') ? 2.0 : 1.0;
+
+  return {
+    Fajr: toHM(sunAngleTime(fajrDeg, true)),
+    Sunrise: toHM(sunAngleTime(0.833, true)),
+    Dhuhr: toHM(noon),
+    Asr: toHM(asrTime(asrFactor)),
+    Maghrib: toHM(sunAngleTime(0.833, false)),
+    Isha: toHM(sunAngleTime(ishaDeg, false))
+  };
+}
+
 const S = {
   lat: parseFloat(store.get('lat')) || DEFAULT_LOC.lat,
   lon: parseFloat(store.get('lon')) || DEFAULT_LOC.lon,
@@ -1590,9 +2150,18 @@ const S = {
   notif0: store.get('notif0') !== 'off',
 };
 
-let timings = null;
-let timingsDate = null;
-let nextPrayer = null;
+var timings = null;
+var timingsDate = null;
+var nextPrayer = null;
+
+// Мгновенный синхронный расчёт расписания на старте (0 мс, 100% готовность офлайн)
+try {
+  const _initOff = calcOfflinePrayerTimes(S.lat, S.lon, new Date(), parseInt(S.method, 10), parseInt(S.school, 10));
+  timings = { ..._initOff };
+  if (typeof window !== 'undefined') window.timings = timings;
+} catch(e) {
+  console.warn('Init offline calculation error:', e);
+}
 
 const PRAYERS_RU = {
   Fajr: 'Фаджр 🌅',
@@ -1624,6 +2193,8 @@ const ORDER = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 const TRACKER_PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 const QADA_PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 var isQuranReady = false;
+var isTasbihReady = false;
+var isDuaReady = false;
 
 const I18N = {
   ru: {
@@ -1639,6 +2210,52 @@ const I18N = {
     tabNames: '99 Имён',
     tabQada: 'Каза',
     tabSettings: 'Настройки',
+    tabTasbih: 'Тасбих',
+    descTasbih: 'Электронные чётки, вирд после намаза и счётчик зикра',
+    tabDua: 'Дуа (Хисн)',
+    descDua: 'Крепость мусульманина: ежедневные дуа с переводом и аудио',
+    tasbihTitle: 'Электронный Тасбих',
+    tasbihSub: 'Поминание Аллаха с тактильным откликом и звуком',
+    tasbihPresetLabel: 'Выберите вирд / зикр:',
+    tasbihPresetPostPrayer: '🤲 После намаза (33×3 + 1)',
+    tasbihPresetTahlil: '☝️ Тахлиль (100)',
+    tasbihPresetIstighfar: '📿 Истигфар (100)',
+    tasbihPresetSalawat: '💚 Салават (100)',
+    tasbihPresetHawqala: '✨ Хаукаля (100)',
+    tasbihPresetFree: '🔄 Свободный счёт',
+    tasbihStage: 'Шаг {step} из {total}',
+    tasbihTapHint: 'Коснитесь карточки для счёта',
+    tasbihUndo: 'Назад',
+    tasbihReset: 'Сброс',
+    tasbihSoundOn: 'Звук включён',
+    tasbihSoundOff: 'Звук выключен',
+    tasbihVibrateOn: 'Вибрация включена',
+    tasbihVibrateOff: 'Вибрация выключена',
+    tasbihTodayStats: 'Статистика за сегодня',
+    tasbihTodayCount: 'Зикров сегодня',
+    tasbihCyclesDone: 'Полных кругов',
+    tasbihTotalAllTime: 'Всего за всё время',
+    tasbihCycleComplete: '🎉 Круг вирда успешно завершён! Ма ша Аллах!',
+    duaTitle: 'Дуа — Крепость мусульманина',
+    duaSub: 'Аутентичные пророческие мольбы на каждый день с аудио и транскрипцией',
+    duaSearchPlaceholder: 'Поиск по названию, тексту или переводу…',
+    duaCatAll: 'Все',
+    duaCatMorning: '🌅 Утро',
+    duaCatEvening: '🌇 Вечер',
+    duaCatAfterPrayer: '🤲 После намаза',
+    duaCatSleep: '🌙 Сон',
+    duaCatHomeMosque: '🕌 Дом и Мечеть',
+    duaCatDistress: '🛡️ Защита',
+    duaCatFavs: '⭐ Избранное',
+    duaRepetitionLeft: 'Осталось: {n}',
+    duaCompleted: 'Выполнено',
+    duaBtnListen: 'Слушать',
+    duaBtnCopy: 'Копировать',
+    duaCopied: 'Дуа скопировано в буфер обмена',
+    duaBookmarkAdded: 'Добавлено в Избранное ⭐',
+    duaBookmarkRemoved: 'Удалено из Избранного',
+    duaNoFavs: 'Нет избранных дуа. Нажмите на звёздочку ⭐ на любой карточке, чтобы добавить её сюда.',
+    duaNoResults: 'Ничего не найдено по вашему запросу.',
     moreTitle: 'Дополнительные разделы',
     moreSub: 'Полезные исламские инструменты и настройки приложения',
     backToMore: 'Все разделы',
@@ -1854,6 +2471,52 @@ const I18N = {
     tabNames: '99 Исем',
     tabQada: 'Каза',
     tabSettings: 'Көйләүләр',
+    tabTasbih: 'Тәсбих',
+    descTasbih: 'Электрон тәсбих, намаздан соңгы вирд һәм зикер санагыч',
+    tabDua: 'Догалар (Хисн)',
+    descDua: 'Мөселманның ныгытмасы: көндәлек догалар, тәрҗемә һәм аудио',
+    tasbihTitle: 'Электрон Тәсбих',
+    tasbihSub: 'Аллаһны зикер итү, тавыш һәм тибрәнү белән',
+    tasbihPresetLabel: 'Вирд / зикер сайлагыз:',
+    tasbihPresetPostPrayer: '🤲 Намаздан соң (33×3 + 1)',
+    tasbihPresetTahlil: '☝️ Тәһлил (100)',
+    tasbihPresetIstighfar: '📿 Истигъфар (100)',
+    tasbihPresetSalawat: '💚 Салават (100)',
+    tasbihPresetHawqala: '✨ Хаукалә (100)',
+    tasbihPresetFree: '🔄 Ирекле санау',
+    tasbihStage: 'Адым {step} / {total}',
+    tasbihTapHint: 'Санау өчен карточкага басыгыз',
+    tasbihUndo: 'Артка',
+    tasbihReset: 'Яңарту',
+    tasbihSoundOn: 'Тавыш кабынган',
+    tasbihSoundOff: 'Тавыш сүнгән',
+    tasbihVibrateOn: 'Тибрәнү кабынган',
+    tasbihVibrateOff: 'Тибрәнү сүнгән',
+    tasbihTodayStats: 'Бүгенге статистика',
+    tasbihTodayCount: 'Бүген зикерләр',
+    tasbihCyclesDone: 'Тулы цикллар',
+    tasbihTotalAllTime: 'Барлык вакытта',
+    tasbihCycleComplete: '🎉 Вирд циклы тәмамланды! МәшәАллаһ!',
+    duaTitle: 'Догалар — Мөселманның ныгытмасы',
+    duaSub: 'Көндәлек сөннәт догалары, аудио һәм транскрипция белән',
+    duaSearchPlaceholder: 'Исем, текст яки тәрҗемә буенча эзләү…',
+    duaCatAll: 'Барысы',
+    duaCatMorning: '🌅 Иртә',
+    duaCatEvening: '🌇 Кич',
+    duaCatAfterPrayer: '🤲 Намаздан соң',
+    duaCatSleep: '🌙 Йокы',
+    duaCatHomeMosque: '🕌 Өй һәм Мәчет',
+    duaCatDistress: '🛡️ Саклану',
+    duaCatFavs: '⭐ Сайланганнар',
+    duaRepetitionLeft: 'Калды: {n}',
+    duaCompleted: 'Ясалды',
+    duaBtnListen: 'Тыңлау',
+    duaBtnCopy: 'Күчереп алу',
+    duaCopied: 'Дога буферга күчерелде',
+    duaBookmarkAdded: 'Сайланганнарга өстәлде ⭐',
+    duaBookmarkRemoved: 'Сайланганнардан алынды',
+    duaNoFavs: 'Сайланган догалар юк. Теләсә кайсы карточкадагы ⭐ билгесенә басыгыз.',
+    duaNoResults: 'Сезнең сорау буенча бернәрсә табылмады.',
     moreTitle: 'Өстәмә бүлекләр',
     moreSub: 'Файдалы ислам кораллары һәм көйләүләр',
     backToMore: 'Барлык бүлекләр',
@@ -2069,6 +2732,52 @@ const I18N = {
     tabNames: '99 Names',
     tabQada: 'Qada',
     tabSettings: 'Settings',
+    tabTasbih: 'Tasbeeh',
+    descTasbih: 'Digital tasbeeh, post-prayer wird & dhikr counter',
+    tabDua: 'Duas (Hisn)',
+    descDua: 'Fortress of the Muslim: daily supplications with audio',
+    tasbihTitle: 'Digital Tasbeeh',
+    tasbihSub: 'Remembrance of Allah with haptic and audio feedback',
+    tasbihPresetLabel: 'Select wird / dhikr:',
+    tasbihPresetPostPrayer: '🤲 Post-prayer wird (33×3 + 1)',
+    tasbihPresetTahlil: '☝️ Tahlil (100)',
+    tasbihPresetIstighfar: '📿 Istighfar (100)',
+    tasbihPresetSalawat: '💚 Salawat (100)',
+    tasbihPresetHawqala: '✨ Hawqala (100)',
+    tasbihPresetFree: '🔄 Free counter',
+    tasbihStage: 'Step {step} of {total}',
+    tasbihTapHint: 'Tap card anywhere to count',
+    tasbihUndo: 'Undo',
+    tasbihReset: 'Reset',
+    tasbihSoundOn: 'Sound on',
+    tasbihSoundOff: 'Sound off',
+    tasbihVibrateOn: 'Vibrate on',
+    tasbihVibrateOff: 'Vibrate off',
+    tasbihTodayStats: 'Today\'s statistics',
+    tasbihTodayCount: 'Dhikr today',
+    tasbihCyclesDone: 'Completed cycles',
+    tasbihTotalAllTime: 'All-time total',
+    tasbihCycleComplete: '🎉 Wird cycle completed! Ma sha Allah!',
+    duaTitle: 'Duas — Fortress of the Muslim',
+    duaSub: 'Authentic prophetic supplications for daily life with audio',
+    duaSearchPlaceholder: 'Search by title, text, or translation…',
+    duaCatAll: 'All',
+    duaCatMorning: '🌅 Morning',
+    duaCatEvening: '🌇 Evening',
+    duaCatAfterPrayer: '🤲 After Prayer',
+    duaCatSleep: '🌙 Sleep',
+    duaCatHomeMosque: '🕌 Home & Mosque',
+    duaCatDistress: '🛡️ Protection',
+    duaCatFavs: '⭐ Favorites',
+    duaRepetitionLeft: '{n} left',
+    duaCompleted: 'Completed',
+    duaBtnListen: 'Listen',
+    duaBtnCopy: 'Copy',
+    duaCopied: 'Dua copied to clipboard',
+    duaBookmarkAdded: 'Added to Favorites ⭐',
+    duaBookmarkRemoved: 'Removed from Favorites',
+    duaNoFavs: 'No favorite duas yet. Click the star ⭐ on any dua card to add it here.',
+    duaNoResults: 'No duas found matching your query.',
     moreTitle: 'More Services',
     moreSub: 'Islamic tools and application settings',
     backToMore: 'All Sections',
@@ -2372,6 +3081,8 @@ function setAppLang(lang) {
   if (typeof isQuranReady !== 'undefined' && isQuranReady && typeof renderQuranReader === 'function') renderQuranReader();
   if (typeof isQuranReady !== 'undefined' && isQuranReady && typeof checkQuranResume === 'function') checkQuranResume();
   if (typeof syncNativeLocation === 'function') syncNativeLocation();
+  if (typeof isTasbihReady !== 'undefined' && isTasbihReady && typeof renderTasbih === 'function') renderTasbih();
+  if (typeof isDuaReady !== 'undefined' && isDuaReady && typeof renderDuaHub === 'function') renderDuaHub();
 }
 
 function fmtTime(d) {
@@ -2411,7 +3122,10 @@ async function loadTimings() {
     hijriEl.textContent = `${dict.hijriPrefix || 'Хиджра:'} ${hDate.day} ${hMonth} ${hDate.year} ${hSuffix}`;
   }
 
-  // Мгновенный расчёт расписания через офлайн-модуль, если данные ещё не загружены
+  // Мгновенный рендер расписания на старте (0 мс) до любых сетевых запросов
+  calcNext();
+  renderPrayerList();
+  updateQiblaInfo();
   if (!timings && typeof calcOfflinePrayerTimes === 'function') {
     const off = calcOfflinePrayerTimes(S.lat, S.lon, now, parseInt(S.method, 10), parseInt(S.school, 10));
     timings = {
@@ -4758,68 +5472,7 @@ setAppLang(currentLang);
 // ==========================================
 // 8h. ОФЛАЙН-РАСЧЁТ, CSV ЭКСПОРТ И ПЕЧАТЬ РАСПИСАНИЯ
 // ==========================================
-function calcOfflinePrayerTimes(lat, lon, date, method = 3, school = 1) {
-  const pi = Math.PI, dr = pi / 180.0;
-  let yr = date.getFullYear(), mo = date.getMonth() + 1, dy = date.getDate();
-  if (mo <= 2) { yr -= 1; mo += 12; }
-  const A = Math.floor(yr / 100), B = 2 - A + Math.floor(A / 4);
-  const jd = Math.floor(365.25 * (yr + 4716)) + Math.floor(30.6001 * (mo + 1)) + dy + B - 1524.5;
-  const D = jd - 2451545.0;
-  let g = (357.529 + 0.98560028 * D) % 360; if (g < 0) g += 360;
-  let q = (280.459 + 0.98564736 * D) % 360; if (q < 0) q += 360;
-  let L = (q + 1.915 * Math.sin(g * dr) + 0.020 * Math.sin(2 * g * dr)) % 360; if (L < 0) L += 360;
-  const e = 23.439 - 0.00000036 * D;
-  const dec = Math.asin(Math.sin(e * dr) * Math.sin(L * dr)) / dr;
-  let RA = Math.atan2(Math.cos(e * dr) * Math.sin(L * dr), Math.cos(L * dr)) / dr;
-  RA = (RA % 360 + 360) % 360;
-  let EqT = (q - RA) / 15.0;
-  while (EqT > 12) EqT -= 24; while (EqT < -12) EqT += 24;
-
-  const tz = -date.getTimezoneOffset() / 60.0;
-  const noon = 12 + tz - (lon / 15.0) - EqT;
-
-  const sunAngleTime = (angle, dir) => {
-    const phi = lat * dr, delta = dec * dr;
-    const cosH = (-Math.sin(angle * dr) - Math.sin(phi) * Math.sin(delta)) / (Math.cos(phi) * Math.cos(delta));
-    if (cosH > 1 || cosH < -1) return null;
-    const H = Math.acos(cosH) / dr / 15.0;
-    return dir ? (noon - H) : (noon + H);
-  };
-
-  const asrTime = (factor) => {
-    const phi = lat * dr, delta = dec * dr;
-    const acot = factor + Math.tan(Math.abs(phi - delta));
-    const alt = Math.atan(1.0 / acot) / dr;
-    return sunAngleTime(-alt, false);
-  };
-
-  const toHM = (decHours) => {
-    if (decHours == null) return '--:--';
-    let dh = (decHours % 24 + 24) % 24;
-    const h = Math.floor(dh);
-    const m = Math.round((dh - h) * 60);
-    const rh = (m === 60) ? (h + 1) % 24 : h;
-    const rm = (m === 60) ? 0 : m;
-    return `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`;
-  };
-
-  let fajrDeg = 18.0, ishaDeg = 17.0;
-  const mNum = parseInt(method, 10);
-  if (mNum === 3) { fajrDeg = 19.5; ishaDeg = 17.5; }
-  else if (mNum === 14) { fajrDeg = 16.0; ishaDeg = 15.0; }
-  else if (mNum === 1) { fajrDeg = 18.0; ishaDeg = 18.0; }
-  else if (mNum === 2 || mNum === 13) { fajrDeg = 18.0; ishaDeg = 17.0; }
-  const asrFactor = (school === 1 || school === '1') ? 2.0 : 1.0;
-
-  return {
-    Fajr: toHM(sunAngleTime(fajrDeg, true)),
-    Sunrise: toHM(sunAngleTime(0.833, true)),
-    Dhuhr: toHM(noon),
-    Asr: toHM(asrTime(asrFactor)),
-    Maghrib: toHM(sunAngleTime(0.833, false)),
-    Isha: toHM(sunAngleTime(ishaDeg, false))
-  };
-}
+// calcOfflinePrayerTimes moved to top for instant 0ms offline availability
 
 async function getMonthScheduleData(year, month) {
   const lastDay = new Date(year, month + 1, 0).getDate();
@@ -5450,6 +6103,1073 @@ function toggleQuranTranslation(show) {
   store.set('quran_show_trans', String(quranShowTrans));
   renderQuranAyahs();
 }
+
+// ==========================================
+// 12. ИНТЕРАКТИВНЫЙ ТАСБИХ И ХИСН АЛЬ-МУСЛИМ
+// ==========================================
+
+var isTasbihReady = false;
+var isDuaReady = false;
+
+// --- ПРОЦЕДУРНЫЙ ЗВУК И ТАКТИЛЬНЫЙ ОТКЛИК (WEB AUDIO & HAPTICS) ---
+
+function playTasbihClickSound() {
+  if (store.get('tasbih_sound') === 'off') return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // Процедурный синтез деревянного щелчка бусины
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    const baseFreq = 760 + Math.random() * 80;
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.45, now + 0.035);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(baseFreq, now);
+    filter.Q.setValueAtTime(3.8, now);
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.038);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.04);
+  } catch (e) {}
+}
+
+function playTasbihChimeSound() {
+  if (store.get('tasbih_sound') === 'off') return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // Мелодичный кристальный перезвон завершения этапа / круга (C5, G5, C6)
+    const chord = [523.25, 783.99, 1046.50];
+    chord.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+
+      const peak = 0.16 / (idx + 1);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(peak, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 1.3);
+    });
+  } catch (e) {}
+}
+
+function triggerTasbihVibration(isMilestone) {
+  if (store.get('tasbih_vibrate') === 'off') return;
+  if (!('vibrate' in navigator)) return;
+  try {
+    if (isMilestone) {
+      navigator.vibrate([40, 60, 90]);
+    } else {
+      navigator.vibrate(20);
+    }
+  } catch (e) {}
+}
+
+// --- ПРЕСЕТЫ И СОСТОЯНИЕ ТАСБИХА ---
+
+const TASBIH_PRESETS = {
+  post_prayer: {
+    id: 'post_prayer',
+    multiStage: true,
+    stages: [
+      {
+        target: 33,
+        ar: 'سُبْحَانَ اللَّهِ',
+        tr: 'Субханаллах',
+        title: { ru: 'Субханаллах', tt: 'Сөбханаллаһ', en: 'SubhanAllah' },
+        meaning: {
+          ru: 'Пречист Аллах от всех недостатков',
+          tt: 'Аллаһ һәр кимчелектән пакь',
+          en: 'Glory be to Allah'
+        }
+      },
+      {
+        target: 33,
+        ar: 'الْحَمْدُ لِلَّهِ',
+        tr: 'Альхамдулиллях',
+        title: { ru: 'Альхамдулиллях', tt: 'Әлхәмдүлилләһ', en: 'Alhamdulillah' },
+        meaning: {
+          ru: 'Вся хвала принадлежит Аллаху',
+          tt: 'Барлык мактау Аллаһка',
+          en: 'All praise is due to Allah'
+        }
+      },
+      {
+        target: 33,
+        ar: 'اللَّهُ أَكْبَرُ',
+        tr: 'Аллаху Акбар',
+        title: { ru: 'Аллаху Акбар', tt: 'Аллаһу Әкбәр', en: 'Allahu Akbar' },
+        meaning: {
+          ru: 'Аллах — Превелик',
+          tt: 'Аллаһ иң бөек',
+          en: 'Allah is the Greatest'
+        }
+      },
+      {
+        target: 1,
+        ar: 'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
+        tr: 'Ля иляха илля-Ллаху вахдаху ля шарика лях, ляхуль-мульку ва ляхуль-хамду ва хува ‘аля кулли шей’ин кадир',
+        title: { ru: 'Тахлиль (завершение)', tt: 'Тәһлил (тәмамлау)', en: 'Tahlil (Conclusion)' },
+        meaning: {
+          ru: 'Нет божества, кроме Единого Аллаха, у Которого нет сотоварища. Ему принадлежит власть и Ему хвала, и Он над всякой вещью властен!',
+          tt: 'Бер Аллаһтан башка илаһ юк, Ул Үзе генә, Аның тиңдәше юк. Хакимият һәм мактау Аңа гына, һәм Ул һәрнәрсәгә кадир!',
+          en: 'None has the right to be worshipped except Allah alone without partner. His is the dominion and His is the praise, and He has power over all things.'
+        }
+      }
+    ]
+  },
+  tahlil: {
+    id: 'tahlil',
+    multiStage: false,
+    target: 100,
+    ar: 'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
+    tr: 'Ля иляха илля-Ллаху вахдаху ля шарика лях, ляхуль-мульку ва ляхуль-хамду ва хува ‘аля кулли шей’ин кадир',
+    title: { ru: 'Тахлиль', tt: 'Тәһлил', en: 'Tahlil' },
+    meaning: {
+      ru: 'Нет божества, кроме Единого Аллаха, у Которого нет сотоварища. Ему принадлежит власть и хвала, и Он над всякой вещью властен.',
+      tt: 'Бер Аллаһтан башка илаһ юк, Ул Үзе генә...',
+      en: 'None has the right to be worshipped except Allah alone without partner. To Him belongs the kingdom and to Him is praise.'
+    }
+  },
+  istighfar: {
+    id: 'istighfar',
+    multiStage: false,
+    target: 100,
+    ar: 'أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ',
+    tr: 'Астагфиру-Ллаха ва атубу иляйх',
+    title: { ru: 'Истигфар', tt: 'Истигъфар', en: 'Istighfar' },
+    meaning: {
+      ru: 'Прошу прощения у Аллаха и каюсь перед Ним',
+      tt: 'Аллаһтан гафу итүне сорыйм һәм Аңа тәүбә итәм',
+      en: 'I seek forgiveness from Allah and repent to Him'
+    }
+  },
+  salawat: {
+    id: 'salawat',
+    multiStage: false,
+    target: 100,
+    ar: 'اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ',
+    tr: 'Аллахумма салли ‘аля Мухаммадин ва ‘аля али Мухаммад',
+    title: { ru: 'Салават', tt: 'Салават', en: 'Salawat' },
+    meaning: {
+      ru: 'О Аллах, благослови Мухаммада и его семейство',
+      tt: 'И Аллаһ, Мөхәммәдкә һәм аның гаиләсенә бәрәкәт бир',
+      en: 'O Allah, bestow blessings upon Muhammad and his family'
+    }
+  },
+  hawqala: {
+    id: 'hawqala',
+    multiStage: false,
+    target: 100,
+    ar: 'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ الْعَلِيِّ الْعَظِيمِ',
+    tr: 'Ля хавля ва ля куввата илля билляхиль-‘Алиййиль-‘Азым',
+    title: { ru: 'Хаукаля', tt: 'Хаукалә', en: 'Hawqala' },
+    meaning: {
+      ru: 'Нет силы и мощи ни у кого, кроме Аллаха, Высокого, Великого',
+      tt: 'Бөек Аллаһтан башка һичбер көч һәм куәт юк',
+      en: 'There is no might and no power except with Allah, the Most High, the Supreme'
+    }
+  },
+  free: {
+    id: 'free',
+    multiStage: false,
+    target: 0,
+    ar: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ ، سُبْحَانَ اللَّهِ الْعَظِيمِ',
+    tr: 'Субханаллахи ва бихамдихи, Субханаллахиль-‘Азым',
+    title: { ru: 'Свободный счёт', tt: 'Ирекле санау', en: 'Free Counter' },
+    meaning: {
+      ru: 'Пречист Аллах и хвала Ему, Пречист Аллах Великий',
+      tt: 'Аллаһ һәр кимчелектән пакь, барлык мактау Аңа, Бөек Аллаһ пакь',
+      en: 'Glory be to Allah and His is the praise, Glory be to Allah the Supreme'
+    }
+  }
+};
+
+let tasbihCurrentPresetId = store.get('tasbih_preset') || 'post_prayer';
+let tasbihCurrentStage = parseInt(store.get('tasbih_stage') || '0', 10);
+let tasbihCurrentCount = parseInt(store.get('tasbih_count') || '0', 10);
+
+function getTasbihDateKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function getTasbihStats() {
+  const dateKey = getTasbihDateKey();
+  const savedDate = store.get('tasbih_today_date');
+  if (savedDate !== dateKey) {
+    store.set('tasbih_today_date', dateKey);
+    store.set('tasbih_today_count', '0');
+    store.set('tasbih_today_cycles', '0');
+  }
+  return {
+    todayCount: parseInt(store.get('tasbih_today_count') || '0', 10),
+    todayCycles: parseInt(store.get('tasbih_today_cycles') || '0', 10)
+  };
+}
+
+function updateTasbihStats(addCount, addCycles) {
+  const stats = getTasbihStats();
+  if (addCount !== 0) {
+    stats.todayCount = Math.max(0, stats.todayCount + addCount);
+    store.set('tasbih_today_count', String(stats.todayCount));
+    if (typeof dhikrKey === 'function') {
+      const dk = dhikrKey();
+      const existing = parseInt(store.get(dk) || '0', 10);
+      store.set(dk, String(Math.max(0, existing + addCount)));
+      if (typeof renderDhikr === 'function') renderDhikr();
+    }
+  }
+  if (addCycles !== 0) {
+    stats.todayCycles = Math.max(0, stats.todayCycles + addCycles);
+    store.set('tasbih_today_cycles', String(stats.todayCycles));
+  }
+}
+
+function selectTasbihPreset(presetId) {
+  if (!TASBIH_PRESETS[presetId]) presetId = 'post_prayer';
+  tasbihCurrentPresetId = presetId;
+  tasbihCurrentStage = 0;
+  tasbihCurrentCount = 0;
+  store.set('tasbih_preset', presetId);
+  store.set('tasbih_stage', '0');
+  store.set('tasbih_count', '0');
+  renderTasbih();
+}
+
+function handleTasbihTap(evt) {
+  if (evt && evt.target && evt.target.closest('.tasbih-ctrl-btn')) return;
+
+  const card = document.getElementById('tasbihTapCard');
+  if (card) {
+    card.classList.add('pulse');
+    setTimeout(() => card.classList.remove('pulse'), 130);
+  }
+
+  const preset = TASBIH_PRESETS[tasbihCurrentPresetId] || TASBIH_PRESETS.post_prayer;
+  const dict = I18N[currentLang] || I18N.ru;
+
+  if (preset.multiStage) {
+    const curStage = preset.stages[tasbihCurrentStage] || preset.stages[0];
+    tasbihCurrentCount++;
+    updateTasbihStats(1, 0);
+
+    if (tasbihCurrentCount >= curStage.target) {
+      playTasbihChimeSound();
+      triggerTasbihVibration(true);
+
+      if (tasbihCurrentStage < preset.stages.length - 1) {
+        tasbihCurrentStage++;
+        tasbihCurrentCount = 0;
+        const nextStage = preset.stages[tasbihCurrentStage];
+        const nextTitle = (nextStage.title && nextStage.title[currentLang]) || nextStage.tr;
+        showToast(`✅ ${curStage.tr} завершено! Следующий: ${nextTitle}`, 'info');
+      } else {
+        updateTasbihStats(0, 1);
+        tasbihCurrentStage = 0;
+        tasbihCurrentCount = 0;
+        showToast(dict.tasbihCycleComplete || '🎉 Круг вирда успешно завершён! Ма ша Аллах!', 'info');
+      }
+    } else {
+      playTasbihClickSound();
+      triggerTasbihVibration(false);
+    }
+  } else {
+    tasbihCurrentCount++;
+    updateTasbihStats(1, 0);
+
+    if (preset.target > 0 && tasbihCurrentCount >= preset.target) {
+      playTasbihChimeSound();
+      triggerTasbihVibration(true);
+      updateTasbihStats(0, 1);
+      tasbihCurrentCount = 0;
+      showToast(dict.tasbihCycleComplete || '🎉 Цикл зикра завершён!', 'info');
+    } else {
+      playTasbihClickSound();
+      triggerTasbihVibration(false);
+      if (preset.target === 0 && tasbihCurrentCount % 100 === 0) {
+        playTasbihChimeSound();
+        triggerTasbihVibration(true);
+      }
+    }
+  }
+
+  store.set('tasbih_stage', String(tasbihCurrentStage));
+  store.set('tasbih_count', String(tasbihCurrentCount));
+  renderTasbih();
+}
+
+function undoTasbihCount() {
+  if (tasbihCurrentCount > 0) {
+    tasbihCurrentCount--;
+    updateTasbihStats(-1, 0);
+    store.set('tasbih_count', String(tasbihCurrentCount));
+    playTasbihClickSound();
+    renderTasbih();
+  } else if (tasbihCurrentStage > 0) {
+    const preset = TASBIH_PRESETS[tasbihCurrentPresetId];
+    if (preset && preset.multiStage) {
+      tasbihCurrentStage--;
+      const prevStage = preset.stages[tasbihCurrentStage];
+      tasbihCurrentCount = prevStage.target > 0 ? prevStage.target - 1 : 0;
+      updateTasbihStats(-1, 0);
+      store.set('tasbih_stage', String(tasbihCurrentStage));
+      store.set('tasbih_count', String(tasbihCurrentCount));
+      playTasbihClickSound();
+      renderTasbih();
+    }
+  }
+}
+
+function resetTasbihCount() {
+  tasbihCurrentCount = 0;
+  tasbihCurrentStage = 0;
+  store.set('tasbih_count', '0');
+  store.set('tasbih_stage', '0');
+  renderTasbih();
+  const dict = I18N[currentLang] || I18N.ru;
+  showToast(dict.tasbihReset || 'Счётчик сброшен', 'info');
+}
+
+function toggleTasbihSound() {
+  const isOff = store.get('tasbih_sound') === 'off';
+  const nextVal = isOff ? 'on' : 'off';
+  store.set('tasbih_sound', nextVal);
+  updateTasbihControlIcons();
+  const dict = I18N[currentLang] || I18N.ru;
+  showToast(nextVal === 'on' ? (dict.tasbihSoundOn || 'Звук включён') : (dict.tasbihSoundOff || 'Звук выключен'));
+}
+
+function toggleTasbihVibrate() {
+  const isOff = store.get('tasbih_vibrate') === 'off';
+  const nextVal = isOff ? 'on' : 'off';
+  store.set('tasbih_vibrate', nextVal);
+  updateTasbihControlIcons();
+  if (nextVal === 'on' && 'vibrate' in navigator) {
+    navigator.vibrate(30);
+  }
+  const dict = I18N[currentLang] || I18N.ru;
+  showToast(nextVal === 'on' ? (dict.tasbihVibrateOn || 'Вибрация включена') : (dict.tasbihVibrateOff || 'Вибрация выключена'));
+}
+
+function updateTasbihControlIcons() {
+  const soundIcon = document.getElementById('tasbihSoundIcon');
+  if (soundIcon) {
+    const isOff = store.get('tasbih_sound') === 'off';
+    soundIcon.textContent = isOff ? '🔇' : '🔊';
+  }
+  const vibIcon = document.getElementById('tasbihVibrateIcon');
+  if (vibIcon) {
+    const isOff = store.get('tasbih_vibrate') === 'off';
+    vibIcon.textContent = isOff ? '📴' : '📳';
+  }
+}
+
+function renderTasbih() {
+  if (typeof TASBIH_PRESETS === 'undefined') return;
+  const preset = TASBIH_PRESETS[tasbihCurrentPresetId] || TASBIH_PRESETS.post_prayer;
+  const dict = I18N[currentLang] || I18N.ru;
+
+  document.querySelectorAll('.tasbih-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.id === 'chipPreset_' + preset.id);
+  });
+
+  const badge = document.getElementById('tasbihActivePresetBadge');
+  if (badge) {
+    const titleObj = preset.title || (preset.stages && preset.stages[0].title);
+    badge.textContent = (titleObj && titleObj[currentLang]) || preset.id;
+  }
+
+  const stagesBar = document.getElementById('tasbihStagesBar');
+  if (stagesBar) {
+    if (preset.multiStage) {
+      stagesBar.style.display = 'flex';
+      stagesBar.innerHTML = preset.stages.map((stg, idx) => {
+        let cls = 'tasbih-stage-step';
+        if (idx < tasbihCurrentStage) cls += ' done';
+        else if (idx === tasbihCurrentStage) cls += ' active';
+        const stgTitle = (stg.title && stg.title[currentLang]) || stg.tr;
+        return `<div class="${cls}">${idx + 1}/${preset.stages.length} ${stgTitle}</div>`;
+      }).join('');
+    } else {
+      stagesBar.style.display = 'none';
+      stagesBar.innerHTML = '';
+    }
+  }
+
+  let curAr = '', curTr = '', curMeaning = '', curTarget = 33, stageLabel = '';
+  if (preset.multiStage) {
+    const stg = preset.stages[tasbihCurrentStage] || preset.stages[0];
+    curAr = stg.ar;
+    curTr = stg.tr;
+    curMeaning = (stg.meaning && stg.meaning[currentLang]) || stg.meaning.ru;
+    curTarget = stg.target;
+    stageLabel = `${tasbihCurrentStage + 1}/${preset.stages.length} ${(stg.title && stg.title[currentLang]) || stg.tr}`;
+  } else {
+    curAr = preset.ar;
+    curTr = preset.tr;
+    curMeaning = (preset.meaning && preset.meaning[currentLang]) || preset.meaning.ru;
+    curTarget = preset.target;
+    stageLabel = (preset.title && preset.title[currentLang]) || preset.id;
+  }
+
+  const arEl = document.getElementById('tasbihArabicText');
+  if (arEl) arEl.textContent = curAr;
+  const trEl = document.getElementById('tasbihTranslitText');
+  if (trEl) trEl.textContent = curTr;
+  const meanEl = document.getElementById('tasbihMeaningText');
+  if (meanEl) meanEl.textContent = curMeaning;
+  const stageEl = document.getElementById('tasbihStageText');
+  if (stageEl) stageEl.textContent = stageLabel;
+
+  const countDisplay = document.getElementById('tasbihCountDisplay');
+  if (countDisplay) countDisplay.textContent = tasbihCurrentCount;
+  const targetDisplay = document.getElementById('tasbihTargetDisplay');
+  if (targetDisplay) targetDisplay.textContent = curTarget > 0 ? `/ ${curTarget}` : '∞';
+
+  const circle = document.getElementById('tasbihProgressCircle');
+  if (circle) {
+    const circum = 722.57;
+    const progress = curTarget > 0 ? Math.min(1, tasbihCurrentCount / curTarget) : ((tasbihCurrentCount % 100) / 100);
+    const offset = circum * (1 - progress);
+    circle.style.strokeDashoffset = offset;
+  }
+
+  const stats = getTasbihStats();
+  const statCount = document.getElementById('tasbihStatTodayCount');
+  if (statCount) statCount.textContent = stats.todayCount;
+  const statCycles = document.getElementById('tasbihStatTodayCycles');
+  if (statCycles) statCycles.textContent = stats.todayCycles;
+
+  updateTasbihControlIcons();
+}
+
+// --- БАЗА ДАННЫХ ДУА (ХИСН АЛЬ-МУСЛИМ) ---
+
+const DUA_DATASET = [
+  {
+    id: 'dua_ayatal_kursi',
+    categories: ['after_prayer', 'morning', 'evening', 'sleep'],
+    source: 'Коран 2:255 / Сахих аль-Бухари, 2311',
+    targetCount: 1,
+    title: {
+      ru: 'Аят аль-Курси (Аят Трона)',
+      tt: 'Аятел-көрси',
+      en: 'Ayat al-Kursi (The Throne Verse)'
+    },
+    arabic: 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَن ذَا الَّذِي يَشْفَعُ عِندَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ',
+    translit: 'Алла́ху ля́ иля́ха илля́ хуваль-Хаййуль-Каййу́м, ля́ та’хузуху́ си́натув-ва ля́ наум, ляху́ ма́ фис-сама́ва́ти ва ма́ филь-ард, ман зал-лязи́ йашфа‘у ‘индаху́ илля́ би-изних, йа‘ляму ма́ байна айди́хим ва ма́ хальфахум, ва ля́ йухи́ту́на бишай’им-мин ‘ильмихи́ илля́ бима́ ша́’, васи‘а курсиййухус-сама́ва́ти валь-ард, ва ля́ йа’у́духу́ хифзухума́, ва хуваль-‘Алиййуль-‘Азы́м.',
+    translation: {
+      ru: 'Аллах — нет божества, кроме Него, Живого, Вседержителя. Им не овладевают ни дремота, ни сон. Ему принадлежит то, что на небесах, и то, что на земле. Кто станет заступаться перед Ним без Его дозволения? Он знает их будущее и прошлое, тогда как они постигают из Его знания лишь то, что Он пожелает. Его Престол объемлет небеса и землю, и не тяготит Его оберегание их. Он — Возвышенный, Великий!',
+      tt: 'Аллаһ — Аннан башка һичбер илаһ юк, Ул Мәңге Тере, Җир һәм Күкләрне тотып торучы. Аны йокымсырау да, йокы да басмый. Җирдә һәм Күктә булган бөтен нәрсә Аныкы...',
+      en: 'Allah! There is no deity except Him, the Ever-Living, the Sustainer of all existence. Neither drowsiness overtakes Him nor sleep. To Him belongs whatever is in the heavens and whatever is on the earth. Who is it that can intercede with Him except by His permission? He knows what is before them and what will be after them...'
+    },
+    benefit: {
+      ru: 'Кто читает его после каждого обязательного намаза, того от входа в Рай отделяет только смерть (ан-Насаи).',
+      tt: 'Кем аны һәр фарыз намаздан соң укыса, аны Җәннәткә керүдән үлем генә тоткарлап тора (ән-Нәсәи).',
+      en: 'Whoever recites it after every obligatory prayer, nothing prevents him from entering Paradise except death (an-Nasai).'
+    }
+  },
+  {
+    id: 'dua_sayyid_istighfar',
+    categories: ['morning', 'evening'],
+    source: 'Сахих аль-Бухари, 6306',
+    targetCount: 1,
+    title: {
+      ru: 'Саййидуль-Истигфар (Господин покаяния)',
+      tt: 'Сәйдүл-истигъфар (Тәүбәнең хуҗасы)',
+      en: 'Sayyid al-Istighfar (The Master of Forgiveness)'
+    },
+    arabic: 'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ',
+    translit: 'Аллаху́мма Анта Рабби́ ля́ иля́ха илля́ Ант, халяктани́ ва ана ‘абдук, ва ана ‘аля́ ‘ахдика ва ва‘дика мастата‘т, а‘у́зу бика мин шарри ма́ сана‘т, абу́’у ляка бини‘матика ‘аляййа ва абу́’у бизанби́ фагфир ли́ фа’иннаху́ ля́ йагфируз-зуну́ба илля́ Ант.',
+    translation: {
+      ru: 'О Аллах! Ты — мой Господь, нет божества, кроме Тебя. Ты сотворил меня, и я — Твой раб. Я храню верность завету с Тобой, насколько могу. Прибегаю к Тебе от зла того, что я совершил. Признаю Твою милость ко мне и признаю свой грех. Прости же меня, ведь никто не прощает грехов, кроме Тебя!',
+      tt: 'И Аллаһ! Син — минем Раббым, Синнән башка илаһ юк. Син мине яраттың һәм мин — Синең колың. Көчем җиткән кадәр Синең белән төзелгән килешүдә торам. Үзем кылган гөнаһларның яманлыгыннан Сиңа сыенам...',
+      en: 'O Allah, You are my Lord, there is no deity except You. You created me and I am Your servant, and I abide by Your covenant and promise as best I can. I seek refuge in You from the evil of what I have done. I admit to Your blessings upon me, and I confess to my sin, so forgive me, for none forgives sins except You.'
+    },
+    benefit: {
+      ru: 'Кто произнесёт эти слова днём с убеждённостью и умрёт до вечера, тот станет обитателем Рая. И так же ночью.',
+      tt: 'Кем моны иртән ихласлык белән әйтеп кичкә кадәр вафат булса — Җәннәт әһеленнән булыр. Кичен дә шулай.',
+      en: 'Whoever recites this during the day with conviction and dies before evening will be of the people of Paradise, and likewise at night.'
+    }
+  },
+  {
+    id: 'dua_morn_asbahna',
+    categories: ['morning'],
+    source: 'Сахих Муслим, 2723',
+    targetCount: 1,
+    title: {
+      ru: 'Утреннее свидетельство и хвала',
+      tt: 'Иртәнге шәһадәт һәм мактау',
+      en: 'Morning Affirmation and Praise'
+    },
+    arabic: 'أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
+    translit: 'Асбахна́ ва асбахаль-му́льку лилля́х, валь-хамду лилля́х, ля́ иля́ха илля-Лла́ху вахдаху́ ля́ шари́ка лях, ляхуль-му́льку ва ляхуль-ха́мду ва хува ‘аля́ ку́лли шей’ин кади́р.',
+    translation: {
+      ru: 'Мы дожили до утра, и этим утром владычество принадлежит Аллаху. Хвала Аллаху, нет божества, кроме Единого Аллаха, у Которого нет сотоварища. Ему принадлежит власть, Ему хвала, и Он над всякой вещью властен!',
+      tt: 'Иртәгә ирештек, бу иртәдә бөтен хакимият Аллаһныкы. Барлык мактау Аллаһка, Бер Аллаһтан башка илаһ юк, Аның тиңдәше юк...',
+      en: 'We have reached the morning and the kingdom belongs to Allah. All praise is for Allah, there is no deity except Allah alone without partner. His is the kingdom and His is the praise, and He has power over all things.'
+    },
+    benefit: {
+      ru: 'Сунна утреннего поминания, приносящая благословение и защиту на весь день.',
+      tt: 'Көнгә яклау һәм бәрәкәт бирүче сөннәт иртәнге зикер.',
+      en: 'Prophetic morning remembrance bringing blessing and protection throughout the day.'
+    }
+  },
+  {
+    id: 'dua_eve_amsayna',
+    categories: ['evening'],
+    source: 'Сахих Муслим, 2723',
+    targetCount: 1,
+    title: {
+      ru: 'Вечернее свидетельство и мольба',
+      tt: 'Кичке шәһадәт һәм дога',
+      en: 'Evening Affirmation and Supplication'
+    },
+    arabic: 'أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
+    translit: 'Амсайна́ ва амсаль-му́льку лилля́х, валь-хамду лилля́х, ля́ иля́ха илля-Лла́ху вахдаху́ ля́ шари́ка лях, ляхуль-му́льку ва ляхуль-ха́мду ва хува ‘аля́ ку́лли шей’ин кади́р.',
+    translation: {
+      ru: 'Мы дожили до вечера, и этим вечером владычество принадлежит Аллаху. Хвала Аллаху, нет божества, кроме Единого Аллаха, у Которого нет сотоварища...',
+      tt: 'Кичкә ирештек, бу кичтә бөтен хакимият Аллаһныкы. Барлык мактау Аллаһка...',
+      en: 'We have reached the evening and the kingdom belongs to Allah. All praise is for Allah, there is no deity except Allah alone without partner...'
+    },
+    benefit: {
+      ru: 'Пророческая защита и благословение на всю ночь до рассвета.',
+      tt: 'Таң атканчы төнгә яклау һәм бәрәкәт сорау.',
+      en: 'Prophetic evening remembrance for peace and divine care through the night.'
+    }
+  },
+  {
+    id: 'dua_bismillah_alladhi',
+    categories: ['morning', 'evening', 'distress'],
+    source: 'Абу Дауд, 5088; ат-Тирмизи, 3388',
+    targetCount: 3,
+    title: {
+      ru: 'Защита от всякого вреда (3 раза)',
+      tt: 'Һәрбер зыяннан саклану (3 тапкыр)',
+      en: 'Protection from All Harm (3 times)'
+    },
+    arabic: 'بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ',
+    translit: 'Бисми-Лля́хил-лязи́ ля́ йаду́рру ма‘асмихи́ шей’ун филь-арди ва ля́ фис-сама́’и ва хувас-Сами́‘уль-‘Али́м.',
+    translation: {
+      ru: 'С именем Аллаха, с именем Которого ничто не причинит вреда ни на земле, ни на небе, ведь Он — Слышащий, Знающий.',
+      tt: 'Җирдә һәм Күктә исеме белән бернәрсә дә зыян китерә алмаган Аллаһның исеме белән башлыйм, һәм Ул — Ишетүче, Белүче!',
+      en: 'In the Name of Allah, with Whose Name nothing can cause harm on earth nor in the heavens, and He is the All-Hearing, the All-Knowing.'
+    },
+    benefit: {
+      ru: 'Кто произнесёт это трижды утром и вечером, тому ничто не причинит вреда.',
+      tt: 'Кем моны иртән һәм кичен өч тапкыр укыса, аңа берни дә зыян салмас.',
+      en: 'Whoever recites this three times morning and evening will not be harmed by anything.'
+    }
+  },
+  {
+    id: 'dua_raditu_billahi',
+    categories: ['morning', 'evening'],
+    source: 'Абу Дауд, 5072; ат-Тирмизи, 3389',
+    targetCount: 3,
+    title: {
+      ru: 'Довольство Аллахом и Исламом (3 раза)',
+      tt: 'Аллаһ, Ислам һәм Пәйгамбәр белән ризалык (3 тапкыр)',
+      en: 'Contentment with Allah and Islam (3 times)'
+    },
+    arabic: 'رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ نَبِيًّا',
+    translit: 'Ради́ту билля́хи Раббан, ва биль-Исля́ми ди́нан, ва би-Мухаммадин салля-Лла́ху ‘аляйхи ва салляма набиййа.',
+    translation: {
+      ru: 'Доволен я Аллахом как Господом, исламом — как религией и Мухаммадом ﷺ — как пророком!',
+      tt: 'Раббым — Аллаһ, динем — Ислам, пәйгамбәрем — Мөхәммәд ﷺ булуы белән тулысынча ризамын!',
+      en: 'I am pleased with Allah as my Lord, with Islam as my religion, and with Muhammad (pbuh) as my Prophet.'
+    },
+    benefit: {
+      ru: 'Аллах обязался непременно удовлетворить в Судный день того, кто произнесёт это трижды.',
+      tt: 'Кем моны өч тапкыр әйтсә, Аллаһ кыямәт көнендә аны һичшиксез риза кылыр.',
+      en: 'Allah has promised that whoever recites this thrice, He will surely please him on the Day of Resurrection.'
+    }
+  },
+  {
+    id: 'dua_subhanallah_bihamdihi_100',
+    categories: ['morning', 'evening'],
+    source: 'Сахих аль-Бухари, 6405; Сахих Муслим, 2691',
+    targetCount: 100,
+    title: {
+      ru: 'Прощение грехов (100 раз)',
+      tt: 'Гөнаһларны ярлыкау (100 тапкыр)',
+      en: 'Forgiveness of Sins (100 times)'
+    },
+    arabic: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ',
+    translit: 'Субха́на-Лла́хи ва бихамди́хи.',
+    translation: {
+      ru: 'Пречист Аллах и хвала Ему!',
+      tt: 'Аллаһ һәр кимчелектән пакь, һәм барлык мактау Аңа!',
+      en: 'Glory be to Allah and His is the praise.'
+    },
+    benefit: {
+      ru: 'Кто скажет это сто раз в день, тому простятся прегрешения, даже если они подобны пене морской.',
+      tt: 'Кем моны көненә 100 тапкыр әйтсә, аның бөтен гөнаһлары диңгез күбеге кадәр булса да ярлыканыр.',
+      en: 'Whoever says this 100 times a day, his sins will be forgiven even if they were like the foam of the sea.'
+    }
+  },
+  {
+    id: 'dua_after_prayer_astaghfirullah',
+    categories: ['after_prayer'],
+    source: 'Сахих Муслим, 591',
+    targetCount: 3,
+    title: {
+      ru: 'Истигфар и мольба о мире после намаза',
+      tt: 'Намаздан соң истигъфар һәм тынычлык сорау',
+      en: 'Seeking Forgiveness and Peace after Prayer'
+    },
+    arabic: 'أَسْتَغْفِرُ اللَّهَ، أَسْتَغْفِرُ اللَّهَ، أَسْتَغْفِرُ اللَّهَ، اللَّهُمَّ أَنْتَ السَّلَامُ وَمِنْكَ السَّلَامُ، تَبَارَكْتَ يَا ذَا الْجَلَالِ وَالْإِكْرَامِ',
+    translit: 'Астагфиру-Лла́х (3р). Аллаху́мма Антас-Саля́му ва минкас-саля́м, таба́ракта йа́ Заль-Джаля́ли валь-Икра́м.',
+    translation: {
+      ru: 'Прошу прощения у Аллаха (3 раза). О Аллах, Ты — Мир (Безупречный), и от Тебя исходит мир. Благословен Ты, о Обладатель величия и щедрости!',
+      tt: 'Аллаһтан гафу сорыйм (3 тапкыр). И Аллаһ! Син — Иминлек, һәм бөтен тынычлык Синнән генә. Син бөексең, и Олуглык һәм Юмартлык Иясе!',
+      en: 'I seek forgiveness of Allah (3 times). O Allah, You are Peace and from You comes peace. Blessed are You, O Possessor of majesty and honor.'
+    },
+    benefit: {
+      ru: 'Сунна произносить сразу после завершения обязательного намаза вслед за таслимом.',
+      tt: 'Фарыз намаздан сәлам биргәч үк әйтелә торган беренче зикер.',
+      en: 'Sunnah to recite immediately following the conclusion of the obligatory prayer.'
+    }
+  },
+  {
+    id: 'dua_after_prayer_la_ilaha',
+    categories: ['after_prayer'],
+    source: 'Сахих аль-Бухари, 844; Сахих Муслим, 593',
+    targetCount: 1,
+    title: {
+      ru: 'Восхваление и признание предопределения',
+      tt: 'Намаздан соң Аллаһны мактау',
+      en: 'Praise and Divine Decree after Prayer'
+    },
+    arabic: 'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، اللَّهُمَّ لَا مَانِعَ لِمَا أَعْطَيْتَ، وَلَا مُعْطِيَ لِمَا مَنَعْتَ، وَلَا يَنْفَعُ ذَا الْجَدِّ مِنْكَ الْجَدُّ',
+    translit: 'Ля́ иля́ха илля-Лла́ху вахдаху́ ля́ шари́ка лях, ляхуль-му́льку ва ляхуль-ха́мду ва хува ‘аля́ ку́лли шей’ин кади́р. Аллаху́мма ля́ ма́ни‘а лима́ а‘тайта, ва ля́ му‘тыйа лима́ мана‘та, ва ля́ йанфа‘у заль-джа́дди минкаль-джадд.',
+    translation: {
+      ru: 'Нет божества, кроме Единого Аллаха, у Которого нет сотоварища. Ему принадлежит власть и Ему хвала, и Он над всякой вещью властен! О Аллах, никто не лишит того, что Ты даровал, и никто не дарует того, чего Ты лишил, и бесполезно перед Тобой богатство обладателя богатства.',
+      tt: 'Бер Аллаһтан башка илаһ юк... И Аллаһ, Син биргәнне беркем дә тыя алмас, Син тыйганны беркем бирә алмас, һәм Синнән башка беркемнең дә абруе файда бирмәс.',
+      en: 'None has the right to be worshipped except Allah alone... O Allah, none can prevent what You give and none can give what You withhold, and no fortune can benefit its possessor against You.'
+    },
+    benefit: {
+      ru: 'Постоянное поминание Пророка ﷺ после каждого предписанного намаза.',
+      tt: 'Пәйгамбәребез ﷺ һәр намаздан соң укыган сөннәт дога.',
+      en: 'The Prophet\'s constant remembrance after every prescribed prayer.'
+    }
+  },
+  {
+    id: 'dua_after_prayer_shukr',
+    categories: ['after_prayer'],
+    source: 'Абу Дауд, 1522; ан-Насаи, 1303',
+    targetCount: 1,
+    title: {
+      ru: 'Мольба о помощи в поминании и поклонении',
+      tt: 'Зикер һәм гыйбадәттә ярдәм сорау',
+      en: 'Supplication for Aid in Remembrance and Worship'
+    },
+    arabic: 'اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ، وَشُكْرِكَ، وَحُسْنِ عِبَادَتِكَ',
+    translit: 'Аллаху́мма а‘инни́ ‘аля́ зи́крика, ва шу́крика, ва ху́сни ‘иба́датик.',
+    translation: {
+      ru: 'О Аллах, помоги мне поминать Тебя, благодарить Тебя и наилучшим образом поклоняться Тебе!',
+      tt: 'И Аллаһ! Сине зикер итүдә, Сиңа шөкер итүдә һәм Сиңа күркәм рәвештә гыйбадәт кылуда миңа ярдәм ит!',
+      en: 'O Allah, help me to remember You, to thank You, and to worship You in the best manner!'
+    },
+    benefit: {
+      ru: 'Пророк ﷺ завещал Му‘азу никогда не оставлять эту мольбу после намаза.',
+      tt: 'Пәйгамбәребез ﷺ Мөгазгә бу доганы беркайчан да калдырмаска васыять иткән.',
+      en: 'The Prophet (pbuh) advised Mu\'adh never to omit this supplication after each prayer.'
+    }
+  },
+  {
+    id: 'dua_sleep_bismika',
+    categories: ['sleep'],
+    source: 'Сахих аль-Бухари, 6324',
+    targetCount: 1,
+    title: {
+      ru: 'Перед сном: С Твоим именем умираю и оживаю',
+      tt: 'Йокы алдыннан: Исемең белән үләм һәм тереләм',
+      en: 'Before Sleeping: In Your Name I die and live'
+    },
+    arabic: 'بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا',
+    translit: 'Бисмика-Ллаху́мма аму́ту ва ахйа́.',
+    translation: {
+      ru: 'С именем Твоим, о Аллах, я умираю и оживаю.',
+      tt: 'И Аллаһ! Синең исемең белән үләм һәм тереләм.',
+      en: 'In Your Name, O Allah, I die and I live.'
+    },
+    benefit: {
+      ru: 'Сунна перед сном после омовения.',
+      tt: 'Йокларга ятканда әйтелә торган сөннәт дога.',
+      en: 'Prophetic bedtime prayer upon laying down to rest.'
+    }
+  },
+  {
+    id: 'dua_wake_up',
+    categories: ['sleep'],
+    source: 'Сахих аль-Бухари, 6312',
+    targetCount: 1,
+    title: {
+      ru: 'При пробуждении ото сна',
+      tt: 'Йокыдан уянганда',
+      en: 'Upon Waking Up'
+    },
+    arabic: 'الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ',
+    translit: 'Аль-хамду лилля́хил-лязи́ ахйа́на́ ба‘да ма́ ама́тана́ ва иляйхин-нушу́р.',
+    translation: {
+      ru: 'Хвала Аллаху, Который оживил нас после того, как умертвил нас, и к Нему предстоит возвращение!',
+      tt: 'Безне йокыда үтергәннән соң кабат терелткән Аллаһка барлык мактау, һәм Аңа гына кайтуыбыз!',
+      en: 'All praise is for Allah who gave us life after having caused us to die, and unto Him is the resurrection.'
+    },
+    benefit: {
+      ru: 'Первые слова верующего при утреннем пробуждении.',
+      tt: 'Иртән уянгач беренче әйтелә торган шөкер сүзләре.',
+      en: 'The first words upon waking in the morning.'
+    }
+  },
+  {
+    id: 'dua_home_exit',
+    categories: ['home_mosque'],
+    source: 'Абу Дауд, 5095; ат-Тирмизи, 3426',
+    targetCount: 1,
+    title: {
+      ru: 'При выходе из дома: Упование на Аллаха',
+      tt: 'Өйдән чыкканда: Аллаһка тәвәккәл кылу',
+      en: 'Leaving the House: Reliance on Allah'
+    },
+    arabic: 'بِسْمِ اللَّهِ، تَوَكَّلْتُ عَلَى اللَّهِ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ',
+    translit: 'Бисми-Лля́хи, тавакка́льту ‘аля-Лла́х, ва ля́ хавля ва ля́ куввата илля́ билля́х.',
+    translation: {
+      ru: 'С именем Аллаха, уповаю на Аллаха! Нет силы и мощи ни у кого, кроме Аллаха.',
+      tt: 'Аллаһның исеме белән, Аллаһка тәвәккәл кылдым. Аллаһтан башка һичбер көч һәм куәт юк.',
+      en: 'In the Name of Allah, I trust in Allah; there is no might and no power except with Allah.'
+    },
+    benefit: {
+      ru: 'Человеку возвещается: «Ты ведом прямым путём, защищён и избавлен от бед», и шайтан отступает.',
+      tt: 'Чыкканда укыган кешегә тулы яклау бирелер һәм шайтан чигенер.',
+      en: 'It is said: \'You are guided, defended and protected\', and Satan moves away.'
+    }
+  },
+  {
+    id: 'dua_home_enter',
+    categories: ['home_mosque'],
+    source: 'Абу Дауд, 5096; Сахих Муслим, 2018',
+    targetCount: 1,
+    title: {
+      ru: 'При входе в дом: Мир и поминание',
+      tt: 'Өйгә кергәндә: Иминлек',
+      en: 'Entering the House: Peace and Blessing'
+    },
+    arabic: 'بِسْمِ اللَّهِ وَلَجْنَا، وَبِسْمِ اللَّهِ خَرَجْنَا، وَعَلَى رَبِّنَا تَوَكَّلْنَا',
+    translit: 'Бисми-Лля́хи валяджна́, ва бисми-Лля́хи хараджна́, ва ‘аля́ Раббина́ таваккальна́.',
+    translation: {
+      ru: 'С именем Аллаха мы вошли, с именем Аллаха вышли и на Господа нашего уповаем.',
+      tt: 'Аллаһ исеме белән кердек, Аллаһ исеме белән чыктык һәм Раббыбызга тәвәккәл иттек.',
+      en: 'In the Name of Allah we enter, in the Name of Allah we leave, and upon our Lord we rely.'
+    },
+    benefit: {
+      ru: 'Шайтан лишается возможности провести ночь и разделить трапезу в этом доме.',
+      tt: 'Өйгә сәлам һәм дога белән кергәндә шайтан ул өйдә кала алмый.',
+      en: 'Satan is prevented from lodging or eating in this home.'
+    }
+  },
+  {
+    id: 'dua_mosque_enter',
+    categories: ['home_mosque'],
+    source: 'Сахих Муслим, 713',
+    targetCount: 1,
+    title: {
+      ru: 'При входе в мечеть: Врата милости',
+      tt: 'Мәчеткә кергәндә: Рәхмәт капкалары',
+      en: 'Entering the Mosque: Gates of Mercy'
+    },
+    arabic: 'اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ',
+    translit: 'Аллаху́мма-фтах ли́ абва́ба рахматик.',
+    translation: {
+      ru: 'О Аллах, открой для меня врата Своей милости!',
+      tt: 'И Аллаһ! Миңа Үзеңнең рәхмәт капкаларыңны ач!',
+      en: 'O Allah, open the gates of Your mercy for me!'
+    },
+    benefit: {
+      ru: 'Сунна входить с правой ноги, вознося мольбу о милости Всевышнего.',
+      tt: 'Мәчеткә уң аяк белән кергәндә укыла.',
+      en: 'Recited when entering the mosque with the right foot.'
+    }
+  },
+  {
+    id: 'dua_distress_yunus',
+    categories: ['distress'],
+    source: 'Коран 21:87; ат-Тирмизи, 3505',
+    targetCount: 1,
+    title: {
+      ru: 'Мольба пророка Юнуса (в печали и стеснении)',
+      tt: 'Юныс пәйгамбәр догасы (кыенлыкта)',
+      en: 'Supplication of Prophet Yunus (In Distress)'
+    },
+    arabic: 'لَا إِلَهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ',
+    translit: 'Ля́ иля́ха илля́ Анта, субха́нака инни́ ку́нту миназ-за́лими́н.',
+    translation: {
+      ru: 'Нет божества, кроме Тебя! Пречист Ты, поистине, я был одним из несправедливых!',
+      tt: 'Синнән башка һичбер илаһ юк! Син һәр кимчелектән пакьсең, дөреслектә мин залимнәрдән булдым!',
+      en: 'There is no deity except You; exalted are You. Indeed, I have been of the wrongdoers.'
+    },
+    benefit: {
+      ru: 'Какой бы мусульманин ни воззвал этой мольбой в печали или беде, Аллах обязательно ответит ему.',
+      tt: 'Кем генә кыенлыкта бу дога белән ялварса, Аллаһ аның догасын һичшиксез кабул итәр.',
+      en: 'No Muslim ever calls upon Allah with this supplication in distress, except that Allah answers him.'
+    }
+  }
+];
+
+let duaActiveCategory = 'all';
+let duaSearchQuery = '';
+let duaSessionProgress = {};
+
+function getDuaBookmarks() {
+  try {
+    return JSON.parse(store.get('dua_bookmarks') || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function setDuaCategory(cat) {
+  duaActiveCategory = cat;
+  document.querySelectorAll('.dua-cat-btn').forEach(b => {
+    b.classList.toggle('active', b.id === 'duaCat_' + cat);
+  });
+  renderDuaList();
+}
+
+function filterDuas(query) {
+  duaSearchQuery = (query || '').trim().toLowerCase();
+  const clearBtn = document.getElementById('btnDuaSearchClear');
+  if (clearBtn) clearBtn.style.display = duaSearchQuery ? 'block' : 'none';
+  renderDuaList();
+}
+
+function clearDuaSearch() {
+  const input = document.getElementById('duaSearch');
+  if (input) input.value = '';
+  filterDuas('');
+}
+
+function toggleDuaBookmark(duaId) {
+  let bms = getDuaBookmarks();
+  const idx = bms.indexOf(duaId);
+  const dict = I18N[currentLang] || I18N.ru;
+  if (idx >= 0) {
+    bms.splice(idx, 1);
+    showToast(dict.duaBookmarkRemoved || 'Удалено из Избранного', 'info');
+  } else {
+    bms.push(duaId);
+    showToast(dict.duaBookmarkAdded || 'Добавлено в Избранное ⭐', 'info');
+  }
+  store.set('dua_bookmarks', JSON.stringify(bms));
+  renderDuaList();
+}
+
+function decrementDuaCounter(duaId) {
+  const dua = DUA_DATASET.find(d => d.id === duaId);
+  if (!dua) return;
+  if (duaSessionProgress[duaId] === undefined) {
+    duaSessionProgress[duaId] = dua.targetCount;
+  }
+  if (duaSessionProgress[duaId] > 0) {
+    duaSessionProgress[duaId]--;
+    playTasbihClickSound();
+    triggerTasbihVibration(false);
+    if (duaSessionProgress[duaId] === 0) {
+      playTasbihChimeSound();
+      triggerTasbihVibration(true);
+    }
+  } else {
+    duaSessionProgress[duaId] = dua.targetCount;
+  }
+  renderDuaList();
+}
+
+function playDuaAudio(duaId) {
+  const dua = DUA_DATASET.find(d => d.id === duaId);
+  if (dua && typeof speakArabic === 'function') {
+    speakArabic(dua.arabic);
+  }
+}
+
+function fallbackCopy(text, dict) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast(dict.duaCopied || 'Дуа скопировано в буфер обмена', 'info');
+  } catch (e) {
+    showToast('Не удалось скопировать', 'error');
+  }
+}
+
+function copyDuaText(duaId) {
+  const dua = DUA_DATASET.find(d => d.id === duaId);
+  if (!dua) return;
+  const dict = I18N[currentLang] || I18N.ru;
+  const title = (dua.title && dua.title[currentLang]) || dua.title.ru;
+  const trans = (dua.translation && dua.translation[currentLang]) || dua.translation.ru;
+
+  const textToCopy = `${title}\n\n${dua.arabic}\n\n${dua.translit}\n\n${trans}\n\nИсточник: ${dua.source}\n(Намаз PWA)`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      showToast(dict.duaCopied || 'Дуа скопировано в буфер обмена', 'info');
+    }).catch(() => fallbackCopy(textToCopy, dict));
+  } else {
+    fallbackCopy(textToCopy, dict);
+  }
+}
+
+function renderDuaList() {
+  if (typeof DUA_DATASET === 'undefined') return;
+  const container = document.getElementById('duaListContainer');
+  if (!container) return;
+
+  const dict = I18N[currentLang] || I18N.ru;
+  const bms = getDuaBookmarks();
+
+  let list = DUA_DATASET.filter(dua => {
+    if (duaActiveCategory === 'favorites') {
+      if (!bms.includes(dua.id)) return false;
+    } else if (duaActiveCategory !== 'all') {
+      if (!dua.categories.includes(duaActiveCategory)) return false;
+    }
+
+    if (duaSearchQuery) {
+      const title = ((dua.title && (dua.title[currentLang] || dua.title.ru)) || '').toLowerCase();
+      const ar = (dua.arabic || '').toLowerCase();
+      const tr = (dua.translit || '').toLowerCase();
+      const trans = ((dua.translation && (dua.translation[currentLang] || dua.translation.ru)) || '').toLowerCase();
+      const src = (dua.source || '').toLowerCase();
+      return title.includes(duaSearchQuery) || ar.includes(duaSearchQuery) || tr.includes(duaSearchQuery) || trans.includes(duaSearchQuery) || src.includes(duaSearchQuery);
+    }
+    return true;
+  });
+
+  const totalBadge = document.getElementById('duaTotalBadge');
+  if (totalBadge) {
+    totalBadge.textContent = `${list.length} / ${DUA_DATASET.length}`;
+  }
+
+  if (list.length === 0) {
+    if (duaActiveCategory === 'favorites') {
+      container.innerHTML = `<div class="sub" style="text-align:center; padding:32px 16px; line-height:1.6;">${dict.duaNoFavs || 'Нет избранных дуа. Нажмите на звёздочку ⭐ на любой карточке, чтобы добавить её сюда.'}</div>`;
+    } else {
+      container.innerHTML = `<div class="sub" style="text-align:center; padding:32px 16px;">${dict.duaNoResults || 'Ничего не найдено по вашему запросу.'}</div>`;
+    }
+    return;
+  }
+
+  const catNames = {
+    morning: dict.duaCatMorning || '🌅 Утро',
+    evening: dict.duaCatEvening || '🌇 Вечер',
+    after_prayer: dict.duaCatAfterPrayer || '🤲 После намаза',
+    sleep: dict.duaCatSleep || '🌙 Сон',
+    home_mosque: dict.duaCatHomeMosque || '🕌 Дом/Мечеть',
+    distress: dict.duaCatDistress || '🛡️ Защита'
+  };
+
+  container.innerHTML = list.map(dua => {
+    const isBookmarked = bms.includes(dua.id);
+    const starIcon = isBookmarked ? '⭐' : '☆';
+    const starClass = isBookmarked ? 'dua-star-btn active' : 'dua-star-btn';
+
+    const title = (dua.title && dua.title[currentLang]) || dua.title.ru;
+    const translation = (dua.translation && dua.translation[currentLang]) || dua.translation.ru;
+    const benefit = (dua.benefit && dua.benefit[currentLang]) || dua.benefit.ru;
+
+    const mainCat = dua.categories[0] || 'all';
+    const catLabel = catNames[mainCat] || mainCat;
+
+    const remaining = (duaSessionProgress[dua.id] !== undefined) ? duaSessionProgress[dua.id] : dua.targetCount;
+    const isDone = remaining === 0;
+    const countBtnText = isDone ? `✅ ${dict.duaCompleted || 'Выполнено'}` : `🔁 ${remaining > 1 ? remaining + 'x' : '1x'}`;
+    const countBtnClass = isDone ? 'dua-count-btn done' : 'dua-count-btn';
+
+    return `
+      <div class="dua-card" id="card_${dua.id}">
+        <div class="dua-header">
+          <div class="dua-meta">
+            <span class="dua-badge">${catLabel}</span>
+            <span class="dua-source">${dua.source}</span>
+          </div>
+          <button type="button" class="${starClass}" onclick="toggleDuaBookmark('${dua.id}')" title="Избранное" aria-label="Избранное">${starIcon}</button>
+        </div>
+
+        <div class="dua-title">${title}</div>
+
+        <div class="dua-arabic-box">${dua.arabic}</div>
+
+        <div class="dua-translit">${dua.translit}</div>
+
+        <div class="dua-trans">${translation}</div>
+
+        ${benefit ? `<div class="dua-benefit">💡 ${benefit}</div>` : ''}
+
+        <div class="dua-actions">
+          <button type="button" class="${countBtnClass}" onclick="decrementDuaCounter('${dua.id}')">
+            ${countBtnText}
+          </button>
+
+          <div class="dua-act-group">
+            <button type="button" class="btn btn-ghost" style="padding:4px 10px; font-size:12px;" onclick="playDuaAudio('${dua.id}')" title="Прослушать">
+              🔊 <span>${dict.duaBtnListen || 'Слушать'}</span>
+            </button>
+            <button type="button" class="btn btn-ghost" style="padding:4px 10px; font-size:12px;" onclick="copyDuaText('${dua.id}')" title="Скопировать">
+              📋 <span>${dict.duaBtnCopy || 'Копировать'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderDuaHub() {
+  renderDuaList();
+}
+
+function initTasbih() {
+  isTasbihReady = true;
+  renderTasbih();
+}
+
+function initDuaHub() {
+  isDuaReady = true;
+  renderDuaList();
+}
+
+initTasbih();
+initDuaHub();
+
 
 function initQuranReader() {
   isQuranReady = true;
