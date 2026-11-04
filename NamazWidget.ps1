@@ -237,10 +237,20 @@ function Get-Timings {
   }
 }
 
-$timings = Get-Timings
+$script:timings = Get-Timings
+$timings = $script:timings
 if (-not $timings) { [System.Windows.Forms.MessageBox]::Show("Ошибка расчёта времени намаза."); exit 1 }
 
-function To-Date($t) { $parts = $t.Substring(0,5).Split(":"); $h = [int]$parts[0]; $mi = [int]$parts[1]; $d = Get-Date; return (Get-Date -Year $d.Year -Month $d.Month -Day $d.Day -Hour $h -Minute $mi -Second 0) }
+function To-Date($t) {
+  if (-not $t) { return (Get-Date) }
+  try {
+    $parts = $t.Substring(0,5).Split(":")
+    $h = [int]$parts[0]; $mi = [int]$parts[1]; $d = Get-Date
+    return (Get-Date -Year $d.Year -Month $d.Month -Day $d.Day -Hour $h -Minute $mi -Second 0)
+  } catch {
+    return (Get-Date)
+  }
+}
 
 # Стартовая иконка: полумесяц из icon-192.png, иначе стандартная
 $icon = [System.Drawing.SystemIcons]::Information
@@ -513,41 +523,61 @@ $ayah.TextAlign = "MiddleCenter"
 $ayah.Text = "إن الصلاة كانت على المؤمنين كتابا موقوتا"
 $sched.Controls.Add($ayah)
 $dayClick = {
-  $now2 = Get-Date
-  $nextK = $null
-  foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) { if ((To-Date $script:timings.$k) -gt $now2) { $nextK = $k; break } }
-  if (-not $nextK) { $nextK = "Fajr" }
-  $hc = New-Object System.Globalization.HijriCalendar
-  $shDay.Text = $WeekDays[[int]$now2.DayOfWeek]
-  $shHijri.Text = "{0} {1} {2}" -f $hc.GetDayOfMonth($now2), $HijriMonths[$hc.GetMonth($now2)-1], $hc.GetYear($now2)
-  $shPlace.Text = $Place
-  $nn = Get-NameIdx
-  $shName.Text = "☝ №{0} · {1} · {2} — {3}" -f ($nn + 1), $AN[$nn][0], $AN[$nn][1], $AN[$nn][2]
-  $gold = [System.Drawing.Color]::FromArgb(212,175,55)
-  $gray = [System.Drawing.Color]::FromArgb(150,150,150)
-  $white = [System.Drawing.Color]::White
-  foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) {
-    $sNm[$k].Text = $Names[$k]
-    $sTm[$k].Text = $script:timings.$k.Substring(0,5)
-    if ($k -eq $nextK) { $sSt[$k].Text = "→"; $sSt[$k].ForeColor = $gold; $sNm[$k].ForeColor = $gold; $sTm[$k].ForeColor = $gold }
-    elseif ((To-Date $script:timings.$k) -lt $now2) { $sSt[$k].Text = "✓"; $sSt[$k].ForeColor = $gray; $sNm[$k].ForeColor = $gray; $sTm[$k].ForeColor = $gray }
-    else { $sSt[$k].Text = "○"; $sSt[$k].ForeColor = $white; $sNm[$k].ForeColor = $white; $sTm[$k].ForeColor = $white }
+  try {
+    $now2 = Get-Date
+    $nextK = $null
+    foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) {
+      if ((To-Date $script:timings.$k) -gt $now2) { $nextK = $k; break }
+    }
+    if (-not $nextK) { $nextK = "Fajr" }
+    $hc = New-Object System.Globalization.HijriCalendar
+    $shDay.Text = $WeekDays[[int]$now2.DayOfWeek]
+    $hMonthIdx = [Math]::Max(0, [Math]::Min(11, ($hc.GetMonth($now2) - 1)))
+    $shHijri.Text = "{0} {1} {2}" -f $hc.GetDayOfMonth($now2), $HijriMonths[$hMonthIdx], $hc.GetYear($now2)
+    $shPlace.Text = $Place
+    $nn = Get-NameIdx
+    $shName.Text = "☝ №{0} · {1} · {2} — {3}" -f ($nn + 1), $AN[$nn][0], $AN[$nn][1], $AN[$nn][2]
+    $gold = [System.Drawing.Color]::FromArgb(212,175,55)
+    $gray = [System.Drawing.Color]::FromArgb(150,150,150)
+    $white = [System.Drawing.Color]::White
+    foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) {
+      $nm = if ($script:Names -and $script:Names[$k]) { $script:Names[$k] } else { $NamesRU[$k] }
+      $sNm[$k].Text = $nm
+      $rawT = if ($script:timings -and $script:timings.$k) { $script:timings.$k } else { "00:00" }
+      $sTm[$k].Text = if ($rawT.Length -ge 5) { $rawT.Substring(0,5) } else { $rawT }
+      if ($k -eq $nextK) {
+        $sSt[$k].Text = "→"; $sSt[$k].ForeColor = $gold; $sNm[$k].ForeColor = $gold; $sTm[$k].ForeColor = $gold
+      } elseif ((To-Date $rawT) -lt $now2) {
+        $sSt[$k].Text = "✓"; $sSt[$k].ForeColor = $gray; $sNm[$k].ForeColor = $gray; $sTm[$k].ForeColor = $gray
+      } else {
+        $sSt[$k].Text = "○"; $sSt[$k].ForeColor = $white; $sNm[$k].ForeColor = $white; $sTm[$k].ForeColor = $white
+      }
+    }
+    [void]$sched.Handle
+    $y2 = $shName.Bottom + 6
+    $i = 0
+    foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) {
+      $sSt[$k].Top = $y2 + $i * 30
+      $sNm[$k].Top = $y2 + $i * 30
+      $sTm[$k].Top = $y2 + $i * 30
+      $i++
+    }
+    $ayah.Top = $y2 + 180 + 8
+    $sched.Height = $ayah.Bottom + 12
+    $schedX = [Math]::Min([Math]::Max($w.Left + 10, $panel.Left), ($w.Right - $sched.Width - 10))
+    $schedY = [Math]::Max($w.Top + 10, ($panel.Top - $sched.Height - 10))
+    $sched.Location = New-Object System.Drawing.Point($schedX, $schedY)
+    if ($sched.Visible) {
+      $sched.Hide()
+    } else {
+      $sched.Show()
+      $sched.BringToFront()
+      try { [void][WinApi]::SetWindowPos($sched.Handle, [IntPtr](-1), 0, 0, 0, 0, 0x0053) } catch {}
+      $sched.Activate()
+    }
+  } catch {
+    Log ("dayClick error: " + $_.Exception.Message)
   }
-  [void]$sched.Handle
-  $y2 = $shName.Bottom + 6
-  $i = 0
-  foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) {
-    $sSt[$k].Top = $y2 + $i * 30
-    $sNm[$k].Top = $y2 + $i * 30
-    $sTm[$k].Top = $y2 + $i * 30
-    $i++
-  }
-  $ayah.Top = $y2 + 180 + 8
-  $sched.Height = $ayah.Bottom + 12
-  $schedX = [Math]::Min([Math]::Max($w.Left + 10, $panel.Left), ($w.Right - $sched.Width - 10))
-  $schedY = [Math]::Max($w.Top + 10, ($panel.Top - $sched.Height - 10))
-  $sched.Location = New-Object System.Drawing.Point($schedX, $schedY)
-  if ($sched.Visible) { $sched.Hide() } else { $sched.Show() }
 }
 $ni.Add_Click({
   param($s, $e)
@@ -555,11 +585,13 @@ $ni.Add_Click({
 })
 $script:userMoved = $false
 $script:isDragging = $false
+$script:hasMoved = $false
 $script:dragStart = New-Object System.Drawing.Point(0, 0)
 $onMouseDown = {
   param($sender, $e)
   if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
     $script:isDragging = $true
+    $script:hasMoved = $false
     $script:dragStart = [System.Windows.Forms.Cursor]::Position
     $script:dragOrigin = $panel.Location
   }
@@ -570,27 +602,39 @@ $onMouseMove = {
     $cur = [System.Windows.Forms.Cursor]::Position
     $dx = $cur.X - $script:dragStart.X
     $dy = $cur.Y - $script:dragStart.Y
-    if ([Math]::Abs($dx) -gt 2 -or [Math]::Abs($dy) -gt 2) {
+    if ([Math]::Abs($dx) -gt 6 -or [Math]::Abs($dy) -gt 6) {
       $panel.Location = New-Object System.Drawing.Point(($script:dragOrigin.X + $dx), ($script:dragOrigin.Y + $dy))
       $script:userMoved = $true
+      $script:hasMoved = $true
     }
   }
 }
 $onMouseUp = {
   param($sender, $e)
   if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
+    $wasDragging = $script:isDragging
+    $moved = $script:hasMoved
     $script:isDragging = $false
+    $script:hasMoved = $false
+    if ($wasDragging -and -not $moved) {
+      & $dayClick
+    }
   }
 }
-$panel.ContextMenuStrip = $menu
 foreach ($c in @($panel, $pic, $lblMain, $lblSub)) {
+  $c.ContextMenuStrip = $menu
   $c.Add_MouseDown($onMouseDown)
   $c.Add_MouseMove($onMouseMove)
   $c.Add_MouseUp($onMouseUp)
-  $c.Add_Click($dayClick)
-  $c.Add_DoubleClick($openApp)
+  $c.Add_DoubleClick({ & $dayClick })
 }
-$sched.Add_Deactivate({ $sched.Hide() })
+$sched.Add_Deactivate({
+  try {
+    $pt = [System.Windows.Forms.Cursor]::Position
+    if ($panel.Bounds.Contains($pt)) { return }
+    $sched.Hide()
+  } catch {}
+})
 
 function Apply-Compact {
   if ($Compact) {
