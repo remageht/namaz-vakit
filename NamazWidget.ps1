@@ -2,16 +2,47 @@
 # Показывает следующий намаз + обратный отсчёт, балуны за 10 мин и в начале.
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class WinApi {
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+  [DllImport("user32.dll")] public static extern IntPtr GetWindowLongPtr(IntPtr h, int n);
+  [DllImport("user32.dll")] public static extern IntPtr SetWindowLongPtr(IntPtr h, int n, IntPtr v);
+  [DllImport("user32.dll")] public static extern IntPtr FindWindow(string c, string w);
+  [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr h, int attr, ref int val, int size);
+  public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
+}
+"@
 
 $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } elseif ($MyInvocation.MyCommand.Path) { Split-Path -Parent $MyInvocation.MyCommand.Path } else { "C:\dev\namaz-app" }
 if (-not $ScriptDir) { $ScriptDir = "C:\dev\namaz-app" }
 
-# Защита от запуска нескольких копий через Mutex
-$script:mutexCreated = $false
-$script:mutex = New-Object System.Threading.Mutex($true, "Local\NamazWidgetSingleInstanceMutex", [ref]$script:mutexCreated)
-if (-not $script:mutexCreated) {
-  exit 0
-}
+$PidFile = Join-Path $ScriptDir "widget.pid"
+try {
+  $myId = $PID
+  $myParent = 0
+  try {
+    $myProc = Get-CimInstance Win32_Process -Filter "ProcessId = $myId" -ErrorAction SilentlyContinue
+    if ($myProc) { $myParent = $myProc.ParentProcessId }
+  } catch {}
+
+  if (Test-Path -LiteralPath $PidFile) {
+    try {
+      $oldPid = [int](Get-Content -LiteralPath $PidFile -ErrorAction SilentlyContinue)
+      if ($oldPid -and $oldPid -ne $myId -and $oldPid -ne $myParent) {
+        $p = Get-Process -Id $oldPid -ErrorAction SilentlyContinue
+        if ($p -and $p.ProcessName -like "*powershell*") {
+          Stop-Process -Id $oldPid -Force -ErrorAction SilentlyContinue
+        }
+      }
+    } catch {}
+  }
+  [System.IO.File]::WriteAllText($PidFile, $myId.ToString(), [System.Text.Encoding]::ASCII)
+} catch {}
 $ConfigFile = Join-Path $ScriptDir "config.json"
 $Lat = 45.1342; $Lon = 33.60; $Method = 3; $School = 1; $Place = "Саки"
 $Lang = "ru"; $StartupOn = $true; $ShowCD = $true; $ShowSec = $false; $Compact = $false; $RemMin = 10; $Theme = "gold"
@@ -107,10 +138,13 @@ function Open-NamazApp {
 }
 $LogFile = Join-Path $ScriptDir "widget.log"
 $CacheFile = Join-Path $env:TEMP "namaz_timings.json"
-$RU = @{ Fajr="Фаджр"; Sunrise="Восход"; Dhuhr="Зухр"; Asr="Аср"; Maghrib="Магриб"; Isha="Иша" }
 $Order = @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")
 
-function Log($m){ Add-Content -LiteralPath $LogFile -Value ("[{0}] {1}" -f (Get-Date -Format "HH:mm:ss"), $m) -Encoding UTF8 }
+function Log($m){
+  try {
+    Add-Content -LiteralPath $LogFile -Value ("[{0}] {1}" -f (Get-Date -Format "HH:mm:ss"), $m) -Encoding UTF8
+  } catch {}
+}
 
 function Calc-PrayerTimes([double]$lat, [double]$lon, [datetime]$date) {
   $pi = [Math]::PI; $dr = $pi / 180.0
@@ -208,25 +242,15 @@ if (-not $timings) { [System.Windows.Forms.MessageBox]::Show("Ошибка ра�
 
 function To-Date($t) { $parts = $t.Substring(0,5).Split(":"); $h = [int]$parts[0]; $mi = [int]$parts[1]; $d = Get-Date; return (Get-Date -Year $d.Year -Month $d.Month -Day $d.Day -Hour $h -Minute $mi -Second 0) }
 
-function New-CountdownIcon($text) {
-  $bmp = New-Object System.Drawing.Bitmap(16,16)
-  $g = [System.Drawing.Graphics]::FromImage($bmp)
-  $g.Clear([System.Drawing.Color]::FromArgb(6,40,31))
-  $f = New-Object System.Drawing.Font("Segoe UI", 7, [System.Drawing.FontStyle]::Bold)
-  $br = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(212,175,55))
-  $sf = New-Object System.Drawing.StringFormat
-  $sf.Alignment = "Center"; $sf.LineAlignment = "Center"
-  $g.DrawString($text, $f, $br, (New-Object System.Drawing.RectangleF(0,0,16,16)), $sf)
-  $g.Dispose(); $f.Dispose(); $br.Dispose()
-  $ic = [System.Drawing.Icon]::FromHandle($bmp.GetHicon())
-  $bmp.Dispose()
-  return $ic
-}
-
 # Стартовая иконка: полумесяц из icon-192.png, иначе стандартная
 $icon = [System.Drawing.SystemIcons]::Information
-try { $p = Join-Path $ScriptDir "icon-192.png"
-  if (Test-Path -LiteralPath $p) { $b0 = New-Object System.Drawing.Bitmap($p); $icon = [System.Drawing.Icon]::FromHandle($b0.GetHicon()) }
+try {
+  $p = Join-Path $ScriptDir "icon-192.png"
+  if (Test-Path -LiteralPath $p) {
+    $b0 = New-Object System.Drawing.Bitmap($p)
+    $icon = [System.Drawing.Icon]::FromHandle($b0.GetHicon())
+    $b0.Dispose()
+  }
 } catch {}
 
 $ni = New-Object System.Windows.Forms.NotifyIcon
@@ -246,7 +270,7 @@ $lRu = $lMenu.DropDownItems.Add("Русский (RU)"); $lRu.Add_Click({ $script
 $lTt = $lMenu.DropDownItems.Add("Татарча (TT)"); $lTt.Add_Click({ $script:Lang = "tt"; Update-Lang; Save-Config })
 $lEn = $lMenu.DropDownItems.Add("English (EN)"); $lEn.Add_Click({ $script:Lang = "en"; Update-Lang; Save-Config })
 $tog = $menu.Items.Add("Скрыть панель"); $tog.Add_Click({ $script:userHidden = -not $script:userHidden; $tog.Text = if ($script:userHidden) { "Показать панель" } else { "Скрыть панель" } })
-$exit = $menu.Items.Add("Выход"); $exit.Add_Click({ $ni.Visible = $false; $sched.Close(); $panel.Close(); $ctx.ExitThread() })
+$exit = $menu.Items.Add("Выход"); $exit.Add_Click({ try { Remove-Item -LiteralPath $PidFile -Force -ErrorAction SilentlyContinue } catch {}; $ni.Visible = $false; $sched.Close(); $panel.Close(); $ctx.ExitThread() })
 $ni.ContextMenuStrip = $menu
 $ni.Add_DoubleClick({ Open-NamazApp })
 
@@ -280,16 +304,20 @@ $panel = New-Object System.Windows.Forms.Form
 $panel.FormBorderStyle = "None"
 $panel.TopMost = $true
 $panel.ShowInTaskbar = $false
-$panel.BackColor = [System.Drawing.Color]::FromArgb(33,39,41)
-$panel.Opacity = 0.85
-$panel.Size = New-Object System.Drawing.Size(155, 48)
+$panel.BackColor = [System.Drawing.Color]::FromArgb(16, 32, 26)
+$panel.Opacity = 0.94
+$panel.Size = New-Object System.Drawing.Size(160, 48)
 $panel.Controls.Add($pic)
 $panel.Controls.Add($lblMain)
 $panel.Controls.Add($lblSub)
-$wa = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
-$panel.Location = New-Object System.Drawing.Point(($wa.Right - $panel.Width - 16), ($wa.Bottom - $panel.Height - 10))
+$scr = [System.Windows.Forms.Screen]::PrimaryScreen
+$b = $scr.Bounds
+$w = $scr.WorkingArea
+$wa = $w
+$panel.Location = New-Object System.Drawing.Point(($wa.Left + 20), ($wa.Bottom - $panel.Height - 10))
 $lblMain.Text = "Загрузка..."
 $panel.Show()
+try { [void][WinApi]::ShowWindow($panel.Handle, 5); [void][WinApi]::SetWindowPos($panel.Handle, [IntPtr](-1), 0, 0, 0, 0, 0x0053) } catch {}
 $openApp = { $sched.Hide(); Open-NamazApp }
 
 # Всплывающая панель дня в стиле Awqat: шапка, статусы молитв, аят
@@ -516,7 +544,7 @@ $dayClick = {
   }
   $ayah.Top = $y2 + 180 + 8
   $sched.Height = $ayah.Bottom + 12
-  $schedX = [Math]::Min([Math]::Max($w.Left + 10, ($panel.Right - $sched.Width)), ($w.Right - $sched.Width - 10))
+  $schedX = [Math]::Min([Math]::Max($w.Left + 10, $panel.Left), ($w.Right - $sched.Width - 10))
   $schedY = [Math]::Max($w.Top + 10, ($panel.Top - $sched.Height - 10))
   $sched.Location = New-Object System.Drawing.Point($schedX, $schedY)
   if ($sched.Visible) { $sched.Hide() } else { $sched.Show() }
@@ -574,12 +602,12 @@ function Apply-Compact {
     $lblSub.Font = New-AppFont 8 $false
     $lblSub.Location = New-Object System.Drawing.Point(36, 19)
   } else {
-$panel.Size = New-Object System.Drawing.Size(155, 48)
+    $panel.Size = New-Object System.Drawing.Size(160, 48)
     $pic.Size = New-Object System.Drawing.Size(32, 32)
     $pic.Location = New-Object System.Drawing.Point(8, 8)
-$lblMain.Font = New-AppFont 11 $true
+    $lblMain.Font = New-AppFont 11 $true
     $lblMain.Location = New-Object System.Drawing.Point(48, 3)
-$lblSub.Font = New-AppFont 9 $false
+    $lblSub.Font = New-AppFont 9 $false
     $lblSub.Location = New-Object System.Drawing.Point(48, 24)
   }
 }
@@ -616,8 +644,9 @@ function Set-Startup($on) {
     $ws = New-Object -ComObject WScript.Shell
     $sc = $ws.CreateShortcut($lnk)
     $sc.TargetPath = "wscript.exe"
-    $sc.Arguments = '"C:\dev\namaz-app\Start-NamazWidget.vbs"'
-    $sc.WorkingDirectory = "C:\dev\namaz-app"
+    $vbsPath = Join-Path $ScriptDir "Start-NamazWidget.vbs"
+    $sc.Arguments = ('"{0}"' -f $vbsPath)
+    $sc.WorkingDirectory = $ScriptDir
     $sc.Description = "Namaz Widget"
     $sc.Save()
   } else { if (Test-Path -LiteralPath $lnk) { Remove-Item -LiteralPath $lnk -Force } }
@@ -703,23 +732,7 @@ Apply-Theme $Theme
 $st = $menu.Items.Add("Настройки")
 $st.Add_Click({ Show-Settings })
 
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public class WinApi {
-  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
-  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
-  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
-  [DllImport("user32.dll")] public static extern IntPtr GetWindowLongPtr(IntPtr h, int n);
-  [DllImport("user32.dll")] public static extern IntPtr SetWindowLongPtr(IntPtr h, int n, IntPtr v);
-  [DllImport("user32.dll")] public static extern IntPtr FindWindow(string c, string w);
-  [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr h, int attr, ref int val, int size);
-  [DllImport("user32.dll")] public static extern int SetWindowCompositionAttribute(IntPtr h, ref CompAttrData d);
-  [StructLayout(LayoutKind.Sequential)] public struct AccentPolicy { public int AccentState; public int AccentFlags; public int GradientColor; public int AnimationId; }
-  [StructLayout(LayoutKind.Sequential)] public struct CompAttrData { public int Attribute; public IntPtr Data; public int SizeOfData; }
-  public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
-}
-"@
+
 
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 250
@@ -735,31 +748,20 @@ try {
   $scr = [System.Windows.Forms.Screen]::PrimaryScreen
   $b = $scr.Bounds; $w = $scr.WorkingArea
   if (-not $script:userMoved) {
-    $defX = $w.Right - $panel.Width - 16
+    $defX = $w.Left + 20
     $defY = $w.Bottom - $panel.Height - 10
     if ($panel.Left -ne $defX -or $panel.Top -ne $defY) {
       $panel.Location = New-Object System.Drawing.Point($defX, $defY)
     }
   }
-  $show = $true
-  $fg = [WinApi]::GetForegroundWindow()
-  if ($fg -ne [IntPtr]::Zero -and $fg -ne $panel.Handle -and $fg -ne $sched.Handle) {
-    $rc = New-Object WinApi+RECT
-    if ([WinApi]::GetWindowRect($fg, [ref]$rc)) {
-      if ($rc.Left -le 0 -and $rc.Top -le 0 -and ($rc.Right - $rc.Left) -ge $b.Width -and ($rc.Bottom - $rc.Top) -ge $b.Height) {
-        $show = $false
-      }
-    }
-  }
-  $vis = ($show -and -not $script:userHidden)
+  $vis = (-not $script:userHidden)
   if ($panel.Visible -ne $vis) { $panel.Visible = $vis; Log ("panel visible -> " + $vis) }
   if ($panel.WindowState -eq [System.Windows.Forms.FormWindowState]::Minimized) { try { $panel.WindowState = [System.Windows.Forms.FormWindowState]::Normal; Log "panel restored from minimized" } catch {} }
   if ($vis) { try { [void][WinApi]::SetWindowPos($panel.Handle, [IntPtr](-1), 0, 0, 0, 0, 0x0033) } catch {} }
   $nidx = Get-NameIdx
-  $ni.Text = "{0} {1} -{2} · {3}" -f $Names[$next.key], $next.date.ToString("HH:mm"), $cd, $AN[$nidx][1]
-  $short = if ($s -ge 3600) { "{0}ч" -f [int]($s/3600) } else { "{0}м" -f [int]($s/60) }
-  if ($script:lastShort -ne $short) { $script:lastShort = $short
-    try { $old = $ni.Icon; $ni.Icon = New-CountdownIcon $short; if ($old) { $old.Dispose() } } catch {} }
+  $tipText = "{0} {1} -{2}" -f $Names[$next.key], $next.date.ToString("HH:mm"), $cd
+  if ($tipText.Length -gt 63) { $tipText = $tipText.Substring(0, 63) }
+  $ni.Text = $tipText
   $lblMain.Text = "{0} {1}" -f $Names[$next.key], $next.date.ToString("HH:mm")
   $hh = [int]($s/3600); $mm = [int](($s%3600)/60); $ss = [int]($s%60)
   if ($ShowCD) {
@@ -773,9 +775,9 @@ try {
   if ($s -le 5 -and $script:last0 -ne $dk) { $script:last0 = $dk
     if ($next.key -eq "Sunrise") { $ni.ShowBalloonTip(10000, $T.sunrise, $T.fajrOut, [System.Windows.Forms.ToolTipIcon]::Info) }
     else { $ni.ShowBalloonTip(10000, $T.time, ($T.started -f $Names[$next.key]), [System.Windows.Forms.ToolTipIcon]::Info) } }
-  # Утреннее уведомление с именем дня — раз в день
+  # Утреннее уведомление с именем дня — утром (с 06:00 до 11:59)
   $morningKey = "morning_" + (Get-Date).ToString("yyyy-MM-dd")
-  if ($script:lastMorning -ne $morningKey) {
+  if ($now.Hour -ge 6 -and $now.Hour -le 11 -and $script:lastMorning -ne $morningKey) {
     $script:lastMorning = $morningKey
     $ni.ShowBalloonTip(12000, "Имя дня ☝ — №$($nidx+1)", "$($AN[$nidx][0]) · $($AN[$nidx][1])`r`n$($AN[$nidx][2])", [System.Windows.Forms.ToolTipIcon]::Info)
     Log "Утреннее имя: №$($nidx+1) $($AN[$nidx][1])"
@@ -783,7 +785,7 @@ try {
 } catch { Log ("TICK-ERR: " + $_.Exception.Message) }
 })
 $script:day = (Get-Date).ToString("dd-MM-yyyy")
-$script:last10 = ""; $script:last0 = ""; $script:tbOwner = 0; $script:lastShort = ""; $script:lastMorning = ""
+$script:last10 = ""; $script:last0 = ""; $script:lastMorning = ""
 $timer.Start()
 Apply-Compact
 Apply-Theme $Theme
@@ -791,20 +793,9 @@ try { $ex = [WinApi]::GetWindowLongPtr($panel.Handle, -20); [void][WinApi]::SetW
 try {
   $corner = 2
   [void][WinApi]::DwmSetWindowAttribute($panel.Handle, 33, [ref]$corner, 4)
-  $ac = New-Object WinApi+AccentPolicy
-  $ac.AccentState = 4; $ac.AccentFlags = 0; $ac.GradientColor = 0xE8292721; $ac.AnimationId = 0
-  $sz = [System.Runtime.InteropServices.Marshal]::SizeOf($ac)
-  $ptr = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($sz)
-  [System.Runtime.InteropServices.Marshal]::StructureToPtr($ac, $ptr, $false)
-  $cd = New-Object WinApi+CompAttrData
-  $cd.Attribute = 19; $cd.Data = $ptr; $cd.SizeOfData = $sz
-  [void][WinApi]::SetWindowCompositionAttribute($panel.Handle, [ref]$cd)
-  [System.Runtime.InteropServices.Marshal]::FreeHGlobal($ptr)
-  Log "acrylic on"
-} catch { Log "acrylic off" }
+} catch {}
 Log "Виджет запущен"
-$ni.ShowBalloonTip(6000, "Намаз — Время молитвы", "Виджет запущен. Плашка на рабочем столе и значок в трее.", [System.Windows.Forms.ToolTipIcon]::Info)
-try { & $dayClick } catch {}
+$ni.ShowBalloonTip(6000, "Намаз — Время молитвы", "Виджет запущен в левом нижнем углу и в трее.", [System.Windows.Forms.ToolTipIcon]::Info)
 [System.Windows.Forms.Application]::Run($ctx)
-$timer.Stop(); $ni.Dispose()
+$timer.Stop(); $ni.Dispose(); try { Remove-Item -LiteralPath $PidFile -Force -ErrorAction SilentlyContinue } catch {}
 Log "Виджет остановлен"
