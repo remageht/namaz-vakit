@@ -2129,12 +2129,21 @@ function calcOfflinePrayerTimes(lat, lon, date, method = 3, school = 1) {
 
   return {
     Fajr: toHM(sunAngleTime(fajrDeg, true)),
-    Sunrise: toHM(sunAngleTime(0.833, true)),
+    Sunrise: toHM(sunAngleTime(0.8333, true)),
     Dhuhr: toHM(noon),
     Asr: toHM(asrTime(asrFactor)),
-    Maghrib: toHM(sunAngleTime(0.833, false)),
+    Maghrib: toHM(sunAngleTime(0.8333, false)),
     Isha: toHM(sunAngleTime(ishaDeg, false))
   };
+}
+
+// Внутренняя нумерация методов (подписи в настройках) отличается от Aladhan API:
+// у нас 2=MWL и 3=Egypt, у API 3=MWL и 5=Egypt — переводим только для сетевых запросов.
+function apiMethodNumber(method) {
+  const n = parseInt(method, 10);
+  if (n === 2) return 3;
+  if (n === 3) return 5;
+  return isNaN(n) ? 3 : n;
 }
 
 const S = {
@@ -2152,6 +2161,7 @@ const S = {
 
 var timings = null;
 var timingsDate = null;
+var timingsDay = null;
 var nextPrayer = null;
 
 // Мгновенный синхронный расчёт расписания на старте (0 мс, 100% готовность офлайн)
@@ -3107,6 +3117,7 @@ async function loadTimings() {
   // Показываем дату и Хиджру сразу локально, не дожидаясь ответа сети
   const now = new Date();
   const dStr = todayStr();
+  timingsDay = dStr;
   const hDate = (typeof getHijriDate === 'function') ? getHijriDate(now) : { day: 1, month: 1, year: 1448 };
   const loc = (typeof CAL_LOCALES !== 'undefined' && (CAL_LOCALES[currentLang] || CAL_LOCALES.ru)) || null;
   const hMonth = (loc && loc.hijriMonths && loc.hijriMonths[hDate.month]) ? loc.hijriMonths[hDate.month] : hDate.month;
@@ -3145,7 +3156,7 @@ async function loadTimings() {
   const timeoutId = setTimeout(() => controller.abort(), 8000);
 
   try {
-    const url = `https://api.aladhan.com/v1/timings/${todayStr()}?latitude=${S.lat}&longitude=${S.lon}&method=${S.method}&school=${S.school}`;
+    const url = `https://api.aladhan.com/v1/timings/${todayStr()}?latitude=${S.lat}&longitude=${S.lon}&method=${apiMethodNumber(S.method)}&school=${S.school}`;
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -3186,7 +3197,8 @@ async function loadTimings() {
       }
     } catch(e2) {
       console.error('Ошибка офлайн расчёта:', e2);
-      if (locEl) locEl.textContent = '⚠️ Не удалось связаться с Aladhan API. Проверьте интернет.';
+      const locInfoEl = document.getElementById('locInfo');
+      if (locInfoEl) locInfoEl.textContent = '⚠️ Не удалось связаться с Aladhan API. Проверьте интернет.';
     }
   }
 }
@@ -3250,6 +3262,8 @@ function renderPrayerList() {
 // 4. ТАЙМЕР ОБРАТНОГО ОТСЧЁТА И УВЕДОМЛЕНИЯ
 // ==========================================
 setInterval(() => {
+  // Смена суток: пересчитываем расписание (офлайн мгновенно + уточнение по API)
+  if (timingsDay !== todayStr()) { loadTimings(); return; }
   if (!nextPrayer) return;
   const now = new Date();
   let diff = nextPrayer.date - now;
@@ -5128,6 +5142,11 @@ function calcHaversineKm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Имена/адреса мечетей приходят из публичных OSM-данных — экранируем перед innerHTML
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 function initMosquesMap(centerLat, centerLon) {
   if (typeof L === 'undefined') return;
   const mapEl = document.getElementById('mosquesMap');
@@ -5162,9 +5181,11 @@ async function searchNearbyMosques() {
   initMosquesMap(userLat, userLon);
 
   let mosques = [];
+  const opController = new AbortController();
+  const opTimeout = setTimeout(() => opController.abort(), 15000);
   try {
     const q = `[out:json][timeout:12];(node["amenity"="place_of_worship"]["religion"="muslim"](around:25000,${userLat},${userLon});way["amenity"="place_of_worship"]["religion"="muslim"](around:25000,${userLat},${userLon}););out center 25;`;
-    const res = await fetch('https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(q));
+    const res = await fetch('https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(q), { signal: opController.signal });
     if (!res.ok) throw new Error('Overpass status ' + res.status);
     const data = await res.json();
     if (data && data.elements && data.elements.length > 0) {
@@ -5178,6 +5199,8 @@ async function searchNearbyMosques() {
     }
   } catch(e) {
     console.warn('Overpass fetch failed, using fallback:', e);
+  } finally {
+    clearTimeout(opTimeout);
   }
 
   // Fallback if 0 found or offline
@@ -5205,7 +5228,7 @@ async function searchNearbyMosques() {
       mosques.slice(0, 15).forEach(m => {
         L.marker([m.lat, m.lon])
           .addTo(mosquesLayerGroup)
-          .bindPopup(`<b>${m.name}</b><br>${m.dist.toFixed(1)} ${dict.kmUnit || 'км'}<br><a href="https://maps.google.com/?q=${m.lat},${m.lon}" target="_blank" rel="noopener">${dict.routeLink || 'Маршрут'}</a>`);
+          .bindPopup(`<b>${escapeHtml(m.name)}</b><br>${m.dist.toFixed(1)} ${dict.kmUnit || 'км'}<br><a href="https://maps.google.com/?q=${m.lat},${m.lon}" target="_blank" rel="noopener">${dict.routeLink || 'Маршрут'}</a>`);
       });
     } catch(e) {}
   }
@@ -5218,8 +5241,8 @@ async function searchNearbyMosques() {
     const mapUrl = `https://maps.google.com/?q=${m.lat},${m.lon}`;
     item.innerHTML = `
       <div>
-        <div class="mosque-name">🕌 ${m.name}</div>
-        <div class="sub" style="margin-top:2px;">${m.addr ? m.addr + ' • ' : ''}<a href="${mapUrl}" target="_blank" rel="noopener" style="color:var(--gold); text-decoration:none;">${dict.routeLink || 'Построить маршрут ↗'}</a></div>
+        <div class="mosque-name">🕌 ${escapeHtml(m.name)}</div>
+        <div class="sub" style="margin-top:2px;">${m.addr ? escapeHtml(m.addr) + ' • ' : ''}<a href="${mapUrl}" target="_blank" rel="noopener" style="color:var(--gold); text-decoration:none;">${dict.routeLink || 'Построить маршрут ↗'}</a></div>
       </div>
       <div class="mosque-dist">${m.dist.toFixed(1)} ${dict.kmUnit || 'км'}</div>
     `;
@@ -5477,15 +5500,19 @@ setAppLang(currentLang);
 async function getMonthScheduleData(year, month) {
   const lastDay = new Date(year, month + 1, 0).getDate();
   let apiDays = null;
+  const calController = new AbortController();
+  const calTimeout = setTimeout(() => calController.abort(), 10000);
   try {
-    const url = `https://api.aladhan.com/v1/calendar/${year}/${month + 1}?latitude=${S.lat}&longitude=${S.lon}&method=${S.method}&school=${S.school}`;
-    const res = await fetch(url);
+    const url = `https://api.aladhan.com/v1/calendar/${year}/${month + 1}?latitude=${S.lat}&longitude=${S.lon}&method=${apiMethodNumber(S.method)}&school=${S.school}`;
+    const res = await fetch(url, { signal: calController.signal });
     if (res.ok) {
       const data = await res.json();
       if (data && data.data) apiDays = data.data;
     }
   } catch (e) {
     console.warn('Aladhan calendar API offline, using local math fallback:', e);
+  } finally {
+    clearTimeout(calTimeout);
   }
 
   const daysList = [];
@@ -5769,9 +5796,16 @@ function filterQuranSurahs(query) {
 async function fetchOnlineSurah(surahNum) {
   if (quranCache[surahNum]) return quranCache[surahNum];
 
-  const res = await fetch('https://api.alquran.cloud/v1/surah/' + surahNum + '/editions/quran-uthmani,ru.kuliev,en.sahih');
-  if (!res.ok) throw new Error('HTTP error ' + res.status);
-  const data = await res.json();
+  const surahController = new AbortController();
+  const surahTimeout = setTimeout(() => surahController.abort(), 12000);
+  let data;
+  try {
+    const res = await fetch('https://api.alquran.cloud/v1/surah/' + surahNum + '/editions/quran-uthmani,ru.kuliev,en.sahih', { signal: surahController.signal });
+    if (!res.ok) throw new Error('HTTP error ' + res.status);
+    data = await res.json();
+  } finally {
+    clearTimeout(surahTimeout);
+  }
   if (!data || !data.data || data.data.length < 3) throw new Error('Malformed API response');
 
   const arEdition = data.data[0].ayahs;
@@ -5809,8 +5843,11 @@ function highlightActiveAyah(ayahNum) {
 function stopQuranAudio() {
   if (quranAudio) {
     try { quranAudio.pause(); } catch(e) {}
+    quranAudio.onended = null;
+    quranAudio.onerror = null;
     quranAudio = null;
   }
+  try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch(e) {}
   isSurahPlaying = false;
   activeQuranAyah = null;
   highlightActiveAyah(null);
@@ -5845,6 +5882,8 @@ function playAyahAudio(surahNum, ayahNum, gNum) {
 
   if (quranAudio) {
     try { quranAudio.pause(); } catch(e) {}
+    quranAudio.onended = null;
+    quranAudio.onerror = null;
     quranAudio = null;
   }
 
@@ -5852,6 +5891,7 @@ function playAyahAudio(surahNum, ayahNum, gNum) {
   quranAudio = new Audio(audioUrl);
 
   let hasEnded = false;
+  let fallbackUsed = false;
   const onAyahEnd = () => {
     if (hasEnded) return;
     hasEnded = true;
@@ -5862,9 +5902,10 @@ function playAyahAudio(surahNum, ayahNum, gNum) {
     }
   };
 
-  quranAudio.onended = onAyahEnd;
-  quranAudio.onerror = () => {
-    console.warn('Quran audio CDN failed, using SpeechSynthesis fallback for ayah', ayahNum);
+  // Офлайн-fallback озвучки: onerror и play().catch могут сработать оба — говорим один раз
+  const speakFallback = () => {
+    if (hasEnded || fallbackUsed) return;
+    fallbackUsed = true;
     const curAyah = currentQuranAyahs.find(a => a.n === ayahNum);
     if (curAyah && curAyah.ar && typeof speakArabic === 'function') {
       speakArabic(curAyah.ar);
@@ -5874,15 +5915,15 @@ function playAyahAudio(surahNum, ayahNum, gNum) {
     }
   };
 
+  quranAudio.onended = onAyahEnd;
+  quranAudio.onerror = () => {
+    console.warn('Quran audio CDN failed, using SpeechSynthesis fallback for ayah', ayahNum);
+    speakFallback();
+  };
+
   quranAudio.play().catch(e => {
     console.warn('Audio play prevented or offline:', e);
-    const curAyah = currentQuranAyahs.find(a => a.n === ayahNum);
-    if (curAyah && curAyah.ar && typeof speakArabic === 'function') {
-      speakArabic(curAyah.ar);
-      setTimeout(onAyahEnd, 4000);
-    } else {
-      onAyahEnd();
-    }
+    speakFallback();
   });
 }
 
