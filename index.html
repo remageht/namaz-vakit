@@ -3108,6 +3108,13 @@ function todayStr(offsetDays = 0) {
   return `${day}-${month}-${year}`;
 }
 
+function cleanPrayerTime(timeStr) {
+  if (!timeStr) return '--:--';
+  const m = String(timeStr).match(/(\d{1,2}):(\d{2})/);
+  if (!m) return String(timeStr).slice(0, 5);
+  return `${m[1].padStart(2, '0')}:${m[2]}`;
+}
+
 // ==========================================
 // 3. ЗАГРУЗКА РАСПИСАНИЯ (ALADHAN API + ОФЛАЙН-ФОЛЛБЭК)
 // ==========================================
@@ -3161,8 +3168,16 @@ async function loadTimings() {
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+    if (!data || data.code !== 200 || !data.data || !data.data.timings) {
+      throw new Error((data && (data.data || data.status)) || 'Invalid API timings payload');
+    }
 
-    timings = data.data.timings;
+    const raw = data.data.timings;
+    const clean = {};
+    for (const k in raw) {
+      clean[k] = cleanPrayerTime(raw[k]);
+    }
+    timings = clean;
     timingsDate = data.data.date;
 
     // Отображение дат
@@ -3204,10 +3219,13 @@ async function loadTimings() {
 }
 
 function parsePrayerDate(timeStr, dayOffset = 0) {
-  const [h, m] = timeStr.slice(0, 5).split(':').map(Number);
   const d = new Date();
   d.setDate(d.getDate() + dayOffset);
-  d.setHours(h, m, 0, 0);
+  if (!timeStr) return d;
+  const m = String(timeStr).match(/(\d{1,2}):(\d{2})/);
+  if (m) {
+    d.setHours(parseInt(m[1], 10), parseInt(m[2], 10), 0, 0);
+  }
   return d;
 }
 
@@ -3252,7 +3270,7 @@ function renderPrayerList() {
         ${getPrayerName(k)}
         ${isNext ? `<span class="badge">${langObj.badgeNext}</span>` : ''}
       </span>
-      <span class="t">${timings[k].slice(0, 5)}</span>
+      <span class="t">${cleanPrayerTime(timings[k])}</span>
     `;
     box.appendChild(row);
   }
@@ -3569,8 +3587,10 @@ function updateLocInfoDisplay() {
 }
 
 function saveLocationFix(lat, lon, acc, source) {
-  S.lat = lat;
-  S.lon = lon;
+  const parsedLat = typeof lat === 'number' ? lat : parseFloat(String(lat).replace(',', '.'));
+  const parsedLon = typeof lon === 'number' ? lon : parseFloat(String(lon).replace(',', '.'));
+  if (!isNaN(parsedLat)) S.lat = parsedLat;
+  if (!isNaN(parsedLon)) S.lon = parsedLon;
   S.acc = (acc !== null && acc !== undefined && !isNaN(acc)) ? acc : null;
   S.locSource = source;
   S.locTime = Date.now();
@@ -3755,8 +3775,8 @@ if (btnTestSound) {
 }
 
 document.getElementById('btnSave').onclick = () => {
-  const latVal = parseFloat(document.getElementById('inLat').value);
-  const lonVal = parseFloat(document.getElementById('inLon').value);
+  const latVal = parseFloat(String(document.getElementById('inLat').value).replace(',', '.'));
+  const lonVal = parseFloat(String(document.getElementById('inLon').value).replace(',', '.'));
   if (isNaN(latVal) || isNaN(lonVal)) {
     showToast('Введите корректные числовые координаты широты и долготы', 'error');
     return;
@@ -5523,12 +5543,12 @@ async function getMonthScheduleData(year, month) {
     if (apiDays && apiDays[day - 1] && apiDays[day - 1].timings) {
       const at = apiDays[day - 1].timings;
       t = {
-        Fajr: at.Fajr.slice(0, 5),
-        Sunrise: at.Sunrise.slice(0, 5),
-        Dhuhr: at.Dhuhr.slice(0, 5),
-        Asr: at.Asr.slice(0, 5),
-        Maghrib: at.Maghrib.slice(0, 5),
-        Isha: at.Isha.slice(0, 5)
+        Fajr: cleanPrayerTime(at.Fajr),
+        Sunrise: cleanPrayerTime(at.Sunrise),
+        Dhuhr: cleanPrayerTime(at.Dhuhr),
+        Asr: cleanPrayerTime(at.Asr),
+        Maghrib: cleanPrayerTime(at.Maghrib),
+        Isha: cleanPrayerTime(at.Isha)
       };
     } else {
       t = calcOfflinePrayerTimes(S.lat, S.lon, dateObj, S.method, S.school);

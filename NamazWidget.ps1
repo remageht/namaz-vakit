@@ -203,13 +203,25 @@ function Calc-PrayerTimes([double]$lat, [double]$lon, [datetime]$date) {
     Isha    = fFmt $isha
   }
 }
+function Format-TimeStr($t) {
+  if (-not $t) { return "00:00" }
+  if ($t -match '(\d{1,2}):(\d{2})') {
+    return ("{0:00}:{1:00}" -f [int]$matches[1], [int]$matches[2])
+  }
+  return "00:00"
+}
 function Compare-Timings($a, $b) {
   $maxDiff = 0
   foreach ($k in @("Fajr","Dhuhr","Asr","Maghrib","Isha")) {
     try {
-      $p1 = $a.$k.Substring(0,5).Split(":"); $p2 = $b.$k.Substring(0,5).Split(":")
-      $diff = [Math]::Abs([int]$p1[0]*60+[int]$p1[1] - ([int]$p2[0]*60+[int]$p2[1]))
-      if ($diff -gt $maxDiff) { $maxDiff = $diff }
+      $m1 = $null; $m2 = $null
+      if ($a -and $a.$k -and $a.$k -match '(\d{1,2}):(\d{2})') { $m1 = [int]$matches[1] * 60 + [int]$matches[2] }
+      if ($b -and $b.$k -and $b.$k -match '(\d{1,2}):(\d{2})') { $m2 = [int]$matches[1] * 60 + [int]$matches[2] }
+      if ($m1 -ne $null -and $m2 -ne $null) {
+        $diff = [Math]::Abs($m1 - $m2)
+        if ($diff -gt 720) { $diff = 1440 - $diff }
+        if ($diff -gt $maxDiff) { $maxDiff = $diff }
+      }
     } catch {}
   }
   return $maxDiff
@@ -241,14 +253,28 @@ function Start-TimingsFetch {
         # Внутренняя нумерация методов (2=MWL, 3=Egypt) отличается от Aladhan API (3=MWL, 5=Egypt)
         $apiMethod = switch ($method) { 2 { 3 } 3 { 5 } default { $method } }
         $r = Invoke-RestMethod -Uri "https://api.aladhan.com/v1/timings/${today}?latitude=${lat}&longitude=${lon}&method=${apiMethod}&school=${school}" -TimeoutSec 15
-        $state.result = $r.data.timings
-        $state.date = $today
+        if ($r -and $r.code -eq 200 -and $r.data -and $r.data.timings) {
+          $clean = [PSCustomObject]@{}
+          foreach ($prop in $r.data.timings.PSObject.Properties) {
+            $val = [string]$prop.Value
+            if ($val -match '(\d{1,2}):(\d{2})') {
+              $clean | Add-Member -NotePropertyName $prop.Name -NotePropertyValue ("{0:00}:{1:00}" -f [int]$matches[1], [int]$matches[2])
+            } else {
+              $clean | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $val
+            }
+          }
+          $state.result = $clean
+          $state.date = $today
+        } else {
+          $errMsg = if ($r -and $r.data) { [string]$r.data } else { "Invalid API response" }
+          $state.error = $errMsg
+        }
       } catch {
         $state.error = $_.Exception.Message
       } finally {
         $state.done = $true
       }
-    }).AddArgument($Lat).AddArgument($Lon).AddArgument($Method).AddArgument($School).AddArgument((Get-Date).ToString("dd-MM-yyyy")).AddArgument($script:fetchState)
+    }).AddArgument(([double]$Lat).ToString([System.Globalization.CultureInfo]::InvariantCulture)).AddArgument(([double]$Lon).ToString([System.Globalization.CultureInfo]::InvariantCulture)).AddArgument($Method).AddArgument($School).AddArgument((Get-Date).ToString("dd-MM-yyyy")).AddArgument($script:fetchState)
     $script:fetchPS = $ps
     $script:fetchRS = $rs
     $script:fetchHandle = $ps.BeginInvoke()
@@ -305,12 +331,12 @@ if (-not $timings) { [System.Windows.Forms.MessageBox]::Show("Ошибка ра�
 function To-Date($t) {
   if (-not $t) { return (Get-Date) }
   try {
-    $parts = $t.Substring(0,5).Split(":")
-    $h = [int]$parts[0]; $mi = [int]$parts[1]; $d = Get-Date
-    return (Get-Date -Year $d.Year -Month $d.Month -Day $d.Day -Hour $h -Minute $mi -Second 0)
-  } catch {
-    return (Get-Date)
-  }
+    if ($t -match '(\d{1,2}):(\d{2})') {
+      $h = [int]$matches[1]; $mi = [int]$matches[2]; $d = Get-Date
+      return (Get-Date -Year $d.Year -Month $d.Month -Day $d.Day -Hour $h -Minute $mi -Second 0)
+    }
+  } catch {}
+  return (Get-Date)
 }
 
 # Стартовая иконка: полумесяц из icon-192.png, иначе стандартная
@@ -616,7 +642,7 @@ $dayClick = {
       $nm = if ($script:Names -and $script:Names[$k]) { $script:Names[$k] } else { $NamesRU[$k] }
       $sNm[$k].Text = $nm
       $rawT = if ($script:timings -and $script:timings.$k) { $script:timings.$k } else { "00:00" }
-      $sTm[$k].Text = if ($rawT.Length -ge 5) { $rawT.Substring(0,5) } else { $rawT }
+      $sTm[$k].Text = Format-TimeStr $rawT
       if ($k -eq $nextK) {
         $sSt[$k].Text = "→"; $sSt[$k].ForeColor = $gold; $sNm[$k].ForeColor = $gold; $sTm[$k].ForeColor = $gold
       } elseif ((To-Date $rawT) -lt $now2) {
@@ -681,6 +707,14 @@ $onMouseMove = {
     }
   }
 }
+$script:singleClickTimer = New-Object System.Windows.Forms.Timer
+$script:singleClickTimer.Interval = 250
+$script:justDoubleClicked = $false
+$script:singleClickTimer.Add_Tick({
+  $script:singleClickTimer.Stop()
+  & $dayClick
+})
+
 $onMouseUp = {
   param($sender, $e)
   if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
@@ -688,17 +722,28 @@ $onMouseUp = {
     $moved = $script:hasMoved
     $script:isDragging = $false
     $script:hasMoved = $false
+    if ($script:justDoubleClicked) {
+      $script:justDoubleClicked = $false
+      return
+    }
     if ($wasDragging -and -not $moved) {
-      & $dayClick
+      $script:singleClickTimer.Stop()
+      $script:singleClickTimer.Start()
     }
   }
+}
+$onDoubleClick = {
+  $script:justDoubleClicked = $true
+  $script:singleClickTimer.Stop()
+  $sched.Hide()
+  Open-NamazApp
 }
 foreach ($c in @($panel, $pic, $lblMain, $lblSub)) {
   $c.ContextMenuStrip = $menu
   $c.Add_MouseDown($onMouseDown)
   $c.Add_MouseMove($onMouseMove)
   $c.Add_MouseUp($onMouseUp)
-  $c.Add_DoubleClick({ & $dayClick })
+  $c.Add_DoubleClick($onDoubleClick)
 }
 # Отложенное скрытие: клик по трею сначала вызывает Deactivate, затем Click —
 # без задержки popup закрывался бы и тут же открывался заново (toggle ломался)
@@ -938,6 +983,7 @@ $ni.ShowBalloonTip(6000, "Намаз — Время молитвы", "Видже
 # Освобождение ресурсов при штатном выходе
 $timer.Stop(); $timer.Dispose()
 try { $script:deactTimer.Stop(); $script:deactTimer.Dispose() } catch {}
+try { $script:singleClickTimer.Stop(); $script:singleClickTimer.Dispose() } catch {}
 try { if ($script:fetchPS) { $script:fetchPS.Dispose() } } catch {}
 try { if ($script:fetchRS) { $script:fetchRS.Dispose() } } catch {}
 $ni.Visible = $false; $ni.Dispose()
