@@ -1218,9 +1218,158 @@
       margin-bottom: 12px;
     }
   }
+  /* ===== Тематический скроллбар ===== */
+  html { scrollbar-width: thin; scrollbar-color: var(--gold) #041b15; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: #041b15; }
+  ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--gold), #7a5f1a); border-radius: 8px; border: 2px solid #041b15; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--gold-light); }
+
+  /* ===== Splash / анимация появления ===== */
+  #splash {
+    position: fixed; inset: 0; z-index: 9999; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(120% 90% at 50% 0%, #0a3a2c 0%, var(--bg) 48%, #02120d 100%);
+    transition: opacity .7s ease, transform .7s ease, filter .7s ease;
+  }
+  #splash.sp-hide { opacity: 0; transform: scale(1.06); filter: blur(14px); pointer-events: none; }
+  .sp-glow { position: absolute; border-radius: 50%; filter: blur(60px); pointer-events: none; }
+  .sp-glow.g1 { width: 62vmax; height: 62vmax; left: -16vmax; top: -22vmax; background: radial-gradient(circle, rgba(212,175,55,.26), transparent 62%); animation: spBreath 7s ease-in-out infinite; }
+  .sp-glow.g2 { width: 52vmax; height: 52vmax; right: -14vmax; bottom: -20vmax; background: radial-gradient(circle, rgba(34,197,94,.20), transparent 62%); animation: spBreath 9s ease-in-out infinite reverse; }
+  @keyframes spBreath { 0%,100% { transform: scale(1); opacity: .42; } 50% { transform: scale(1.14); opacity: .66; } }
+  .sp-rays {
+    position: absolute; inset: -30%; pointer-events: none;
+    background: repeating-conic-gradient(from 0deg, rgba(212,175,55,.05) 0deg 1.5deg, transparent 1.5deg 22.5deg);
+    -webkit-mask-image: radial-gradient(circle at 50% 45%, #000 0%, transparent 62%);
+    mask-image: radial-gradient(circle at 50% 45%, #000 0%, transparent 62%);
+    animation: spSpin 90s linear infinite;
+  }
+  @keyframes spSpin { to { transform: rotate(360deg); } }
+  .sp-grain {
+    position: absolute; inset: 0; pointer-events: none; opacity: .07; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='140'%20height='140'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.85'%20numOctaves='2'%20stitchTiles='stitch'/%3E%3C/filter%3E%3Crect%20width='140'%20height='140'%20filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .sp-dust { position: absolute; inset: 0; pointer-events: none; }
+  .sp-dust i {
+    position: absolute; bottom: -4vh; border-radius: 50%;
+    background: var(--gold-light); box-shadow: 0 0 6px rgba(212,175,55,.8);
+    opacity: 0; animation: spRise linear infinite;
+  }
+  @keyframes spRise {
+    0% { transform: translateY(0) translateX(0); opacity: 0; }
+    10% { opacity: .75; }
+    90% { opacity: .4; }
+    100% { transform: translateY(-108vh) translateX(var(--dx, 0px)); opacity: 0; }
+  }
+  .sp-inner { position: relative; z-index: 2; text-align: center; padding: 24px; max-width: 620px; width: 100%; }
+  .sp-emblem { width: clamp(88px, 22vw, 128px); height: auto; display: block; margin: 0 auto 10px; overflow: visible; }
+  .sp-star { transform-origin: 60px 60px; animation: spSpin 44s linear infinite; }
+  .sp-star rect { stroke-dasharray: 240; stroke-dashoffset: 240; animation: spDraw 1.3s .15s ease forwards; }
+  @keyframes spDraw { to { stroke-dashoffset: 0; } }
+  .sp-crescent { opacity: 0; transform-origin: 60px 60px; animation: spMoon .9s .5s cubic-bezier(.2,.8,.2,1) forwards, spMoonGlow 3.2s 1.6s ease-in-out infinite; }
+  @keyframes spMoon { from { opacity: 0; transform: scale(.55) rotate(-24deg); } to { opacity: 1; transform: scale(1) rotate(0deg); } }
+  @keyframes spMoonGlow { 0%,100% { opacity: 1; } 50% { opacity: .82; } }
+  .sp-title {
+    font-size: clamp(28px, 7vw, 44px); font-weight: 800; letter-spacing: .35em; text-indent: .35em;
+    background: linear-gradient(100deg, var(--gold) 10%, var(--gold-light) 45%, var(--gold) 75%);
+    background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: spShimmer 3.2s linear infinite, spFadeUp .8s .35s both;
+  }
+  @keyframes spShimmer { 0% { background-position: 0% 0; } 100% { background-position: -220% 0; } }
+  .sp-rule { height: 1px; width: 0; margin: 12px auto 18px; background: linear-gradient(90deg, transparent, var(--gold), transparent); animation: spRule .9s .6s ease forwards; }
+  @keyframes spRule { to { width: min(240px, 60vw); } }
+  .sp-ayah-ar {
+    font-family: 'Amiri', 'Scheherazade New', 'Traditional Arabic', 'Times New Roman', serif;
+    font-size: clamp(22px, 5.4vw, 34px); line-height: 1.95; direction: rtl;
+    color: var(--gold-light); text-shadow: 0 0 26px rgba(212,175,55,.35);
+    animation: spAyah 1.1s .8s cubic-bezier(.2,.8,.2,1) both;
+  }
+  @keyframes spAyah { from { opacity: 0; transform: translateY(14px); filter: blur(8px); } to { opacity: 1; transform: none; filter: blur(0); } }
+  .sp-ornament { color: var(--gold); font-size: 14px; letter-spacing: .6em; text-indent: .6em; margin: 10px 0; animation: spFadeUp .7s 1.2s both; }
+  .sp-ayah-tr { color: var(--text); opacity: .92; font-size: clamp(14px, 3.6vw, 17px); line-height: 1.6; max-width: 46ch; margin: 0 auto; animation: spFadeUp .8s 1.3s both; }
+  .sp-ayah-src { color: var(--gold); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; margin-top: 10px; animation: spFadeUp .8s 1.5s both; }
+  .sp-load { width: 180px; height: 2px; margin: 26px auto 8px; border-radius: 2px; background: rgba(255,255,255,.12); overflow: hidden; animation: spFadeUp .6s 1.6s both; }
+  .sp-load i { display: block; height: 100%; width: 45%; background: linear-gradient(90deg, transparent, var(--gold-light), transparent); animation: spScan 1.2s ease-in-out infinite; }
+  @keyframes spScan { 0% { transform: translateX(-110%); } 100% { transform: translateX(320%); } }
+  .sp-load-text { color: var(--muted); font-size: 12px; letter-spacing: .12em; animation: spFadeUp .6s 1.7s both; }
+  .sp-skip { position: absolute; bottom: calc(18px + env(safe-area-inset-bottom)); left: 0; right: 0; text-align: center; color: var(--muted); font-size: 11px; opacity: 0; animation: spFadeUp .8s 2s both; z-index: 2; }
+  @keyframes spFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  /* Появление интерфейса после splash */
+  body.splashing header, body.splashing nav.tabs,
+  body.splashing #p-times .next-card, body.splashing #p-times .next-card + .card { opacity: 0; }
+  body.revealed header { animation: spRise .6s cubic-bezier(.2,.8,.2,1) both; }
+  body.revealed nav.tabs { animation: spRise .6s .07s cubic-bezier(.2,.8,.2,1) both; }
+  body.revealed #p-times .next-card { animation: spRise .7s .14s cubic-bezier(.2,.8,.2,1) both; }
+  body.revealed #p-times .next-card + .card { animation: spRise .7s .22s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes spRise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    #splash, #splash *, body.revealed header, body.revealed nav.tabs,
+    body.revealed #p-times .next-card, body.revealed #p-times .next-card + .card { animation: none !important; transition: none !important; }
+    .sp-dust, .sp-rays { display: none; }
+    .sp-star rect { stroke-dashoffset: 0; }
+    .sp-crescent, .sp-title, .sp-ayah-ar, .sp-ayah-tr, .sp-ayah-src, .sp-ornament, .sp-load, .sp-load-text, .sp-rule { opacity: 1; transform: none; filter: none; }
+    .sp-rule { width: min(240px, 60vw); }
+    body.splashing header, body.splashing nav.tabs,
+    body.splashing #p-times .next-card, body.splashing #p-times .next-card + .card { opacity: 1; }
+  }
 </style>
 </head>
-<body>
+<body class="splashing">
+<div id="splash" role="status" aria-label="Загрузка приложения">
+  <div class="sp-glow g1"></div>
+  <div class="sp-glow g2"></div>
+  <div class="sp-rays"></div>
+  <div class="sp-grain"></div>
+  <div class="sp-dust" id="spDust"></div>
+  <div class="sp-inner">
+    <svg class="sp-emblem" viewBox="0 0 120 120" aria-hidden="true">
+      <defs>
+        <linearGradient id="spGold" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#f7e8a4"/>
+          <stop offset=".5" stop-color="#d4af37"/>
+          <stop offset="1" stop-color="#9c7a1e"/>
+        </linearGradient>
+        <filter id="spGlowF" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="3" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <mask id="spMoonMask">
+          <rect width="120" height="120" fill="#fff"/>
+          <circle cx="70" cy="54" r="24" fill="#000"/>
+        </mask>
+      </defs>
+      <g class="sp-star" fill="none" stroke="url(#spGold)" stroke-width="1.4" opacity=".85">
+        <rect x="32" y="32" width="56" height="56"/>
+        <rect x="32" y="32" width="56" height="56" transform="rotate(45 60 60)"/>
+      </g>
+      <circle class="sp-crescent" cx="60" cy="60" r="27" fill="url(#spGold)" mask="url(#spMoonMask)" filter="url(#spGlowF)"/>
+      <circle class="sp-crescent" cx="84" cy="40" r="2.4" fill="#f7e8a4"/>
+    </svg>
+    <div class="sp-title" id="spTitle">НАМАЗ</div>
+    <div class="sp-rule"></div>
+    <div class="sp-ayah-ar" id="spAyahAr" lang="ar" dir="rtl"></div>
+    <div class="sp-ornament">✦ ✦ ✦</div>
+    <div class="sp-ayah-tr" id="spAyahTr"></div>
+    <div class="sp-ayah-src" id="spAyahSrc"></div>
+    <div class="sp-load"><i></i></div>
+    <div class="sp-load-text" id="spLoadText">Загрузка…</div>
+  </div>
+  <div class="sp-skip" id="spSkip">коснитесь, чтобы пропустить</div>
+</div>
+<script>
+// Страховка: splash декоративный и не должен блокировать приложение даже при сбое основного скрипта
+setTimeout(function () {
+  var s = document.getElementById('splash');
+  if (s && !s.classList.contains('sp-hide')) {
+    s.classList.add('sp-hide');
+    document.body.classList.remove('splashing');
+    document.body.classList.add('revealed');
+    setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 800);
+  }
+}, 4000);
+</script>
 <div id="taskbar"><span class="dot"></span><span id="tbText">…</span></div>
 
 <header>
@@ -7254,6 +7403,91 @@ window.addEventListener('beforeprint', () => {
     printSchedule();
   }
 });
+
+// ==========================================
+// 12. SPLASH: АНИМАЦИЯ ПОЯВЛЕНИЯ (золотой аят)
+// ==========================================
+(function initSplash() {
+  const splash = document.getElementById('splash');
+  if (!splash) { document.body.classList.remove('splashing'); return; }
+  if (splash.classList.contains('sp-hide')) {
+    document.body.classList.remove('splashing');
+    document.body.classList.add('revealed');
+    if (splash.parentNode) splash.parentNode.removeChild(splash);
+    return;
+  }
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const SPLASH_AYAHS = [
+    {
+      ar: 'إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا',
+      ru: 'Поистине, молитва предписана верующим в определённое время.',
+      tt: 'Чыннан да, намаз мөэминнәргә билгеле вакытта фарыз кылынды.',
+      en: 'Indeed, prayer has been decreed upon the believers a decree of specified times.',
+      src: { ru: 'Ан-Ниса · 4:103', tt: 'Ан-Ниса · 4:103', en: 'An-Nisa · 4:103' }
+    },
+    {
+      ar: 'وَأَقِمِ الصَّلَاةَ لِذِكْرِي',
+      ru: 'И совершай молитву, чтобы помнить обо Мне.',
+      tt: 'Мине искә алу өчен намазны үтә.',
+      en: 'And establish prayer for My remembrance.',
+      src: { ru: 'Та Ха · 20:14', tt: 'Та Ха · 20:14', en: 'Ta-Ha · 20:14' }
+    },
+    {
+      ar: 'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي وَلَا تَكْفُرُونِ',
+      ru: 'Поминайте Меня, и Я буду помнить о вас; благодарите Меня и не будьте неблагодарны.',
+      tt: 'Мине искә алыгыз, Мин дә сезне искә алырмын; Миңа шөкер итегез.',
+      en: 'So remember Me; I will remember you. And be grateful to Me and do not deny Me.',
+      src: { ru: 'Аль-Бакара · 2:152', tt: 'Аль-Бакара · 2:152', en: 'Al-Baqarah · 2:152' }
+    }
+  ];
+  const lang = (typeof currentLang !== 'undefined' && currentLang) || 'ru';
+  const pick = (o) => o[lang] || o.ru;
+  const ayah = SPLASH_AYAHS[Math.floor(Date.now() / 86400000) % SPLASH_AYAHS.length];
+  document.getElementById('spAyahAr').textContent = ayah.ar;
+  document.getElementById('spAyahTr').textContent = pick(ayah);
+  document.getElementById('spAyahSrc').textContent = pick(ayah.src);
+  document.getElementById('spTitle').textContent = ({ ru: 'НАМАЗ', tt: 'НАМАЗ', en: 'NAMAZ' })[lang] || 'НАМАЗ';
+  document.getElementById('spLoadText').textContent = ({ ru: 'Загрузка…', tt: 'Йөкләнә…', en: 'Loading…' })[lang] || 'Загрузка…';
+  document.getElementById('spSkip').textContent = ({ ru: 'коснитесь, чтобы пропустить', tt: 'үткәрү өчен тиегез', en: 'tap to skip' })[lang] || 'коснитесь, чтобы пропустить';
+
+  const dust = document.getElementById('spDust');
+  if (dust && !reduce) {
+    for (let i = 0; i < 18; i++) {
+      const p = document.createElement('i');
+      const size = 2 + Math.random() * 3;
+      p.style.left = (Math.random() * 100) + '%';
+      p.style.width = size + 'px';
+      p.style.height = size + 'px';
+      p.style.setProperty('--dx', ((Math.random() * 2 - 1) * 60) + 'px');
+      p.style.animationDuration = (7 + Math.random() * 9) + 's';
+      p.style.animationDelay = (-Math.random() * 12) + 's';
+      dust.appendChild(p);
+    }
+  }
+
+  let done = false;
+  let hardTimer = null;
+  function finish() {
+    if (done) return;
+    done = true;
+    if (hardTimer) clearTimeout(hardTimer);
+    splash.removeEventListener('click', finish);
+    window.removeEventListener('keydown', onKey);
+    splash.classList.add('sp-hide');
+    document.body.classList.remove('splashing');
+    document.body.classList.add('revealed');
+    setTimeout(() => { if (splash.parentNode) splash.parentNode.removeChild(splash); }, reduce ? 0 : 760);
+  }
+  function onKey(e) {
+    if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') finish();
+  }
+  splash.addEventListener('click', finish);
+  window.addEventListener('keydown', onKey);
+  // Приложение уже готово под splash (офлайн-расчёт мгновенный); держим минимум для анимации
+  setTimeout(finish, reduce ? 250 : 2300);
+  hardTimer = setTimeout(finish, reduce ? 500 : 3400);
+})();
 </script>
 
 <div id="printScheduleContainer" class="print-only"></div>
