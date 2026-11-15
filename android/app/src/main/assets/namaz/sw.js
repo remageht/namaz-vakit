@@ -17,11 +17,13 @@ self.addEventListener('install', (event) => {
 });
 
 // Активация: удаление устаревших версий кэша и захват управления открытыми вкладками
+// aladhan-cache-v1 сохраняем — иначе офлайн-фоллбэк API стирается при каждом обновлении SW
+const KEEP_CACHES = [CACHE_NAME, 'aladhan-cache-v1'];
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.filter((key) => !KEEP_CACHES.includes(key)).map((key) => caches.delete(key))
       );
     }).then(() => self.clients.claim())
   );

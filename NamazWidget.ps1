@@ -13,6 +13,7 @@ public class WinApi {
   [DllImport("user32.dll")] public static extern IntPtr GetWindowLongPtr(IntPtr h, int n);
   [DllImport("user32.dll")] public static extern IntPtr SetWindowLongPtr(IntPtr h, int n, IntPtr v);
   [DllImport("user32.dll")] public static extern IntPtr FindWindow(string c, string w);
+  [DllImport("user32.dll")] public static extern bool DestroyIcon(IntPtr h);
   [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr h, int attr, ref int val, int size);
   public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
 }
@@ -189,7 +190,7 @@ function Calc-PrayerTimes([double]$lat, [double]$lon, [datetime]$date) {
   function fFmt([double]$h) {
     $h = ($h % 24 + 24) % 24
     $hh = [Math]::Floor($h); $mm = [Math]::Round(($h - $hh) * 60)
-    if ($mm -eq 60) { $hh += 1; $mm = 0 }
+    if ($mm -eq 60) { $hh = ($hh + 1) % 24; $mm = 0 }
     "{0:00}:{1:00}" -f [int]$hh, [int]$mm
   }
 
@@ -214,27 +215,87 @@ function Compare-Timings($a, $b) {
   return $maxDiff
 }
 
-function Get-Timings {
-  $today = (Get-Date).ToString("dd-MM-yyyy")
-  if (Test-Path -LiteralPath $CacheFile) {
-    try { $c = Get-Content -LiteralPath $CacheFile -Raw | ConvertFrom-Json
-      if ($c.date -eq $today) { return $c.timings } } catch {}
-  }
+# Фоновая загрузка времени: Invoke-RestMethod в отдельном runspace, чтобы не блокировать UI-поток
+$script:fetchState = [hashtable]::Synchronized(@{ busy = $false; done = $false; result = $null; error = $null; date = $null })
+$script:fetchPS = $null
+$script:fetchRS = $null
+$script:fetchHandle = $null
+
+function Start-TimingsFetch {
+  if ($script:fetchState.busy) { return }
+  $script:fetchState.busy = $true
+  $script:fetchState.done = $false
+  $script:fetchState.result = $null
+  $script:fetchState.error = $null
+  $script:fetchState.date = $null
   try {
-    $r = Invoke-RestMethod -Uri "https://api.aladhan.com/v1/timings/${today}?latitude=${Lat}&longitude=${Lon}&method=${Method}&school=${School}" -TimeoutSec 15
-    $t = $r.data.timings
+    $rs = [runspacefactory]::CreateRunspace()
+    $rs.ApartmentState = 'MTA'
+    $rs.ThreadOptions = 'ReuseThread'
+    $rs.Open()
+    $ps = [powershell]::Create()
+    $ps.Runspace = $rs
+    [void]$ps.AddScript({
+      param($lat, $lon, $method, $school, $today, $state)
+      try {
+        # Внутренняя нумерация методов (2=MWL, 3=Egypt) отличается от Aladhan API (3=MWL, 5=Egypt)
+        $apiMethod = switch ($method) { 2 { 3 } 3 { 5 } default { $method } }
+        $r = Invoke-RestMethod -Uri "https://api.aladhan.com/v1/timings/${today}?latitude=${lat}&longitude=${lon}&method=${apiMethod}&school=${school}" -TimeoutSec 15
+        $state.result = $r.data.timings
+        $state.date = $today
+      } catch {
+        $state.error = $_.Exception.Message
+      } finally {
+        $state.done = $true
+      }
+    }).AddArgument($Lat).AddArgument($Lon).AddArgument($Method).AddArgument($School).AddArgument((Get-Date).ToString("dd-MM-yyyy")).AddArgument($script:fetchState)
+    $script:fetchPS = $ps
+    $script:fetchRS = $rs
+    $script:fetchHandle = $ps.BeginInvoke()
+  } catch {
+    $script:fetchState.error = $_.Exception.Message
+    $script:fetchState.done = $true
+  }
+}
+
+function Receive-TimingsFetch {
+  if (-not $script:fetchState.busy -or -not $script:fetchState.done) { return }
+  $t = $script:fetchState.result
+  $err = $script:fetchState.error
+  $resDate = $script:fetchState.date
+  try { if ($script:fetchPS -and $script:fetchHandle) { [void]$script:fetchPS.EndInvoke($script:fetchHandle) } } catch {}
+  try { if ($script:fetchPS) { $script:fetchPS.Dispose() } } catch {}
+  try { if ($script:fetchRS) { $script:fetchRS.Dispose() } } catch {}
+  $script:fetchPS = $null; $script:fetchRS = $null; $script:fetchHandle = $null
+  $script:fetchState.busy = $false
+  $today = (Get-Date).ToString("dd-MM-yyyy")
+  if ($t -and $resDate -eq $today) {
     try { $off = Calc-PrayerTimes $Lat $Lon (Get-Date); $maxD = Compare-Timings $t $off
       if ($maxD -gt 2) { Log "WARN офлайн-расхождение ${maxD} мин" } else { Log "Офлайн сверка OK лтч${maxD} мин" }
     } catch {}
-    @{ date = $today; timings = $t } | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $CacheFile
+    @{ date = $today; timings = $t } | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $CacheFile -Encoding UTF8
+    $script:timings = $t
     Log "Время загружено: Фаджр $($t.Fajr), Иша $($t.Isha)"
-    return $t
-  } catch {
-    Log "API ошибка: $($_.Exception.Message) — офлайн-расчёт"
-    $off = Calc-PrayerTimes $Lat $Lon (Get-Date)
-    Log "Офлайн: Фаджр $($off.Fajr), Иша $($off.Isha)"
-    return $off
+  } elseif ($t) {
+    # Ответ пришёл уже после смены суток — запрашиваем заново для нового дня
+    Log "API ответ устарел (смена суток) — повторный запрос"
+    Start-TimingsFetch
+  } elseif ($err) {
+    Log "API ошибка: $err — офлайн-расчёт"
   }
+}
+
+function Get-Timings {
+  # Мгновенный возврат без сети: кэш сегодняшнего дня либо офлайн-расчёт; API уточняется в фоне
+  $today = (Get-Date).ToString("dd-MM-yyyy")
+  if (Test-Path -LiteralPath $CacheFile) {
+    try { $c = Get-Content -LiteralPath $CacheFile -Raw | ConvertFrom-Json
+      if ($c.date -eq $today) { Start-TimingsFetch; return $c.timings } } catch {}
+  }
+  $off = Calc-PrayerTimes $Lat $Lon (Get-Date)
+  Log "Офлайн: Фаджр $($off.Fajr), Иша $($off.Isha)"
+  Start-TimingsFetch
+  return $off
 }
 
 $script:timings = Get-Timings
@@ -254,12 +315,18 @@ function To-Date($t) {
 
 # Стартовая иконка: полумесяц из icon-192.png, иначе стандартная
 $icon = [System.Drawing.SystemIcons]::Information
+$ownIcon = $false
 try {
   $p = Join-Path $ScriptDir "icon-192.png"
   if (Test-Path -LiteralPath $p) {
     $b0 = New-Object System.Drawing.Bitmap($p)
-    $icon = [System.Drawing.Icon]::FromHandle($b0.GetHicon())
+    $hIcon = $b0.GetHicon()
+    $tmpIcon = [System.Drawing.Icon]::FromHandle($hIcon)
+    $icon = [System.Drawing.Icon]$tmpIcon.Clone()
+    $tmpIcon.Dispose()
+    [void][WinApi]::DestroyIcon($hIcon)
     $b0.Dispose()
+    $ownIcon = $true
   }
 } catch {}
 
@@ -269,7 +336,7 @@ $ctx = New-Object System.Windows.Forms.ApplicationContext
 
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $open = $menu.Items.Add("Открыть приложение"); $open.Add_Click({ Open-NamazApp })
-$ref = $menu.Items.Add("Обновить время"); $ref.Add_Click({ $script:timings = Get-Timings })
+$ref = $menu.Items.Add("Обновить время"); $ref.Add_Click({ Start-TimingsFetch })
 $script:userHidden = $false
 $tMenu = $menu.Items.Add("Тема оформления")
 $tG = $tMenu.DropDownItems.Add("Золотая (Gold)"); $tG.Add_Click({ Apply-Theme "gold"; Save-Config })
@@ -298,7 +365,12 @@ $pic.Size = New-Object System.Drawing.Size(32, 32)
 $pic.Location = New-Object System.Drawing.Point(8, 8)
 $pic.SizeMode = "StretchImage"
 try { $ip = Join-Path $ScriptDir "icon-192.png"
-  if (Test-Path -LiteralPath $ip) { $pic.Image = [System.Drawing.Image]::FromFile($ip) }
+  if (Test-Path -LiteralPath $ip) {
+    # Загружаем через память: Image.FromFile блокировал бы файл до Dispose (мешает sync-assets)
+    $imgBytes = [System.IO.File]::ReadAllBytes($ip)
+    $script:picStream = New-Object System.IO.MemoryStream(,$imgBytes)
+    $pic.Image = [System.Drawing.Image]::FromStream($script:picStream)
+  }
 } catch {}
 $lblMain = New-Object System.Windows.Forms.Label
 $lblMain.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
@@ -321,7 +393,6 @@ $panel.Controls.Add($pic)
 $panel.Controls.Add($lblMain)
 $panel.Controls.Add($lblSub)
 $scr = [System.Windows.Forms.Screen]::PrimaryScreen
-$b = $scr.Bounds
 $w = $scr.WorkingArea
 $wa = $w
 $panel.Location = New-Object System.Drawing.Point(($wa.Left + 20), ($wa.Bottom - $panel.Height - 10))
@@ -524,6 +595,7 @@ $ayah.Text = "إن الصلاة كانت على المؤمنين كتابا مو
 $sched.Controls.Add($ayah)
 $dayClick = {
   try {
+    if ($script:deactTimer) { $script:deactTimer.Stop() }
     $now2 = Get-Date
     $nextK = $null
     foreach ($k in @("Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha")) {
@@ -628,30 +700,51 @@ foreach ($c in @($panel, $pic, $lblMain, $lblSub)) {
   $c.Add_MouseUp($onMouseUp)
   $c.Add_DoubleClick({ & $dayClick })
 }
+# Отложенное скрытие: клик по трею сначала вызывает Deactivate, затем Click —
+# без задержки popup закрывался бы и тут же открывался заново (toggle ломался)
+$script:deactTimer = New-Object System.Windows.Forms.Timer
+$script:deactTimer.Interval = 200
+$script:deactTimer.Add_Tick({
+  $script:deactTimer.Stop()
+  try {
+    if (-not $sched.Visible) { return }
+    $pt = [System.Windows.Forms.Cursor]::Position
+    if ($panel.Bounds.Contains($pt)) { return }
+    if ($sched.Bounds.Contains($pt)) { return }
+    $sched.Hide()
+  } catch {}
+})
 $sched.Add_Deactivate({
   try {
     $pt = [System.Windows.Forms.Cursor]::Position
     if ($panel.Bounds.Contains($pt)) { return }
-    $sched.Hide()
+    $script:deactTimer.Stop()
+    $script:deactTimer.Start()
   } catch {}
 })
+
+function Set-LabelFont($label, $size, $bold) {
+  $old = $label.Font
+  $label.Font = New-AppFont $size $bold
+  if ($old) { $old.Dispose() }
+}
 
 function Apply-Compact {
   if ($Compact) {
     $panel.Size = New-Object System.Drawing.Size(130, 40)
     $pic.Size = New-Object System.Drawing.Size(24, 24)
     $pic.Location = New-Object System.Drawing.Point(6, 8)
-    $lblMain.Font = New-AppFont 9 $true
+    Set-LabelFont $lblMain 9 $true
     $lblMain.Location = New-Object System.Drawing.Point(36, 1)
-    $lblSub.Font = New-AppFont 8 $false
+    Set-LabelFont $lblSub 8 $false
     $lblSub.Location = New-Object System.Drawing.Point(36, 19)
   } else {
     $panel.Size = New-Object System.Drawing.Size(160, 48)
     $pic.Size = New-Object System.Drawing.Size(32, 32)
     $pic.Location = New-Object System.Drawing.Point(8, 8)
-    $lblMain.Font = New-AppFont 11 $true
+    Set-LabelFont $lblMain 11 $true
     $lblMain.Location = New-Object System.Drawing.Point(48, 3)
-    $lblSub.Font = New-AppFont 9 $false
+    Set-LabelFont $lblSub 9 $false
     $lblSub.Location = New-Object System.Drawing.Point(48, 24)
   }
 }
@@ -782,6 +875,7 @@ $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 250
 $timer.Add_Tick({
 try {
+  Receive-TimingsFetch
   $now = Get-Date
   if ((Get-Date).ToString("dd-MM-yyyy") -ne $script:day) { $script:timings = Get-Timings; $script:day = (Get-Date).ToString("dd-MM-yyyy") }
   $next = $null
@@ -790,7 +884,7 @@ try {
   $s = [int]($next.date - $now).TotalSeconds
   $cd = "{0:00}:{1:00}:{2:00}" -f ($s/3600), (($s%3600)/60), ($s%60)
   $scr = [System.Windows.Forms.Screen]::PrimaryScreen
-  $b = $scr.Bounds; $w = $scr.WorkingArea
+  $w = $scr.WorkingArea
   if (-not $script:userMoved) {
     $defX = $w.Left + 20
     $defY = $w.Bottom - $panel.Height - 10
@@ -802,7 +896,6 @@ try {
   if ($panel.Visible -ne $vis) { $panel.Visible = $vis; Log ("panel visible -> " + $vis) }
   if ($panel.WindowState -eq [System.Windows.Forms.FormWindowState]::Minimized) { try { $panel.WindowState = [System.Windows.Forms.FormWindowState]::Normal; Log "panel restored from minimized" } catch {} }
   if ($vis) { try { [void][WinApi]::SetWindowPos($panel.Handle, [IntPtr](-1), 0, 0, 0, 0, 0x0033) } catch {} }
-  $nidx = Get-NameIdx
   $tipText = "{0} {1} -{2}" -f $Names[$next.key], $next.date.ToString("HH:mm"), $cd
   if ($tipText.Length -gt 63) { $tipText = $tipText.Substring(0, 63) }
   $ni.Text = $tipText
@@ -823,6 +916,7 @@ try {
   $morningKey = "morning_" + (Get-Date).ToString("yyyy-MM-dd")
   if ($now.Hour -ge 6 -and $now.Hour -le 11 -and $script:lastMorning -ne $morningKey) {
     $script:lastMorning = $morningKey
+    $nidx = Get-NameIdx
     $ni.ShowBalloonTip(12000, "Имя дня ☝ — №$($nidx+1)", "$($AN[$nidx][0]) · $($AN[$nidx][1])`r`n$($AN[$nidx][2])", [System.Windows.Forms.ToolTipIcon]::Info)
     Log "Утреннее имя: №$($nidx+1) $($AN[$nidx][1])"
   }
@@ -841,5 +935,15 @@ try {
 Log "Виджет запущен"
 $ni.ShowBalloonTip(6000, "Намаз — Время молитвы", "Виджет запущен в левом нижнем углу и в трее.", [System.Windows.Forms.ToolTipIcon]::Info)
 [System.Windows.Forms.Application]::Run($ctx)
-$timer.Stop(); $ni.Dispose(); try { Remove-Item -LiteralPath $PidFile -Force -ErrorAction SilentlyContinue } catch {}
+# Освобождение ресурсов при штатном выходе
+$timer.Stop(); $timer.Dispose()
+try { $script:deactTimer.Stop(); $script:deactTimer.Dispose() } catch {}
+try { if ($script:fetchPS) { $script:fetchPS.Dispose() } } catch {}
+try { if ($script:fetchRS) { $script:fetchRS.Dispose() } } catch {}
+$ni.Visible = $false; $ni.Dispose()
+if ($ownIcon -and $icon) { try { $icon.Dispose() } catch {} }
+try { if ($pic.Image) { $pic.Image.Dispose() } } catch {}
+try { if ($script:picStream) { $script:picStream.Dispose() } } catch {}
+try { $panel.Dispose(); $sched.Dispose(); $settings.Dispose() } catch {}
+try { Remove-Item -LiteralPath $PidFile -Force -ErrorAction SilentlyContinue } catch {}
 Log "Виджет остановлен"
