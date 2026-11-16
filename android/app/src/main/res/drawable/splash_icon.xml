@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Eight-point star (rub el hizb): two squares, one rotated 45deg -->
+    <group android:pivotX="54" android:pivotY="54" android:rotation="0">
+        <path
+            android:strokeColor="#F7E8A4"
+            android:strokeWidth="1.6"
+            android:strokeAlpha="0.75"
+            android:fillColor="#00000000"
+            android:pathData="M30,30 L78,30 L78,78 L30,78 Z" />
+    </group>
+    <group android:pivotX="54" android:pivotY="54" android:rotation="45">
+        <path
+            android:strokeColor="#F7E8A4"
+            android:strokeWidth="1.6"
+            android:strokeAlpha="0.75"
+            android:fillColor="#00000000"
+            android:pathData="M30,30 L78,30 L78,78 L30,78 Z" />
+    </group>
+
+    <!-- Golden crescent (outer circle minus offset inner circle, evenOdd) -->
+    <path
+        android:fillColor="#D4AF37"
+        android:fillType="evenOdd"
+        android:pathData="M54,24 a30,30 0 1,0 0,60 a30,30 0 1,0 0,-60 z M63,31 a19,19 0 1,0 0,38 a19,19 0 1,0 0,-38 z" />
+
+    <!-- Small sparkle star -->
+    <path
+        android:fillColor="#F7E8A4"
+        android:pathData="M84,34 l2,5 l5,2 l-5,2 l-2,5 l-2,-5 l-5,-2 l5,-2 z" />
+</vector>

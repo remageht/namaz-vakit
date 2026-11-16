@@ -6,9 +6,14 @@ const fs = require('fs');
 
 const SMOKE = process.argv.includes('--smoke');
 let win = null;
+let splashWin = null;
 let tray = null;
 let quitting = false;
 let latestTrayData = null;
+let handoffDone = false;
+let handoffScheduled = false;
+let splashStart = 0;
+const MIN_SPLASH_MS = 1900;
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -35,6 +40,7 @@ function createWindow() {
     icon: path.join(__dirname, 'app', 'icon-512.png'),
     autoHideMenuBar: true,
     title: 'Намаз — время и Кибла',
+    show: SMOKE,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       backgroundThrottling: false,
@@ -44,6 +50,8 @@ function createWindow() {
 
   win.setMenuBarVisibility(false);
   win.loadFile(path.join(__dirname, 'app', 'index.html'));
+
+  win.once('ready-to-show', () => handoff());
 
   win.on('close', (e) => {
     if (!quitting && !SMOKE) {
@@ -81,6 +89,37 @@ function createWindow() {
       console.log(errors === 0 ? 'SMOKE-OK no renderer errors' : `SMOKE-FAIL ${errors} renderer errors`);
       app.quit();
     }, 9000);
+  }
+}
+
+function createSplash() {
+  if (SMOKE) return;
+  splashStart = Date.now();
+  splashWin = new BrowserWindow({
+    width: 420, height: 560, frame: false, resizable: false,
+    alwaysOnTop: true, skipTaskbar: true, center: true, show: true,
+    backgroundColor: '#06281F',
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true }
+  });
+  splashWin.setMenuBarVisibility(false);
+  splashWin.loadFile(path.join(__dirname, 'splash.html'));
+  splashWin.on('closed', () => { splashWin = null; });
+}
+
+function handoff() {
+  if (handoffDone || handoffScheduled) return;
+  handoffScheduled = true;
+  const wait = Math.max(0, MIN_SPLASH_MS - (Date.now() - splashStart));
+  setTimeout(doHandoff, wait);
+}
+
+function doHandoff() {
+  if (handoffDone) return;
+  handoffDone = true;
+  try { if (win && !win.isDestroyed()) { win.show(); win.focus(); } } catch {}
+  if (splashWin && !splashWin.isDestroyed()) {
+    try { splashWin.webContents.executeJavaScript('window.__splashHide && window.__splashHide();'); } catch {}
+    setTimeout(() => { try { if (splashWin && !splashWin.isDestroyed()) splashWin.close(); } catch {} splashWin = null; }, 450);
   }
 }
 
@@ -203,8 +242,11 @@ ipcMain.on('sync-config', (event, cfg) => {
 
 app.whenReady().then(() => {
   allowPermissions();
+  createSplash();
   createWindow();
   createTray();
+  // Страховка: интерфейс покажем даже если ready-to-show задержится
+  if (!SMOKE) setTimeout(handoff, 3500);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

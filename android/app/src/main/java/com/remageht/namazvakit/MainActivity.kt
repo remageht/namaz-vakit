@@ -337,6 +337,12 @@ class MainActivity : Activity() {
         }
 
         setContentView(wv)
+        // Стартовый preview показывает splash_background; рабочее окно — просто изумруд,
+        // чтобы иконка из windowBackground не оставалась за WebView (pre-API31).
+        try {
+            window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.parseColor("#06281F")))
+        } catch (_: Exception) {
+        }
         // Standalone app: bundled copy is primary, never redirect to web.
         wv.loadUrl(OFFLINE_URL)
 
