@@ -13,7 +13,7 @@ let latestTrayData = null;
 let handoffDone = false;
 let handoffScheduled = false;
 let splashStart = 0;
-const MIN_SPLASH_MS = 1900;
+const MIN_SPLASH_MS = 4200;
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

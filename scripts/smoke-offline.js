@@ -38,7 +38,7 @@ check('apiMethod 13(Diyanet)->13', apiMethodNumber('13') === 13);
 // 2) Паритет формул JS ↔ PS
 const cases = [];
 let id = 0;
-const locs = [[45.1342, 33.60], [55.7558, 37.6173], [60.0, 10.0]];
+const locs = [[21.4225, 39.8262], [55.7558, 37.6173], [60.0, 10.0]];
 const dates = [[2026, 1, 15], [2026, 3, 20], [2026, 6, 21], [2026, 9, 23], [2026, 12, 21]];
 for (const [lat, lon] of locs)
   for (const [y, mo, d] of dates)

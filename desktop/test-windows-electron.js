@@ -101,10 +101,10 @@ async function runTests() {
   console.log(`Initial Console Errors: ${client.consoleErrors.length}`);
 
   console.log('\n--- 2. GEOLOCATION GPS TEST (CUSTOM OVERRIDE) ---');
-  // Set custom geolocation override for Saki (45.1342, 33.60), accuracy 20m
+  // Set custom geolocation override for Moscow (55.7558, 37.6173), accuracy 20m
   await client.send('Emulation.setGeolocationOverride', {
-    latitude: 45.1342,
-    longitude: 33.60,
+    latitude: 55.7558,
+    longitude: 37.6173,
     accuracy: 20
   });
 
@@ -136,8 +136,8 @@ async function runTests() {
   await client.screenshot(path.join(__dirname, '..', 'screenshots', 'windows_gps_ip_fallback.png'));
 
   console.log('\n--- 4. COMPASS & MATHEMATICS VERIFICATION ---');
-  // Restore Saki location for accurate Qibla math check
-  await client.eval("saveLocationFix(45.1342, 33.60, 20, 'gps')");
+  // Restore Moscow location for accurate Qibla math check
+  await client.eval("saveLocationFix(55.7558, 37.6173, 20, 'gps')");
   await client.eval("openPage('p-qibla')");
   await sleep(500);
 

@@ -7,7 +7,7 @@ import kotlin.math.*
 
 /**
  * Offline prayer-times math (Egypt angles Fajr 19.5 / Isha 17.5, Hanafi Asr).
- * Cross-checked against Aladhan API method 3 within +-1 min for Saki.
+ * Cross-checked against Aladhan API method 3 within +-1 min at mid latitudes.
  */
 object PrayTimes {
 
