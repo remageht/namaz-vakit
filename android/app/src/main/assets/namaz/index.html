@@ -7410,6 +7410,13 @@ window.addEventListener('beforeprint', () => {
 (function initSplash() {
   const splash = document.getElementById('splash');
   if (!splash) { document.body.classList.remove('splashing'); return; }
+  // В Electron-оболочке нативное splash-окно уже показано — HTML-splash не дублируем
+  if (window.NamazDesktop && window.NamazDesktop.isDesktop) {
+    if (splash.parentNode) splash.parentNode.removeChild(splash);
+    document.body.classList.remove('splashing');
+    document.body.classList.add('revealed');
+    return;
+  }
   if (splash.classList.contains('sp-hide')) {
     document.body.classList.remove('splashing');
     document.body.classList.add('revealed');
