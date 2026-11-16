@@ -6,9 +6,37 @@ PWA-приложение + виджет Windows: время намаза, обр
 
 ## Скриншоты
 
-| Виджет в трее | Квиз / Заучивание |
+| Заставка (Desktop) | Заставка (Android) |
 |---|---|
-| ![taskbar](screenshots/taskbar.png) | ![quiz](screenshots/quiz.png) |
+| ![splash desktop](screenshots/desktop_splash.png) | ![splash android](screenshots/android_splash.png) |
+
+| Приложение (Windows) | Приложение (Android) | Виджет в трее | Квиз |
+|---|---|---|---|
+| ![win](screenshots/windows_times.png) | ![android](screenshots/phone_times.png) | ![taskbar](screenshots/taskbar.png) | ![quiz](screenshots/quiz.png) |
+
+## Заставка / Splash
+
+Кинематографичный экран появления во всех средах: изумрудный фон, золотые лучи и частицы,
+полумесяц в восьмиконечной звезде (rub el hizb), shimmer-заголовок и **аят дня золотой
+арабской каллиграфией** с переводом RU/TT/EN и ссылкой на суру.
+
+- **PWA / WebView** — HTML-splash внутри `index.html` (0 мс офлайн-расчёт идёт под splash).
+- **Windows / Linux / macOS (Electron)** — отдельное нативное splash-окно (`desktop/splash.html`)
+  с плавной передачей основному окну.
+- **Android** — системный `SplashScreen` (API 31+, `windowSplashScreenAnimatedIcon`) и
+  брендовый `windowBackground` для Android 8–11.
+- Пропуск по тапу/Escape, поддержка `prefers-reduced-motion`, самоочистка из DOM.
+
+## Сборка Android
+
+```bash
+cd android
+# Требуется Android SDK (compileSdk 35, minSdk 26) и JDK 17+ (например, JBR из Android Studio)
+JAVA_HOME="<path-to-jdk-17+>" gradle :app:assembleDebug
+# APK: android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Синхронизация ассетов PWA в обёртки перед сборкой: `node desktop/sync-assets.js`.
 
 ## Возможности
 
@@ -21,6 +49,7 @@ PWA-приложение + виджет Windows: время намаза, обр
 - 🌙 **Утреннее уведомление**: BalloonTip с именем дня при первом запуске виджета
 - 📴 **Офлайн-расчёт**: при недоступности API виджет считает время методом Egypt (Fajr 19.5°, Isha 17.5°), Ханафи, погрешность ≤2 мин
 - 📦 **PWA**: manifest.json, Service Worker cache-first, иконки 192/512 (полумесяц), установка: Android → ⋮ → Установить, iPhone → Поделиться → На экран Домой
+- ✨ **Заставка**: нативный splash в PWA / Electron / Android с золотой каллиграфией аята дня, пропускается, уважает reduced-motion
 
 ## Установка
 
@@ -66,7 +95,7 @@ http://localhost:8000
 
 ### Настройка координат и метода
 
-По умолчанию заданы координаты Саки (Крым): lat=45.1342, lon=33.60, метод=3 (Egypt), школа=1 (Ханафи).
+По умолчанию заданы нейтральные координаты (Мекка): lat=21.4225, lon=39.8262, метод=3, школа=1 (Ханафи). Реальное место определяется через GPS, выбор города или ручной ввод.
 Чтобы сменить место — отредактируйте `config.json`:
 ```json
 {
@@ -100,7 +129,7 @@ http://localhost:8000
 | `Start-NamazWidget.vbs` | VBS-скрипт для автозапуска в меню «Автозагрузка» |
 | `Install.bat` | Быстрая установка виджета в автозагрузку + desktop shortcut |
 | `Uninstall.bat` | Полное удаление ярлыков и процессов |
-| `config.json` | Координаты/метод/школа (Саки по умолчанию) |
+| `config.json` | Координаты/метод/школа (Мекка по умолчанию) |
 | `screenshots/` | Скриншоты виджета и PWA |
 | `.gitignore` | Игнорирует `.agent/`, `widget.log`, `names_start.txt` и `node_modules/` |
 

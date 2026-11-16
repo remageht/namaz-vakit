@@ -45,7 +45,7 @@ try {
   [System.IO.File]::WriteAllText($PidFile, $myId.ToString(), [System.Text.Encoding]::ASCII)
 } catch {}
 $ConfigFile = Join-Path $ScriptDir "config.json"
-$Lat = 45.1342; $Lon = 33.60; $Method = 3; $School = 1; $Place = "Саки"
+$Lat = 21.4225; $Lon = 39.8262; $Method = 3; $School = 1; $Place = "Мекка"
 $Lang = "ru"; $StartupOn = $true; $ShowCD = $true; $ShowSec = $false; $Compact = $false; $RemMin = 10; $Theme = "gold"
 if (Test-Path -LiteralPath $ConfigFile) {
   try { $cfg = Get-Content -LiteralPath $ConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -77,7 +77,7 @@ function Update-Lang {
   else { $script:Names = $NamesRU; $script:T = $STR.ru }
 }
 Update-Lang
-# Саки, Egypt-метод (сверен с islam.global), Ханафи
+# Дефолт: Мекка; метод/мазхаб/город берутся из config.json (или расчитываются офлайн)
 $AppUrl = "https://remageht.github.io/namaz-vakit/"
 
 function Get-NamazAppExe {

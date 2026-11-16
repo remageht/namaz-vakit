@@ -18,8 +18,8 @@ import java.util.Locale
 object WidgetCommon {
     const val ACTION_TICK = "com.remageht.namazvakit.TICK"
     const val APP_URL = "https://remageht.github.io/namaz-vakit/"
-    private const val DEF_LAT = 45.1342
-    private const val DEF_LON = 33.60
+    private const val DEF_LAT = 21.4225
+    private const val DEF_LON = 39.8262
 
     /** Coordinates and settings synced from the app (GPS/city pick); defaults otherwise. */
     fun latOf(context: Context): Double =
