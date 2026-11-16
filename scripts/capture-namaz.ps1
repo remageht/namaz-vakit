@@ -10,7 +10,6 @@ public class WEnum {
   [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
   [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
   [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
-  [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr h, int i);
   public struct RECT { public int Left, Top, Right, Bottom; }
   public static List<RECT> FindByPids(HashSet<uint> pids) {
     var list = new List<RECT>();
@@ -20,7 +19,6 @@ public class WEnum {
       if (!pids.Contains(p)) return true;
       RECT r; GetWindowRect(h, out r);
       int w = r.Right - r.Left, ht = r.Bottom - r.Top;
-      // skip cloaked/tool windows: require a reasonable app-window size
       if (w > 200 && ht > 200 && w < 2000 && ht < 2000) list.Add(r);
       return true;
     }, IntPtr.Zero);
@@ -28,9 +26,12 @@ public class WEnum {
   }
 }
 "@
+# Only the MAIN electron process (no --type= child) that runs our app owns the app windows.
+$main = Get-CimInstance Win32_Process -Filter "Name='electron.exe'" -ErrorAction SilentlyContinue |
+  Where-Object { $_.CommandLine -like '*namaz-app*desktop*' -and $_.CommandLine -notlike '*--type=*' }
 $ids = New-Object 'System.Collections.Generic.HashSet[uint32]'
-foreach ($proc in (Get-Process -Name electron -ErrorAction SilentlyContinue)) { [void]$ids.Add([uint32]$proc.Id) }
-if ($ids.Count -eq 0) { Write-Host 'no-electron-pids'; exit 2 }
+foreach ($p in $main) { [void]$ids.Add([uint32]$p.ProcessId) }
+if ($ids.Count -eq 0) { Write-Host 'no-main-pid'; exit 2 }
 $rects = [WEnum]::FindByPids($ids)
 if (-not $rects -or $rects.Count -eq 0) { Write-Host 'no-window'; exit 2 }
 $best = $rects[0]; $area = 0
