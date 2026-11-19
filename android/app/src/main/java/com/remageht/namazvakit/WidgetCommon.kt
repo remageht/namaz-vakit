@@ -1,14 +1,19 @@
 package com.remageht.namazvakit
 
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
+import android.media.RingtoneManager
+import android.media.ToneGenerator
 import android.net.Uri
+import android.os.Build
 import android.os.SystemClock
 import android.widget.RemoteViews
 import java.util.Calendar
@@ -41,6 +46,18 @@ object WidgetCommon {
     fun langOf(context: Context): String =
         context.getSharedPreferences("loc", Context.MODE_PRIVATE)
             .getString("lang", "ru") ?: "ru"
+
+    fun soundModeOf(context: Context): String =
+        context.getSharedPreferences("loc", Context.MODE_PRIVATE)
+            .getString("sound_mode", "adhan") ?: "adhan"
+
+    fun soundVolumeOf(context: Context): Int =
+        context.getSharedPreferences("loc", Context.MODE_PRIVATE)
+            .getInt("sound_volume", 80)
+
+    fun respectDndOf(context: Context): Boolean =
+        context.getSharedPreferences("loc", Context.MODE_PRIVATE)
+            .getBoolean("respect_dnd", true)
 
     private val PRAYERS = listOf("Fajr", "Dhuhr", "Asr", "Maghrib", "Isha")
 
@@ -153,9 +170,10 @@ object WidgetCommon {
             else -> "Isha"
         }
 
-    /** Fires the bundled chime once within a minute of any prayer start. */
+    /** Fires the sound alert once within a minute of any prayer start. */
     private fun maybeAdhan(context: Context, now: Calendar) {
         try {
+            val mode = soundModeOf(context)
             val day = now.get(Calendar.DAY_OF_YEAR) * 1000 + now.get(Calendar.YEAR)
             val prefs = context.getSharedPreferences("adhan", Context.MODE_PRIVATE)
             val times = PrayTimes.calculate(latOf(context), lonOf(context), now, methodOf(context), schoolOf(context))
@@ -174,7 +192,9 @@ object WidgetCommon {
                     val firedKey = "$day$key"
                     if (prefs.getString("last", "") != firedKey) {
                         prefs.edit().putString("last", firedKey).apply()
-                        playChime(context)
+                        if (mode != "off") {
+                            playSound(context, mode)
+                        }
                     }
                     return
                 }
@@ -183,15 +203,55 @@ object WidgetCommon {
         }
     }
 
-    private fun playChime(context: Context) {
+    private fun playSound(context: Context, mode: String) {
         try {
+            if (mode == "off") return
+
+            // 1. Проверяем режим «Не беспокоить» (DND) и беззвучный режим
+            if (respectDndOf(context)) {
+                val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                if (am != null) {
+                    val ringer = am.ringerMode
+                    if (ringer == AudioManager.RINGER_MODE_SILENT || ringer == AudioManager.RINGER_MODE_VIBRATE) {
+                        return
+                    }
+                }
+
+                val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && nm != null) {
+                    val filter = nm.currentInterruptionFilter
+                    if (filter != NotificationManager.INTERRUPTION_FILTER_ALL &&
+                        filter != NotificationManager.INTERRUPTION_FILTER_UNKNOWN) {
+                        return
+                    }
+                }
+            }
+
+            val volumePercent = soundVolumeOf(context).coerceIn(0, 100)
+            if (volumePercent <= 0) return
+            val vol = volumePercent / 100f
+
+            if (mode == "beep") {
+                try {
+                    val tone = ToneGenerator(AudioManager.STREAM_NOTIFICATION, volumePercent)
+                    tone.startTone(ToneGenerator.TONE_PROP_BEEP, 350)
+                    return
+                } catch (_: Exception) {
+                    val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                    val r = RingtoneManager.getRingtone(context, uri)
+                    r?.play()
+                    return
+                }
+            }
+
             val mp = MediaPlayer.create(context, R.raw.adhan) ?: return
             mp.setAudioAttributes(
                 AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build()
             )
+            mp.setVolume(vol, vol)
             mp.setOnCompletionListener { it.release() }
             mp.start()
         } catch (_: Exception) {

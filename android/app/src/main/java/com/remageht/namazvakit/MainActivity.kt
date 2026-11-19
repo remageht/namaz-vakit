@@ -2,9 +2,11 @@ package com.remageht.namazvakit
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -77,25 +79,85 @@ class TtsBridge(activity: Activity) {
     }
 }
 
-/** JS bridge: keeps native widgets in sync with the PWA location. */
+/** JS bridge: keeps native widgets in sync with the PWA location and sound settings. */
 class HostBridge(private val activity: Activity) {
     @JavascriptInterface
     fun syncSettings(lat: Double, lon: Double, method: Int, school: Int, lang: String) {
+        syncSettings(lat, lon, method, school, lang, "adhan", 80, true)
+    }
+
+    @JavascriptInterface
+    fun syncSettings(
+        lat: Double,
+        lon: Double,
+        method: Int,
+        school: Int,
+        lang: String,
+        soundMode: String,
+        soundVolume: Int,
+        respectDnd: Boolean
+    ) {
         try {
             if (lat.isNaN() || lon.isNaN()) return
             if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return
             val safeLang = if (lang in listOf("ru", "tt", "en")) lang else "ru"
+            val safeSound = if (soundMode in listOf("adhan", "beep", "off")) soundMode else "adhan"
             activity.getSharedPreferences("loc", Context.MODE_PRIVATE).edit()
                 .putFloat("lat", lat.toFloat())
                 .putFloat("lon", lon.toFloat())
                 .putInt("method", method)
                 .putInt("school", school)
                 .putString("lang", safeLang)
+                .putString("sound_mode", safeSound)
+                .putInt("sound_volume", soundVolume.coerceIn(0, 100))
+                .putBoolean("respect_dnd", respectDnd)
                 .apply()
             WidgetCommon.schedule(activity)
             WidgetCommon.updateAll(activity)
             PanelService.refresh(activity)
         } catch (_: Exception) {
+        }
+    }
+
+    @JavascriptInterface
+    fun syncSound(soundMode: String, soundVolume: Int, respectDnd: Boolean) {
+        try {
+            val safeSound = if (soundMode in listOf("adhan", "beep", "off")) soundMode else "adhan"
+            activity.getSharedPreferences("loc", Context.MODE_PRIVATE).edit()
+                .putString("sound_mode", safeSound)
+                .putInt("sound_volume", soundVolume.coerceIn(0, 100))
+                .putBoolean("respect_dnd", respectDnd)
+                .apply()
+        } catch (_: Exception) {
+        }
+    }
+
+    @JavascriptInterface
+    fun canPlaySound(): Boolean {
+        try {
+            val prefs = activity.getSharedPreferences("loc", Context.MODE_PRIVATE)
+            val mode = prefs.getString("sound_mode", "adhan") ?: "adhan"
+            if (mode == "off") return false
+            val volume = prefs.getInt("sound_volume", 80)
+            if (volume <= 0) return false
+
+            val respectDnd = prefs.getBoolean("respect_dnd", true)
+            if (respectDnd) {
+                val am = activity.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                if (am != null && (am.ringerMode == AudioManager.RINGER_MODE_SILENT || am.ringerMode == AudioManager.RINGER_MODE_VIBRATE)) {
+                    return false
+                }
+                val nm = activity.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && nm != null) {
+                    val filter = nm.currentInterruptionFilter
+                    if (filter != NotificationManager.INTERRUPTION_FILTER_ALL && filter != NotificationManager.INTERRUPTION_FILTER_UNKNOWN) {
+                        return false
+                    }
+                }
+            }
+            return true
+        } catch (_: Exception) {
+            return true
         }
     }
 
